@@ -1,7 +1,8 @@
 CXX = dpcpp
 CXXFLAGS = -O2 -g -std=c++17
 
-IMPLICIT_EXE_NAME = memory_benchmark
+DIRS = bin
+IMPLICIT_EXE_NAME = bin/memory_benchmark
 IMPLICIT_SOURCES = memory_benchmark.cpp
 
 all: build_implicit
@@ -14,3 +15,7 @@ run:
 
 clean: 
 	rm -f $(IMPLICIT_EXE_NAME)
+
+
+# Creates needed directories
+$(shell mkdir -p $(DIRS))
