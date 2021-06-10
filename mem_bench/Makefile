@@ -1,5 +1,5 @@
 CXX = dpcpp
-CXXFLAGS = -O2 -g -std=c++17
+CXXFLAGS = -Og -g -std=c++17
 
 DIRS = bin
 IMPLICIT_EXE_NAME = bin/memory_benchmark
