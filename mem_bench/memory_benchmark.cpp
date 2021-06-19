@@ -195,6 +195,11 @@ void main_sequence() {
         // ========== EXPLICIT USM ==========
         if (mode == explicit_USM) {
 
+            log("Mode : EXPLICIT USM");
+            
+            log("============== alloc / free each time ==============");
+
+            // Allocation and free on device, for each iteration
             for (int rpt = 0; rpt < REPEAT_COUNT; ++rpt) {
                 log("Iteration " + std::to_string(rpt) + " on " + std::to_string(REPEAT_COUNT));
 
@@ -270,7 +275,97 @@ void main_sequence() {
                 log("");
             }
 
+
+
+            log("============== alloc / free only once ==============");
+
+            t_start = get_ms();
+            data_type *ddata_input = static_cast<data_type *> (cl::sycl::malloc_device(INPUT_DATA_SIZE, sycl_q));
+            data_type *ddata_output = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
+
+            if (wait_queue) sycl_q.wait_and_throw();
+            t_allocation = get_ms() - t_start;
+            t_start = get_ms();
+
+            sycl_q.memcpy(ddata_input, data_input, INPUT_DATA_SIZE);
+
+            sycl_q.wait_and_throw();
+            t_copy_to_device = get_ms() - t_start;
+
+
+            // Allocation and free on device, for each iteration
+            for (int rpt = 0; rpt < REPEAT_COUNT; ++rpt) {
+                log("Iteration " + std::to_string(rpt) + " on " + std::to_string(REPEAT_COUNT));
+
+                t_start = get_ms();
+
+                // Starts a kernel
+                sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
+                    int cindex = chunk_index[0];
+                    int start_index = cindex * VECTOR_SIZE_PER_ITERATION;
+                    int stop_index = start_index + VECTOR_SIZE_PER_ITERATION;
+                    data_type sum = 0;
+
+                    for (int i = start_index; i < stop_index; ++i) {
+                        sum += ddata_input[i];
+                    }
+
+                    ddata_output[cindex] = sum;
+                });
+
+                //if (wait_queue) 
+                sycl_q.wait_and_throw();
+                t_parallel_for = get_ms() - t_start;
+                t_start = get_ms();
+
+                sycl_q.memcpy(data_output, ddata_output, OUTPUT_DATA_SIZE);
+                sycl_q.wait_and_throw();
+
+                // Value verification
+                data_type total_sum = 0;
+                for (int i = 0; i < OUTPUT_DATA_LENGTH; ++i) {
+                    total_sum += data_output[i];
+                }
+
+                t_read_from_device = get_ms() - t_start;
+
+                if (total_sum == final_result_verif) {
+                    log("VALID - Right data size ! (" + std::to_string(total_sum) + ")");
+                } else {
+                    log("ERROR - expected size " + std::to_string(final_result_verif) + " but found " + std::to_string(total_sum) + ".");
+                }
+
+            
+                t_gpu = t_parallel_for + t_read_from_device;
+                std::cout 
+                        << "t_gpu - - - - - - - - - -  = " << t_gpu << std::endl
+                        << "t_parallel_for - - - - - - = " << t_parallel_for << std::endl
+                        << "t_read_from_device         = " << t_read_from_device << std::endl
+                        ;
+
+                log("");
+            }
+
+
+            t_start = get_ms();
+            cl::sycl::free(ddata_input, sycl_q);
+            cl::sycl::free(ddata_output, sycl_q);
+            if (wait_queue) sycl_q.wait_and_throw();
+            t_free_gpu = get_ms() - t_start;
+
+            int t_mutualisation = t_allocation + t_copy_to_device + t_free_gpu;
+            std::cout 
+            << "t_mutualisation  - - - - - = " << t_mutualisation << std::endl
+            << "t_allocation - - - - - - - = " << t_allocation << std::endl
+            << "t_copy_to_device           = " << t_copy_to_device << std::endl
+            << "t_free_gpu - - - - - - - - = " << t_free_gpu << std::endl
+            ;
+            log("");
+
+
         }
+
+        
 
         std::cout 
             << "t_data_ram_init            = " << t_data_generation_and_ram_allocation << std::endl
