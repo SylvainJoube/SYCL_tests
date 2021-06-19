@@ -10,7 +10,7 @@
 #define INPUT_DATA_SIZE PARALLEL_FOR_SIZE * VECTOR_SIZE_PER_ITERATION
 #define OUTPUT_DATA_SIZE PARALLEL_FOR_SIZE
 
-#define REPEAT_COUNT 10
+#define REPEAT_COUNT 4
 
 // SyCL asynchronous exception handler
 // Create an exception handler for asynchronous SYCL exceptions
