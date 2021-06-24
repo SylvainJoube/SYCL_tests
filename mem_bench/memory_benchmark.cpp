@@ -6,8 +6,8 @@
 #include <sys/time.h>
 
 
-#define PARALLEL_FOR_SIZE 1024
-#define VECTOR_SIZE_PER_ITERATION 200 * 1024
+#define PARALLEL_FOR_SIZE 1024 * 200
+#define VECTOR_SIZE_PER_ITERATION 1024
 
 
 #define DATA_TYPE int
