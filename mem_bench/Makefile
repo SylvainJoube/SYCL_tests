@@ -1,17 +1,21 @@
 CXX = dpcpp
 CXXFLAGS = -O0 -g -std=c++17 # -O2 -std=c++17
 
+FILE_NAME = memory_benchmark_file_output
+#chrono_test
+#memory_benchmark_file_output
+
 DIRS = bin
-RUN_EXE_NAME = bin/memory_benchmark_file_output
+RUN_EXE_NAME = bin/$(FILE_NAME)
 #IMPLICIT_SOURCES = memory_benchmark.cpp
 
-all: fileout_build
+all: build run
 
 terminalout_build:
 	$(CXX) $(CXXFLAGS) -o bin/memory_benchmark memory_benchmark.cpp
 
-fileout_build:
-	$(CXX) $(CXXFLAGS) -o bin/memory_benchmark_file_output memory_benchmark_file_output.cpp
+build:
+	$(CXX) $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
 	
 #	$(CXX) $(CXXFLAGS) -o $(IMPLICIT_EXE_NAME) $(IMPLICIT_SOURCES)
 
