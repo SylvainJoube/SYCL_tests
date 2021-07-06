@@ -63,4 +63,4 @@ for (var ids = 0; ids < ds_list_size(j.datasets); ++ids) {
 
 
 
-draw_graph_objs(graph_list, 20, 20, "Itération n°", "Temps pris (ms)", 0, -1);
+draw_graph_objs(graph_list, 20, 20, "Itération n°", "Temps pris (ms)", 0, -1, -1, -1);

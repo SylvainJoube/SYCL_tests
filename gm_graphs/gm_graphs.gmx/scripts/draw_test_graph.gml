@@ -12,6 +12,6 @@ ds_list_add(list, 10, 26);
 var xlabel = "Itération n°";
 var ylabel = "Temps pris parallel_for (ms)";
 
-draw_graph(list, 20, 20, xlabel, ylabel, -1, -1);
+draw_graph(list, 20, 20, xlabel, ylabel, -1, -1, -1, -1);
 
 

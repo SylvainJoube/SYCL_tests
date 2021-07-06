@@ -71,6 +71,6 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
     }
 }
 
-draw_graph_objs(graph_list, 20, 20, "Nombre de workitems (i.e. taille parallel_for)", "Temps pris (ms)", 0, -1);
+draw_graph_objs(graph_list, 20, 20, "Nombre de workitems (i.e. taille parallel_for)", "Temps pris (ms)", 0, -1, -1, -1);
 
 

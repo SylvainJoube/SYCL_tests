@@ -22,17 +22,24 @@
       <script>scripts\draw_some_graph_2.gml</script>
       <script>scripts\draw_some_graph_3.gml</script>
       <script>scripts\draw_some_graph_4.gml</script>
+      <script>scripts\draw_some_graph_5.gml</script>
+      <script>scripts\draw_test_qualtiles.gml</script>
     </scripts>
     <scripts name="draw_graph_base">
       <script>scripts\draw_test_graph.gml</script>
       <script>scripts\draw_graph.gml</script>
+      <script>scripts\draw_graph_objs_old.gml</script>
       <script>scripts\draw_graph_objs.gml</script>
       <script>scripts\find_or_create_graph_points.gml</script>
+      <script>scripts\find_or_create_graph_points_ext.gml</script>
     </scripts>
     <scripts name="utils">
       <script>scripts\list_to_real.gml</script>
       <script>scripts\split_string.gml</script>
       <script>scripts\split_thousands.gml</script>
+      <script>scripts\compute_quartiles.gml</script>
+      <script>scripts\lfind.gml</script>
+      <script>scripts\draw_text_outline.gml</script>
     </scripts>
     <scripts name="tests">
       <script>scripts\check_load_data.gml</script>

@@ -5,9 +5,9 @@
     y = temps pris par [parallel for | allocation | copie | ... ]
 */
 
-var echelle_log = true;
+var echelle_log = false;
 
-g_graph_title = "Temps pris pour chaque élement du vecteur, en fonction du nombre de workitems ";
+g_graph_title = "Temps pris par numéro d'itération ";
 
 if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";
@@ -32,67 +32,42 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
     //show_message("ij index = " + string(ij));
     
     for (var ids = 0; ids < ds_list_size(j.datasets); ++ids) {
+    
+        //if (ids == 0) continue;
         
         var ds = ds_list_find_value(j.datasets, ids);
         //show_message("ij index = " + string(ij) + " ds index = " + string(ids));
         
         //if (j.PARALLEL_FOR_SIZE <= 1024) continue;
         
-        var as_x = j.PARALLEL_FOR_SIZE;
+        //var as_x = ids;//j.PARALLEL_FOR_SIZE;
         
-        if (echelle_log) as_x = log2(as_x);
+        //if (echelle_log) as_x = log2(as_x);
         
         var total_items_count = j.VECTOR_SIZE_PER_ITERATION * j.PARALLEL_FOR_SIZE;
         
-        
-        /*var plist, xlabels, ylabels;
-        plist = ds_list_create();
-        xlabels = ds_list_create();
-        ylabels = ds_list_create();
-        
-        for (var i_iteration = 0; i_iteration < ds_list_size(ds.iterations); ++i_iteration) {
-            var iter = ds_list_find_value(ds.iterations, i_iteration);
-            
-            var as_y = iter.t_parallel_for / total_items_count; // temps pris par un ajout à la somme totale
-            ds_list_add(plist, as_x, as_y); // i_iteration
-            ds_list_add(xlabels, split_thousands(j.PARALLEL_FOR_SIZE));
-            ds_list_add(ylabels, split_thousands(iter.t_parallel_for));
-        }
-        
-        var gp;
-        if ( ds_list_size(plist) != 0 ) {
-            gp = instance_create(0, 0, graph_points);
-            ds_list_add(graph_list, gp);
-            gp.color = merge_color(ds_list_find_value(colors, ids), c_red, 0.8);
-            gp.points = plist;
-            gp.xlabels = xlabels;
-            gp.ylabels = ylabels;
-            gp.name = "Ne devrait pas exister";
-        } else {
-            ds_list_destroy(plist);
-            ds_list_destroy(xlabels);
-            ds_list_destroy(ylabels);
-        }*/
         
         // I don't care about ds.iterations for now
         
         var lsize = ds_list_size(ds.iterations_only_parallel);
         if (lsize != 0) {
-            gp = find_or_create_graph_points(graph_list, "L = " + split_thousands(j.VECTOR_SIZE_PER_ITERATION)); /// "nb. workitems = " + split_thousands(j.PARALLEL_FOR_SIZE)
+            gp = find_or_create_graph_points_ext(graph_list, "dataset " + split_thousands(ids), ids); /// "nb. workitems = " + split_thousands(j.PARALLEL_FOR_SIZE)
             if (gp.newly_created) {
                 gp.color = ds_list_find_value(colors, current_color_index % ds_list_size(colors));
                 ++current_color_index;
             }
             
-            for (var i_iteration = 0; i_iteration < ds_list_size(ds.iterations_only_parallel); ++i_iteration) {
+            for (var i_iteration = 0; i_iteration < lsize; ++i_iteration) {
                 //if (i_iteration <= 1) continue;
                 var iter = ds_list_find_value(ds.iterations_only_parallel, i_iteration);
-                var as_y = iter.t_parallel_for / (total_items_count / 1000000); // temps pris par un ajout à la somme totale
+                var as_x = i_iteration;
+                var as_y = iter.t_parallel_for; // temps pris par le parallel_for
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = split_thousands(j.PARALLEL_FOR_SIZE);
-                pt.ylabel = string(as_y);
+                pt.xlabel = split_thousands(as_x); //split_thousands(j.PARALLEL_FOR_SIZE);
+                pt.ylabel = split_thousands(as_y);
+                pt.color = gp.color; // <- debug only
                 //ds_list_add(gp.points, as_x, as_y);
                 //ds_list_add(gp.xlabels, split_thousands(j.PARALLEL_FOR_SIZE));
                 //ds_list_add(gp.ylabels, string(as_y));
@@ -269,7 +244,7 @@ for (var i = 0; i < ds_list_size(graph_list); ++i) {
 // Afficher les labels pour identifier les différents points
 // Merge des labels entre eux s'ils correspondent (afficher le ds et les autrre sinfos)
 
-draw_graph_objs(graph_list, 20, 20, "Nombre de workitems (i.e. taille parallel_for)", "Temps pris par élément (us)", 0, -1, -1, -1);
+draw_graph_objs(graph_list, 20, 20, "Numéro d'itération", "Temps pris par parallel_for (us)", 0, -1, -1, -1);
 
 ds_list_destroy(graph_list);
 ds_list_destroy(colors);

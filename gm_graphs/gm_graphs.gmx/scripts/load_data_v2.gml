@@ -6,6 +6,14 @@ var delimiter = " ";
 
 ctrl.jobs_fixed_list = ds_list_create();
 
+// used to draw L and M if they are the same every time
+g_VECTOR_SIZE_PER_ITERATION_common = -1; // L
+g_PARALLEL_FOR_SIZE_common = -1; // M
+
+g_display_LM = true;
+
+var limit_iterations = g_limit_iterations;//-1; //12;
+
 while ( ! file_text_eof(file) ) {
     
     var header_str = file_text_readln(file);
@@ -19,11 +27,27 @@ while ( ! file_text_eof(file) ) {
     j.OUTPUT_DATA_SIZE = ds_list_find_value(header_vars, 2);
     j.PARALLEL_FOR_SIZE = ds_list_find_value(header_vars, 3);
     j.VECTOR_SIZE_PER_ITERATION = ds_list_find_value(header_vars, 4);
+    //show_message("L = VECTOR_SIZE_PER_ITERATION = " + string(j.VECTOR_SIZE_PER_ITERATION));
     j.REPEAT_COUNT_REALLOC = ds_list_find_value(header_vars, 5);
     j.REPEAT_COUNT_ONLY_PARALLEL = ds_list_find_value(header_vars, 6);
     j.t_data_generation_and_ram_allocation = ds_list_find_value(header_vars, 7);
     j.t_queue_creation = ds_list_find_value(header_vars, 8);
     j.datasets = ds_list_create();
+    
+    
+    if (g_display_LM) {
+        // Initialization
+        if (g_VECTOR_SIZE_PER_ITERATION_common == -1) {
+            g_VECTOR_SIZE_PER_ITERATION_common = j.VECTOR_SIZE_PER_ITERATION;
+            g_PARALLEL_FOR_SIZE_common = j.PARALLEL_FOR_SIZE;
+        } else {
+            // Already been set, and diffrent values : no common value, do not display
+            if ( (g_VECTOR_SIZE_PER_ITERATION_common != j.VECTOR_SIZE_PER_ITERATION)
+            or   (g_PARALLEL_FOR_SIZE_common != j.PARALLEL_FOR_SIZE) ) {
+                g_display_LM = false;
+            }
+        }
+    }
     
     
     for (var i_dataset = 0; i_dataset < j.DATASET_NUMBER; ++i_dataset) {
@@ -36,9 +60,14 @@ while ( ! file_text_eof(file) ) {
         d.iterations_only_parallel = ds_list_create();
         
         for (var i_iteration = 0; i_iteration < j.REPEAT_COUNT_REALLOC; ++i_iteration) {
+            var values_str = file_text_readln(file);
+            
+            if (limit_iterations != -1) {
+                if (i_iteration >= limit_iterations) continue;
+            }
+            
             var iter = instance_create(0, 0, iteration);
             ds_list_add(d.iterations, iter);
-            var values_str = file_text_readln(file);
             var values = list_to_real(split_string(values_str, " "));
             iter.t_allocation = ds_list_find_value(values, 0);
             iter.t_copy_to_device = ds_list_find_value(values, 1);
@@ -56,9 +85,13 @@ while ( ! file_text_eof(file) ) {
         //d.iterations_only_parallel = ds_list_create();
         
         for (var i_iteration = 0; i_iteration < j.REPEAT_COUNT_ONLY_PARALLEL; ++i_iteration) {
+            var values_str = file_text_readln(file);
+            
+            if (limit_iterations != -1) {
+                if (i_iteration >= limit_iterations) continue;
+            }
             var iter = instance_create(0, 0, iteration_only_parallel);
             ds_list_add(d.iterations_only_parallel, iter);
-            var values_str = file_text_readln(file);
             var values = list_to_real(split_string(values_str, " "));
             //iter.t_allocation = ds_list_find_value(values, 0);
             //iter.t_copy_to_device = ds_list_find_value(values, 1);
@@ -81,6 +114,11 @@ while ( ! file_text_eof(file) ) {
             iter.t_copy_to_device = t_copy_to_device;
             iter.t_free_gpu = t_free_gpu;
         }
+    }
+    
+    if (limit_iterations != -1) {
+        j.REPEAT_COUNT_ONLY_PARALLEL = min(j.REPEAT_COUNT_ONLY_PARALLEL, limit_iterations);
+        j.REPEAT_COUNT_REALLOC = min(j.REPEAT_COUNT_REALLOC, limit_iterations);
     }
 }
 

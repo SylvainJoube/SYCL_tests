@@ -33,6 +33,9 @@ g_graph_surface = -1;
 
 init();
 
+//draw_test_qualtiles();
+//game_end();
+
 /*var str = "";
 for (var i = 0; i &lt; 10; ++i) {
     str += split_thousands(power(10, i)) + chr(10);
@@ -68,7 +71,7 @@ if (step == 2) {
     var graph_width = 800;
 
     load_data_common(g_load_path);
-    g_graph_surface = surface_create(graph_width + 200, graph_height + 200);
+    g_graph_surface = surface_create(graph_width + 200, graph_height + 260);
     surface_set_target(g_graph_surface);
     draw_clear(c_white);
     draw_some_graph_common();
