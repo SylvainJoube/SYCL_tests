@@ -3,3 +3,7 @@
 vtune/
 
 bin/
+
+mem_benck/
+
+*.txt
