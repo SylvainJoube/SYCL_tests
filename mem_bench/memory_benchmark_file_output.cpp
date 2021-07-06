@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <chrono>
 
 // SyCL specific includes
 #include <CL/sycl.hpp>
@@ -11,20 +12,25 @@
 /*#define PARALLEL_FOR_SIZE 1024
 #define VECTOR_SIZE_PER_ITERATION 200 * 1024*/
 
-unsigned int PARALLEL_FOR_SIZE;// = 1024; = M
-unsigned int VECTOR_SIZE_PER_ITERATION;// = 256 * 1024; = L
-
+unsigned int PARALLEL_FOR_SIZE = 1024 * 32;// = M ; work items number
+unsigned int VECTOR_SIZE_PER_ITERATION = 8; // = L ; vector size per workitem (i.e. parallel_for task) = nb itérations internes par work item
+// faire un repeat sur les mêmes données pour essayer d'utiliser le cache
+// hypothèse : les données sont évincées du cache avant de pouvoir y avoir accès
+// observation : j'ai l'impression d'être un peu en train de me perdre dans les explorations,
+// avoir une liste pour prioriser ce que je dois faire et 
 
 #define DATA_TYPE int
 
 // number of iterations - no realloc to make it go faster
 #define REPEAT_COUNT_REALLOC 0
-#define REPEAT_COUNT_ONLY_PARALLEL 6
+#define REPEAT_COUNT_ONLY_PARALLEL 30
+
+#define OUTPUT_FILE_NAME "output_bench_h23.txt"
 
 #define DATA_VERSION 2
 
 // number of diffrent datasets
-#define DATASET_NUMBER 1
+#define DATASET_NUMBER 6
 
 
 #define INPUT_DATA_LENGTH PARALLEL_FOR_SIZE * VECTOR_SIZE_PER_ITERATION
@@ -52,7 +58,56 @@ static auto exception_handler = [](cl::sycl::exception_list e_list) {
   }
 };
 
+
+
+class stime_utils {
+private :
+    std::chrono::_V2::steady_clock::time_point _start, _stop;
+
+public :
+    
+    void start() {
+        _start = std::chrono::steady_clock::now();
+    }
+
+    // Gets the us count since last start or reset.
+    uint64_t reset() {
+        std::chrono::duration<int64_t, std::nano> dur = std::chrono::steady_clock::now() - _start;
+        _start = std::chrono::steady_clock::now();
+        int64_t ns = dur.count();
+        int64_t us = ns / 1000;
+        return us;
+    }
+
+};
+
+/*std::unique_ptr<stime_utils> start_chrono() {
+    auto s = std::unique_ptr<stime_utils>(); //new stime_utils;
+    s->start = std::chrono::steady_clock::now();
+    return s;
+}
+
+
+uint64_t stop_chrono(std::unique_ptr<stime_utils> s) {
+    std::chrono::duration<int64_t, std::nano> result = std::chrono::steady_clock::now() - s->start;
+    int64_t ns = result.count();
+    int64_t us = ns / 1000;
+    return us;
+}
+
+uint64_t restart_chrono(std::unique_ptr<stime_utils> s) {
+    std::chrono::duration<int64_t, std::nano> result = std::chrono::steady_clock::now() - s->start;
+    int64_t ns = result.count();
+    int64_t us = ns / 1000;
+    return us;
+}*/
+
+
 uint64_t get_ms() {
+    auto tm = std::chrono::steady_clock::now();
+    std::chrono::duration<double> s = tm - tm;
+
+
     struct timeval tp;
     gettimeofday(&tp, NULL);
     uint64_t ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
@@ -104,6 +159,9 @@ void explicit_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     uint64_t t_start;
     t_start = get_ms();
 
+    stime_utils chrono;
+    chrono.start();
+
     //  data_type* ddata_input, data_type* ddata_output,
     data_type* ddata_input = dataset->device_input;
     data_type* ddata_output = dataset->device_output;
@@ -126,8 +184,8 @@ void explicit_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
     //if (wait_queue) 
     sycl_q.wait_and_throw();
-    timer.t_parallel_for = get_ms() - t_start;
-    t_start = get_ms();
+    timer.t_parallel_for = chrono.reset(); //get_ms() - t_start;
+    //t_start = get_ms();
 
     sycl_q.memcpy(dataset->data_output, ddata_output, OUTPUT_DATA_SIZE);
     sycl_q.wait_and_throw();
@@ -138,8 +196,8 @@ void explicit_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
         total_sum += dataset->data_output[i];
     }
 
-    timer.t_read_from_device = get_ms() - t_start;
-    t_start = get_ms();
+    timer.t_read_from_device = chrono.reset();//get_ms() - t_start;
+    //t_start = get_ms();
 
     if (total_sum == dataset->final_result_verif) {
         log("VALID - Right data size ! (" + std::to_string(total_sum) + ")");
@@ -149,27 +207,36 @@ void explicit_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 }
 
 void explicit_USM_allocation(cl::sycl::queue &sycl_q, host_dataset* dataset, gpu_timer& timer) {
-    uint64_t t_start = get_ms();
+    
+    //uint64_t t_start = get_ms();
+
+    stime_utils chrono;
+    chrono.start();
+    
     dataset->device_input = static_cast<data_type *> (cl::sycl::malloc_device(INPUT_DATA_SIZE, sycl_q));
     dataset->device_output = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
 
     if (wait_queue) sycl_q.wait_and_throw();
-    timer.t_allocation = get_ms() - t_start;
-    t_start = get_ms();
+    timer.t_allocation = chrono.reset(); //get_ms() - t_start;
+    //t_start = get_ms();
 
     sycl_q.memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE);
     
     sycl_q.wait_and_throw();
-    timer.t_copy_to_device = get_ms() - t_start;
+    timer.t_copy_to_device = chrono.reset(); //get_ms() - t_start;
 }
 
 
 void explicit_USM_free(cl::sycl::queue &sycl_q, host_dataset* dataset, gpu_timer& timer) {
-    uint64_t t_start = get_ms();
+    //uint64_t t_start = get_ms();
+
+    stime_utils chrono;
+    chrono.start();
+
     cl::sycl::free(dataset->device_input, sycl_q);
     cl::sycl::free(dataset->device_output, sycl_q);
     if (wait_queue) sycl_q.wait_and_throw();
-    timer.t_free_gpu = get_ms() - t_start;
+    timer.t_free_gpu = chrono.reset(); //get_ms() - t_start;
     dataset->device_input = nullptr;
     dataset->device_output = nullptr;
 }
@@ -237,8 +304,12 @@ void main_sequence(std::ofstream& write_file) {
     uint64_t t_gpu = 0;*/
     gpu_timer gtimer;
 
+    stime_utils chrono;
+
     log("Generating data...");
-    t_start = get_ms();
+
+    chrono.start();
+    //t_start = get_ms();
 
     host_dataset *hdata = new host_dataset[DATASET_NUMBER];
 
@@ -259,7 +330,7 @@ void main_sequence(std::ofstream& write_file) {
 
     }
 
-    gtimer.t_data_generation_and_ram_allocation = get_ms() - t_start;
+    gtimer.t_data_generation_and_ram_allocation = chrono.reset(); //get_ms() - t_start;
 
     log("\n");
     log("Input data size  : " + std::to_string(INPUT_DATA_SIZE)
@@ -272,10 +343,10 @@ void main_sequence(std::ofstream& write_file) {
     cl::sycl::default_selector d_selector;
 
     try {
-        t_start = get_ms();
+        chrono.reset(); //t_start = get_ms();
         cl::sycl::queue sycl_q(d_selector, exception_handler);
         sycl_q.wait_and_throw();
-        gtimer.t_queue_creation = get_ms() - t_start;
+        gtimer.t_queue_creation = chrono.reset();//get_ms() - t_start;
 
         // Print out the device information used for the kernel code.
         std::cout << "Running on device: "
@@ -418,7 +489,8 @@ int main(int argc, char *argv[])
     auto data_path = std::string(argv[1]);*/
     
     std::ofstream myfile;
-    myfile.open ("/home/data_sync/academique/M2/StageM2/SYCL_tests/mem_bench/output_bench_h6.txt");
+    myfile.open ("/home/data_sync/academique/M2/StageM2/SYCL_tests/mem_bench/" + std::string(OUTPUT_FILE_NAME));
+    
 
     myfile << DATA_VERSION << "\n";
 
@@ -432,20 +504,40 @@ int main(int argc, char *argv[])
     //PARALLEL_FOR_SIZE = 128;//1024;
     //VECTOR_SIZE_PER_ITERATION = 256 * 1024 * 8;
 
-    VECTOR_SIZE_PER_ITERATION = 1;
-    PARALLEL_FOR_SIZE = 1;
+    /*
+    1. Fixer L : taille du vecteur par workitem
+    2. Fixer M : nombre de workitems
+    3. Lancer ni itérations sur nd datasets distincts, pour comparer le temps pris entre
+
+    Nécessaire de trouver l'endroit où les données tiennent en cache et l'endroit où elles ne tiennent plus
+    
+    */
+
+    // see above, header file 
+    //VECTOR_SIZE_PER_ITERATION = 8 * 1024;
+    //PARALLEL_FOR_SIZE = 1024 * 32; // work items number (30M items)
+
+    // todo : affichage graphique de L et M sur les graphiques
+
+    log("=============== L = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+    log("=============== M = " + std::to_string(PARALLEL_FOR_SIZE));
+    main_sequence(myfile);
+
+    /*
 
     //PARALLEL_FOR_SIZE = 0; // = M
-    //for (VECTOR_SIZE_PER_ITERATION = 1; VECTOR_SIZE_PER_ITERATION < 10; ++VECTOR_SIZE_PER_ITERATION) { // = L
+    for (VECTOR_SIZE_PER_ITERATION = 1; VECTOR_SIZE_PER_ITERATION < 10; ++VECTOR_SIZE_PER_ITERATION) { // = L
+        log("----============    - VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
         // 134217728
         // 268435456
-        //for (; PARALLEL_FOR_SIZE < 8388608 * 8; PARALLEL_FOR_SIZE += 8388608) {
+        // 8388608
+        for (PARALLEL_FOR_SIZE = 128; PARALLEL_FOR_SIZE < 128 * 8; PARALLEL_FOR_SIZE += 128) {
         //for (PARALLEL_FOR_SIZE = 1; PARALLEL_FOR_SIZE < 256 * 256 * 128; PARALLEL_FOR_SIZE *= 2) {
-            log("    - PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+            log("============    - PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
             main_sequence(myfile);
             //PARALLEL_FOR_SIZE *= 2;
             //VECTOR_SIZE_PER_ITERATION /= 2;
-        /*}
+        }
     }*/
 
     myfile.close();
