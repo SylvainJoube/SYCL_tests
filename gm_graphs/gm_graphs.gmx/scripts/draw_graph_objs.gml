@@ -37,7 +37,7 @@ draw_set_halign(fa_center);
 draw_set_font(ft_base);
 
 // Draw labels
-draw_text(xorig + floor(graph_width / 2), yorig + 30, xlabel);
+draw_text(xorig + floor(graph_width / 2), yorig + 60, xlabel);
 draw_text_transformed(xorig - 90, yorig - floor(graph_height / 2), ylabel, 1, 1, 90);
 
 // Draw graph title
@@ -61,6 +61,8 @@ var plabel_cx = plabel_xmin; // current x, y
 var plabel_cy = plabel_ymin;
 var plabel_xmax = plabel_xmin + plabel_width;
 
+var DRAW_LABEL_ON_GRAPH = true;
+
 // Draw the points labels
 for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
     var gp = ds_list_find_value(graph_list, igp);
@@ -80,7 +82,9 @@ for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
     }
     draw_circle(plabel_cx - 20, plabel_cy, 5, false);
     //draw_set_color(c_black);
-    draw_text(plabel_cx, plabel_cy, drawn_text);
+    if (DRAW_LABEL_ON_GRAPH) {
+        draw_text(plabel_cx, plabel_cy, drawn_text); //"--" + drawn_text + "--");
+    }
     //ydraw_plabel += str_height + 10;
     plabel_cx += full_width;
 }

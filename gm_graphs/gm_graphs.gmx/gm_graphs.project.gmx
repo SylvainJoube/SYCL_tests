@@ -13,6 +13,7 @@
     <script>scripts\s_info.gml</script>
     <scripts name="load">
       <script>scripts\load_data_v2.gml</script>
+      <script>scripts\load_data_v3.gml</script>
       <script>scripts\load_data_v0_deprecated.gml</script>
       <script>scripts\load_data_common.gml</script>
     </scripts>
@@ -23,7 +24,9 @@
       <script>scripts\draw_some_graph_3.gml</script>
       <script>scripts\draw_some_graph_4.gml</script>
       <script>scripts\draw_some_graph_5.gml</script>
+      <script>scripts\draw_some_graph_6.gml</script>
       <script>scripts\draw_test_qualtiles.gml</script>
+      <script>scripts\mem_location_to_str.gml</script>
     </scripts>
     <scripts name="draw_graph_base">
       <script>scripts\draw_test_graph.gml</script>

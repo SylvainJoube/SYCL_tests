@@ -32,7 +32,10 @@ while ( ! file_text_eof(file) ) {
     j.REPEAT_COUNT_ONLY_PARALLEL = ds_list_find_value(header_vars, 6);
     j.t_data_generation_and_ram_allocation = ds_list_find_value(header_vars, 7);
     j.t_queue_creation = ds_list_find_value(header_vars, 8);
-    j.MEMORY_LOCATION = 1; // Default : memory allocated on device, explicit transfert
+    
+    // NEW with load data V3 :
+    j.MEMORY_LOCATION = ds_list_find_value(header_vars, 9); // memory allocated 0 shared ; 1 on device ; 2 host ; 3 buffers
+    
     j.datasets = ds_list_create();
     
     
