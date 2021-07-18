@@ -12,12 +12,20 @@ RUN_EXE_NAME = bin/$(FILE_NAME)
 
 all: build run
 
+hello: build_hello run_hello
+
 terminalout_build:
 	$(CXX) $(CXXFLAGS) -o bin/memory_benchmark memory_benchmark.cpp
 
 build:
 	$(CXX) $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
-	
+
+build_hello:
+	$(CXX) $(CXXFLAGS) -o bin/hello_world hello_world.cpp
+
+run_hello: 
+	./bin/hello_world
+
 #	$(CXX) $(CXXFLAGS) -o $(IMPLICIT_EXE_NAME) $(IMPLICIT_SOURCES)
 
 
