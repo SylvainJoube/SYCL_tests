@@ -16,6 +16,8 @@ hello: build_hello run_hello
 
 hello_named: build_hello_named run_hello_named
 
+mbf: build_mbf run_mbf
+
 #terminalout_build:
 #	$(CXX) $(CXXFLAGS) -o bin/memory_benchmark memory_benchmark.cpp
 
@@ -34,6 +36,13 @@ build_hello_named:
 
 run_hello_named: 
 	./bin/hello_world_named
+
+
+build_mbf:
+	$(CXX) $(CXXFLAGS) -o bin/mbfoca_named mbfoca_named.cpp
+
+run_mbf: 
+	./bin/mbfoca_named
 
 #	$(CXX) $(CXXFLAGS) -o $(IMPLICIT_EXE_NAME) $(IMPLICIT_SOURCES)
 
