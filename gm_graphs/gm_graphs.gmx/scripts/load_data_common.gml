@@ -12,5 +12,6 @@ var version = real(version_str);
 
 if (version == 2) load_data_v2(file);
 if (version == 3) load_data_v3(file);
+if (version == 4) load_data_v4(file);
 
 file_text_close(file);

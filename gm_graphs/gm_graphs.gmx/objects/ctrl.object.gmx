@@ -76,12 +76,55 @@ if (step == 2) {
     draw_clear(c_white);
     draw_some_graph_common();
     surface_reset_target();
-    surface_save(g_graph_surface, get_save_filename("", g_save_path_default));
+    var max_trials = 300;
+    var fpath = "";
+    for (var i = 0; i &lt; max_trials; ++i) {
+        if (i == 0) {
+            fpath = g_save_path_default_base_path + g_save_path_extension;
+        } else {
+            var istr = string(i);
+            var nblen = 3;
+            var fill_count = nblen - string_length(istr);
+            for (var ti = 0; ti &lt; fill_count; ++ti) {
+                istr = "0" + istr; // dirtyyy
+            }
+            fpath = g_save_path_default_base_path + "_" + istr + g_save_path_extension;
+        }
+        if ( ! dFileExists(fpath) ) break;
+    }
+    //show_message("fpath= " + fpath + chr(10) + " exists = " + string(dFileExists(fpath)));
+    //get_save_filename("", fpath);
+    //show_message("fpath= " + fpath + chr(10) + " exists = " + string(dFileExists(fpath)));
+    
+    surface_save(g_graph_surface, get_save_filename("", fpath));
     //surface_free(s);
 }
 
 ++step;
 
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="3">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>external_free(g_dll_name);
 </string>
           </argument>
         </arguments>

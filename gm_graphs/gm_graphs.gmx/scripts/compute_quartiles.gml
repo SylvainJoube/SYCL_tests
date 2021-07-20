@@ -5,12 +5,15 @@ ysort = argument0;
 ds_list_sort(ysort, true);
 
 var ptlen = ds_list_size(ysort);
+
+//show_message("ptlen = " + string(ptlen));
  
 var med;
 var q3_start_index;
 if (ptlen % 2 == 0) {
     var low = ds_list_find_value(ysort, floor(ptlen / 2) - 1);
     var high = ds_list_find_value(ysort, floor(ptlen / 2));
+    //show_message("high = " + string(high) + "  low = " + string(low));
     med = (low + high) / 2;
     q3_start_index = ptlen / 2; // floor not needed
 } else {

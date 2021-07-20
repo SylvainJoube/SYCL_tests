@@ -41,6 +41,10 @@ while ( ! file_text_eof(file) ) {
     // NEW with load data V3 :
     j.MEMORY_LOCATION = ds_list_find_value(header_vars, 9); // memory allocated 0 shared ; 1 on device ; 2 host ; 3 buffers
     
+    // NEW with load data V4 :
+    j.MEMCOPY_IS_SYCL = ds_list_find_value(header_vars, 10); // flag to indicate if sycl mem copy or glibc mem copy
+    j.SIMD_FOR_LOOP = ds_list_find_value(header_vars, 11);   // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
+    
     j.datasets = ds_list_create();
     //show_message("j.REPEAT_COUNT_ONLY_PARALLEL = " + string(j.REPEAT_COUNT_ONLY_PARALLEL));
     

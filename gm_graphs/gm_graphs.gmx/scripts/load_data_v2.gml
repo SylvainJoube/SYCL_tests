@@ -14,6 +14,9 @@ g_display_LM = true;
 
 var limit_iterations = g_limit_iterations;//-1; //12;
 
+g_input_data_size = 0;
+g_output_data_size = 0;
+
 while ( ! file_text_eof(file) ) {
     
     var header_str = file_text_readln(file);
@@ -25,6 +28,8 @@ while ( ! file_text_eof(file) ) {
     //show_message("j.DATASET_NUMBER = " + string(j.DATASET_NUMBER));
     j.INPUT_DATA_SIZE = ds_list_find_value(header_vars, 1);
     j.OUTPUT_DATA_SIZE = ds_list_find_value(header_vars, 2);
+    if (g_input_data_size < j.INPUT_DATA_SIZE) g_input_data_size = j.INPUT_DATA_SIZE;
+    if (g_output_data_size < j.OUTPUT_DATA_SIZE) g_output_data_size = j.OUTPUT_DATA_SIZE;
     j.PARALLEL_FOR_SIZE = ds_list_find_value(header_vars, 3);
     j.VECTOR_SIZE_PER_ITERATION = ds_list_find_value(header_vars, 4);
     //show_message("L = VECTOR_SIZE_PER_ITERATION = " + string(j.VECTOR_SIZE_PER_ITERATION));

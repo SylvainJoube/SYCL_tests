@@ -1,5 +1,7 @@
-/// find_or_create_graph_points_ext(graph_list, name, dataset_index) : instance of graph_points
+/// find_or_create_graph_points_ext(graph_list, name, string_on_points) : instance of graph_points
 /// with newly_created set to true if it was not found and therfore created
+/// string_on_points is the string (or real) that should be shown on every point to
+/// differenciate them.
 
 var graph_list = argument0;
 var pname = argument1;

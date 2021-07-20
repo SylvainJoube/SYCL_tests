@@ -33,6 +33,13 @@ draw_set_alpha(1);
 draw_line(xorig, yorig, xorig + graph_width, yorig);
 draw_line(xorig, yorig, xorig, yorig - graph_height);
 
+draw_set_alpha(0.07);
+var x_orig_and_offset = xorig + x_space_left;
+var y_orig_and_offset = yorig - y_space_left;
+draw_line(x_orig_and_offset, y_orig_and_offset, x_orig_and_offset + graph_width - x_space_left, y_orig_and_offset);
+draw_line(x_orig_and_offset, y_orig_and_offset, x_orig_and_offset, y_orig_and_offset - graph_height + y_space_left);
+
+draw_set_alpha(1);
 draw_set_halign(fa_center);
 draw_set_font(ft_base);
 
@@ -47,9 +54,18 @@ draw_text(xcenter_surface, 20, g_graph_title);
 // Draw L and M, if their values are shared
 draw_set_halign(fa_right);
 if (g_display_LM) {
-    draw_text(graph_width + xorig - x_space_left + 100, 20,
+    /*draw_text(graph_width + xorig - x_space_left + 100, 20,
         "L = " + split_thousands(g_VECTOR_SIZE_PER_ITERATION_common) + chr(10)
-      + "M = " + split_thousands(g_PARALLEL_FOR_SIZE_common)
+      + "M = " + split_thousands(g_PARALLEL_FOR_SIZE_common) + chr(10)
+      + "Itérations = " + split_thousands(g_iteration_count)
+    );*/
+    
+    draw_text(graph_width + xorig - x_space_left + 100, 20,
+        split_thousands(g_VECTOR_SIZE_PER_ITERATION_common) + " = L" + chr(10)
+      + split_thousands(g_PARALLEL_FOR_SIZE_common) + " = M" + chr(10)
+      + split_thousands(g_iteration_count) + " pts" + chr(10)
+      + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio" + chr(10)
+      + "out " + split_thousands(round(g_output_data_size / 1024)) + " kio"
     );
 }
 
@@ -185,6 +201,8 @@ for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
         var xdraw = xorig + (xgroup.xx - xmin) * scale_width_factor + x_space_left;
         // xgroup.xx equals every pt.xx of this xgroup.
         
+        var median_y_sum = 0;
+        
         // For each point of an xgroup, draw the line
         for (var i = 0; i < ds_list_size(xgroup.points); ++i) {
             var pt = ds_list_find_value(xgroup.points, i);
@@ -208,6 +226,8 @@ for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
             if (xgroup_ymin > ydraw) xgroup_ymin = ydraw;
             if (xgroup_ymax < ydraw) xgroup_ymax = ydraw;
             //draw_circle(xdraw, ydraw, 5, false);
+            
+            median_y_sum += ydraw;
             
             // Draw y label, if possible
             var can_draw = true;
@@ -246,6 +266,10 @@ for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
         
         // emulate a median
         var median_ydraw = (xgroup_ymin + xgroup_ymax) / 2;
+        if (ds_list_size(xgroup.points) != 0) {
+            median_ydraw = round(median_y_sum / ds_list_size(xgroup.points));
+        }
+        
         
         if ( (gp_xdraw_old != -1) ) {
             draw_line(gp_xdraw_old, gp_ydraw_old, xdraw, median_ydraw);

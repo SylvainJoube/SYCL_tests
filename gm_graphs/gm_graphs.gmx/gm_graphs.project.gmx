@@ -3,6 +3,25 @@
   <Configs name="configs">
     <Config>Configs\Default</Config>
   </Configs>
+  <datafiles number="1" name="datafiles">
+    <datafile>
+      <name>GmGraphsDLL.dll</name>
+      <exists>-1</exists>
+      <size>392192</size>
+      <exportAction>2</exportAction>
+      <exportDir></exportDir>
+      <overwrite>0</overwrite>
+      <freeData>-1</freeData>
+      <removeEnd>0</removeEnd>
+      <store>0</store>
+      <ConfigOptions>
+        <Config name="Default">
+          <CopyToMask>52777614168302</CopyToMask>
+        </Config>
+      </ConfigOptions>
+      <filename>GmGraphsDLL.dll</filename>
+    </datafile>
+  </datafiles>
   <NewExtensions/>
   <sounds name="sound"/>
   <sprites name="sprites"/>
@@ -14,6 +33,7 @@
     <scripts name="load">
       <script>scripts\load_data_v2.gml</script>
       <script>scripts\load_data_v3.gml</script>
+      <script>scripts\load_data_v4.gml</script>
       <script>scripts\load_data_v0_deprecated.gml</script>
       <script>scripts\load_data_common.gml</script>
     </scripts>
@@ -25,8 +45,12 @@
       <script>scripts\draw_some_graph_4.gml</script>
       <script>scripts\draw_some_graph_5.gml</script>
       <script>scripts\draw_some_graph_6.gml</script>
+      <script>scripts\draw_some_graph_7.gml</script>
+      <script>scripts\draw_some_graph_8.gml</script>
+      <script>scripts\draw_some_graph_9.gml</script>
       <script>scripts\draw_test_qualtiles.gml</script>
       <script>scripts\mem_location_to_str.gml</script>
+      <script>scripts\mem_location_to_str_prefix.gml</script>
     </scripts>
     <scripts name="draw_graph_base">
       <script>scripts\draw_test_graph.gml</script>
@@ -43,6 +67,7 @@
       <script>scripts\compute_quartiles.gml</script>
       <script>scripts\lfind.gml</script>
       <script>scripts\draw_text_outline.gml</script>
+      <script>scripts\dFileExists.gml</script>
     </scripts>
     <scripts name="tests">
       <script>scripts\check_load_data.gml</script>
@@ -63,6 +88,7 @@
     <object>objects\graph_points</object>
     <object>objects\graph_single_point</object>
     <object>objects\graph_single_point_xgroup</object>
+    <object>objects\store_variables_generic</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\room0</room>
