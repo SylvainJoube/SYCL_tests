@@ -48,10 +48,12 @@ sycl_mode CURRENT_MODE = sycl_mode::device_USM;
 #define DATA_TYPE int
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 0
-#define REPEAT_COUNT_ONLY_PARALLEL 4
+#define REPEAT_COUNT_REALLOC 24
+#define REPEAT_COUNT_ONLY_PARALLEL 0
 
-#define OUTPUT_FILE_NAME "sh_output_bench_h33.shared_txt"
+#define OUTPUT_FILE_NAME "sh_output_bench_h38.shared_txt"
+
+static std::string ver_prefix = "X12";
 
 #define DATA_VERSION 3
 
@@ -157,7 +159,6 @@ struct gpu_timer {
     uint64_t t_free_gpu = 0;
 };
 
-static std::string ver_prefix = "X07";
 
 void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
                           gpu_timer& timer, sycl_mode mode) {
@@ -169,7 +170,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     data_type* ddata_input = dataset->device_input;
     data_type* ddata_output = dataset->device_output;
 
-    data_type* ddata_output_verif = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
+    //data_type* ddata_output_verif = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
 
     unsigned int local_VECTOR_SIZE_PER_ITERATION = VECTOR_SIZE_PER_ITERATION;
 
@@ -185,7 +186,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
         }
 
         ddata_output[cindex] = sum;
-        ddata_output_verif[cindex] = sum;
+        //ddata_output_verif[cindex] = sum;
     });
     e.wait();
 
@@ -194,20 +195,20 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
     std::cout << ver_prefix + " - COMPUTE MODE = " + mode_to_string(mode) << std::endl;
     if ( mode == sycl_mode::device_USM ) {
-        std::cout << "MODE = DEVICE USM OK" << std::endl;
+        //std::cout << "MODE = DEVICE USM OK" << std::endl;
         sycl_q.memcpy(dataset->data_output, ddata_output, OUTPUT_DATA_SIZE);
         sycl_q.wait_and_throw();
     }
 
-    sycl_q.memcpy(dataset->data_output, ddata_output_verif, OUTPUT_DATA_SIZE);
-    sycl_q.wait_and_throw();
+    //sycl_q.memcpy(dataset->data_output, ddata_output_verif, OUTPUT_DATA_SIZE);
+    //sycl_q.wait_and_throw();
 
     // Value verification
     data_type total_sum = 0;
     for (int i = 0; i < OUTPUT_DATA_LENGTH; ++i) {
         total_sum += dataset->data_output[i]; //ddata_output_verif[i];//dataset->data_output[i];
     }
-    cl::sycl::free(ddata_output_verif, sycl_q);
+    //cl::sycl::free(ddata_output_verif, sycl_q);
     timer.t_read_from_device = chrono.reset();
 
     if (total_sum == dataset->final_result_verif) {
@@ -497,7 +498,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         for (int ids = 0; ids < DATASET_NUMBER; ++ids) {
             
             host_dataset* dataset = &hdata[ids];
-            write_file << dataset->seed << "\n";
+            write_file << dataset->seed << " kaka\n";
 
             log("------- DATASET SEED " + std::to_string(dataset->seed) + " -------\n");
             sycl_allocation(sycl_q, dataset, gtimer, mode);
@@ -605,7 +606,8 @@ int main(int argc, char *argv[])
 
     unsigned int total_elements = 1024 * 1024 * 256; //* 256;// * 8; // 32 millions elements
 
-    // 2^(10 + 10 + 5) 
+    VECTOR_SIZE_PER_ITERATION = 2048;
+    PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     // Do that for each mode
 
@@ -619,19 +621,10 @@ int main(int argc, char *argv[])
         case 2: CURRENT_MODE = sycl_mode::host_USM; break;
         default : break;
         }
-
-        // Should be 15 iterations
-        int iteration_nb = 0;
-        for (VECTOR_SIZE_PER_ITERATION = 4; VECTOR_SIZE_PER_ITERATION < total_elements; VECTOR_SIZE_PER_ITERATION *= 2) { // = L
-            log("GLOBAL ITERATION = " + std::to_string(iteration_nb));
-            ++iteration_nb;
-            PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
-            if (PARALLEL_FOR_SIZE <= 1024) break; // no less than 1024 workitems
-            
-            log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
-            log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
-            main_sequence(myfile, CURRENT_MODE);
-        }
+        
+        log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+        log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+        main_sequence(myfile, CURRENT_MODE);
     }
     /*log("=============== L = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
     log("=============== M = " + std::to_string(PARALLEL_FOR_SIZE));

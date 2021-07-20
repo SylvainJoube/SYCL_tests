@@ -39,21 +39,28 @@ std::string mode_to_string(sycl_mode m) {
 
 unsigned int PARALLEL_FOR_SIZE;// = 1024 * 32 * 8;// = M ; work items number
 unsigned int VECTOR_SIZE_PER_ITERATION;// = 1; // = L ; vector size per workitem (i.e. parallel_for task) = nb itérations internes par work item
+
 sycl_mode CURRENT_MODE = sycl_mode::device_USM;
+
+int MEMCOPY_IS_SYCL = 0;
+int SIMD_FOR_LOOP = 0;
+
 // faire un repeat sur les mêmes données pour essayer d'utiliser le cache
 // hypothèse : les données sont évincées du cache avant de pouvoir y avoir accès
 // observation : j'ai l'impression d'être un peu en train de me perdre dans les explorations,
 // avoir une liste pour prioriser ce que je dois faire et 
 
-#define DATA_TYPE int
+#define DATA_TYPE float
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 0
-#define REPEAT_COUNT_ONLY_PARALLEL 4
+#define REPEAT_COUNT_REALLOC 120
+#define REPEAT_COUNT_ONLY_PARALLEL 0
 
-#define OUTPUT_FILE_NAME "sh_output_bench_h33.shared_txt"
+#define OUTPUT_FILE_NAME "sh_output_bench_h44.shared_txt"
 
-#define DATA_VERSION 3
+static std::string ver_prefix = "X23";
+
+#define DATA_VERSION 4
 
 // number of diffrent datasets
 #define DATASET_NUMBER 1
@@ -137,7 +144,7 @@ using data_type = int;
 // static bool wait_queue = true;
 
 struct host_dataset {
-    bool need_copy; // USM device needs a copy, but not host or shared.
+    //bool need_copy; // USM device needs a copy, but not host or shared.
     data_type *data_input;
     data_type *data_output;
     data_type final_result_verif = 0;
@@ -157,7 +164,6 @@ struct gpu_timer {
     uint64_t t_free_gpu = 0;
 };
 
-static std::string ver_prefix = "X07";
 
 void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
                           gpu_timer& timer, sycl_mode mode) {
@@ -169,45 +175,79 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     data_type* ddata_input = dataset->device_input;
     data_type* ddata_output = dataset->device_output;
 
-    data_type* ddata_output_verif = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
+    //data_type* ddata_output_verif = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
 
     unsigned int local_VECTOR_SIZE_PER_ITERATION = VECTOR_SIZE_PER_ITERATION;
 
-    // Starts a kernel
-    auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
-        int cindex = chunk_index[0];
-        int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
-        int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
-        data_type sum = 0;
+    if (SIMD_FOR_LOOP == 0) {
+        // Starts a kernel - traditional for loop
+        auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
+            int cindex = chunk_index[0];
+            int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
+            int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
+            data_type sum = 0;
 
-        for (int i = start_index; i < stop_index; ++i) {
-            sum += ddata_input[i];
-        }
+            for (int i = start_index; i < stop_index; ++i) {
+                sum += ddata_input[i];
+            }
 
-        ddata_output[cindex] = sum;
-        ddata_output_verif[cindex] = sum;
-    });
-    e.wait();
+            ddata_output[cindex] = sum;
+            //ddata_output_verif[cindex] = sum;
+        });
+        e.wait();
+    } else {
+        // Starts a kernel - SIMD optimized for loop
+        auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
+            int cindex = chunk_index[0];
+            int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
+            int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
+            data_type sum = 0;
+
+            for (int it = 0; it < local_VECTOR_SIZE_PER_ITERATION; ++it) {
+                int iindex = cindex + it * PARALLEL_FOR_SIZE;
+                sum += ddata_input[iindex];
+            }
+
+            ddata_output[cindex] = sum;
+            //ddata_output_verif[cindex] = sum;
+        });
+        e.wait();
+    }
 
     sycl_q.wait_and_throw();
     timer.t_parallel_for = chrono.reset();
 
     std::cout << ver_prefix + " - COMPUTE MODE = " + mode_to_string(mode) << std::endl;
     if ( mode == sycl_mode::device_USM ) {
-        std::cout << "MODE = DEVICE USM OK" << std::endl;
+        //std::cout << "MODE = DEVICE USM OK" << std::endl;
+        //if (MEMCOPY_IS_SYCL) 
         sycl_q.memcpy(dataset->data_output, ddata_output, OUTPUT_DATA_SIZE);
         sycl_q.wait_and_throw();
     }
 
-    sycl_q.memcpy(dataset->data_output, ddata_output_verif, OUTPUT_DATA_SIZE);
-    sycl_q.wait_and_throw();
+    //sycl_q.memcpy(dataset->data_output, ddata_output_verif, OUTPUT_DATA_SIZE);
+    //sycl_q.wait_and_throw();
 
     // Value verification
     data_type total_sum = 0;
-    for (int i = 0; i < OUTPUT_DATA_LENGTH; ++i) {
-        total_sum += dataset->data_output[i]; //ddata_output_verif[i];//dataset->data_output[i];
+    if ( mode == sycl_mode::device_USM ) {
+        // device USM : memory has been copied to dataset->data_output
+        // because data in dataset->device_output is only accessible by the device
+        for (int i = 0; i < OUTPUT_DATA_LENGTH; ++i) {
+            total_sum += dataset->data_output[i]; //ddata_output_verif[i];//dataset->data_output[i];
+        }
     }
-    cl::sycl::free(ddata_output_verif, sycl_q);
+
+    if ( (mode == sycl_mode::host_USM)
+    ||   (mode == sycl_mode::shared_USM) ) {
+        // memory accessible by the host : data already in dataset->device_output
+        // and since data is shared, it can be accessed directly
+        for (int i = 0; i < OUTPUT_DATA_LENGTH; ++i) {
+            total_sum += dataset->device_output[i]; //ddata_output_verif[i];//dataset->data_output[i];
+        }
+    }
+
+    //cl::sycl::free(ddata_output_verif, sycl_q);
     timer.t_read_from_device = chrono.reset();
 
     if (total_sum == dataset->final_result_verif) {
@@ -242,18 +282,23 @@ void generic_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_
     timer.t_allocation = chrono.reset();
 
     // Explicit copy only if malloc_device
-    if ( mode == sycl_mode::device_USM ) {
-        sycl_q.memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE);
-        sycl_q.wait_and_throw();
+    if ( (mode == sycl_mode::device_USM)
+    ||   (mode == sycl_mode::host_USM)
+    ||   (mode == sycl_mode::shared_USM) ) {
+
+        // The only way to copy data to the device is to use sycl_q.memcpy
+        // For shared memory (host and shared), glibc memcpy can be used.
+        if ( (MEMCOPY_IS_SYCL == 1) || (mode == sycl_mode::device_USM) ) {
+            std::cout << "MEM - SYCL MEMCOPY ----\n";
+            sycl_q.memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE).wait();
+            sycl_q.wait_and_throw();
+        } else {
+            std::cout << "MEM - GLIBC MEMCOPY ----\n";
+            // Probably works with host and shared, most likely does not work with device
+            memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE);
+        }
         timer.t_copy_to_device = chrono.reset();
     }
-
-    if ( (mode == sycl_mode::host_USM) || (mode == sycl_mode::shared_USM) ) {
-        sycl_q.memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE);
-        sycl_q.wait_and_throw();
-        timer.t_copy_to_device = chrono.reset();
-    }
-
 
     // TODO : also copy data from dataset to shared memory.
 
@@ -348,7 +393,6 @@ void print_timer_alloc(gpu_timer& time) {
 
     log("");
 }
-
 
 
 
@@ -454,7 +498,9 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                     << REPEAT_COUNT_ONLY_PARALLEL << " "
                     << gtimer.t_data_generation_and_ram_allocation << " "
                     << gtimer.t_queue_creation << " "
-                    << mode_to_int(mode)
+                    << mode_to_int(mode) << " "
+                    << MEMCOPY_IS_SYCL << " " // flag to indicate if sycl mem copy or glibc mem copy
+                    << SIMD_FOR_LOOP // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
                     << "\n";
 
         log("\n######## ALLOCATION, COPY AND FREE FOR EACH ITERATION ########");
@@ -469,7 +515,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 
             // Allocation and free on device, for each iteration
             for (int rpt = 0; rpt < REPEAT_COUNT_REALLOC; ++rpt) {
-                log("Iteration " + std::to_string(rpt) + " on " + std::to_string(REPEAT_COUNT_REALLOC));
+                log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(REPEAT_COUNT_REALLOC));
 
                 sycl_allocation(sycl_q, dataset, gtimer, mode);
                 sycl_compute(sycl_q, dataset, gtimer, mode);
@@ -504,7 +550,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 
             // Allocation and free on device, for each iteration
             for (int rpt = 0; rpt < REPEAT_COUNT_ONLY_PARALLEL; ++rpt) {
-                log("Iteration " + std::to_string(rpt) + " on " + std::to_string(REPEAT_COUNT_ONLY_PARALLEL));
+                log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(REPEAT_COUNT_ONLY_PARALLEL));
                 
                 sycl_compute(sycl_q, dataset, gtimer, mode);
                 
@@ -605,28 +651,25 @@ int main(int argc, char *argv[])
 
     unsigned int total_elements = 1024 * 1024 * 256; //* 256;// * 8; // 32 millions elements
 
-    // 2^(10 + 10 + 5) 
+    VECTOR_SIZE_PER_ITERATION = 2048;
+    PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     // Do that for each mode
 
     int imode;
+    MEMCOPY_IS_SYCL = 1;
 
-    for (int imode = 0; imode <= 2; ++imode) {
-        
-        switch (imode) {
-        case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
-        case 1: CURRENT_MODE = sycl_mode::device_USM; break;
-        case 2: CURRENT_MODE = sycl_mode::host_USM; break;
-        default : break;
-        }
+    for (int imcp = 0; imcp < 2; ++imcp) {
+        SIMD_FOR_LOOP = imcp;
 
-        // Should be 15 iterations
-        int iteration_nb = 0;
-        for (VECTOR_SIZE_PER_ITERATION = 4; VECTOR_SIZE_PER_ITERATION < total_elements; VECTOR_SIZE_PER_ITERATION *= 2) { // = L
-            log("GLOBAL ITERATION = " + std::to_string(iteration_nb));
-            ++iteration_nb;
-            PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
-            if (PARALLEL_FOR_SIZE <= 1024) break; // no less than 1024 workitems
+        for (int imode = 0; imode <= 2; ++imode) {
+            
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            default : break;
+            }
             
             log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
             log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
