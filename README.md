@@ -4,6 +4,30 @@
 
 L'objectif de ce code est de comparer en détail les comportements des différents modèles mémoire de SYCL.
 
+
+## Lancement des tests depuis mon MSI
+
+Dossier du projet :  
+```
+cd /home/data_sync/academique/M2/StageM2/SYCL_tests/mem_bench
+```
+
+Accès à syncthing :  
+```
+ssh -X 192.168.0.169
+syncthing
+```
+
+Puis depuis un navigateur sur le réseau, 192.168.0.169:33112 compte sylbe pass coucou64.
+
+Définir les variables d'environnement nécessaires à la compilation via syclcc :
+```
+export HIPSYCL_TARGETS="cuda:sm_35" && \
+export HIPSYCL_GPU_ARCH="sm_35" && \
+export HIPSYCL_CUDA_PATH="/usr/local/cuda-10.1"
+```
+
+
 ## Premier objectif
 
 Pour simplifier les choses, je propose de déjà tout faire uniquement via USM explicite.
