@@ -27,6 +27,13 @@ export HIPSYCL_GPU_ARCH="sm_35" && \
 export HIPSYCL_CUDA_PATH="/usr/local/cuda-10.1"
 ```
 
+Depuis Sandor :
+```
+export HIPSYCL_TARGETS="cuda:sm_75" && \
+export HIPSYCL_GPU_ARCH="sm_75" && \
+export HIPSYCL_CUDA_PATH="/usr/local/cuda-10.1"
+```
+
 
 ## Premier objectif
 
