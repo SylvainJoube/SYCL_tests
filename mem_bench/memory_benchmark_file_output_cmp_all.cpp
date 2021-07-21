@@ -62,11 +62,11 @@ constexpr bool KEEP_SAME_DATASETS = true;
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
 //#define OUTPUT_FILE_NAME "msi_h60_L_M_128MiB_O0.t"
 //#define OUTPUT_FILE_NAME "msi_h60_L_M_1GiB_O2.t"
-#define OUTPUT_FILE_NAME "sandor_h60_L_M_8GiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_h60_L_M_4GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_alloclib_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_simd_1GiB_O2_20pts.t"
 //#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
-const long long total_elements = 1024L * 1024L * 256L * 8L; // 256 * 4 bytes = 1 GiB.
+const long long total_elements = 1024L * 1024L * 256L * 4L; // 256 * 4 bytes = 1 GiB.
 
 
 static std::string ver_prefix = "X42";
