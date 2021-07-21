@@ -60,10 +60,10 @@ constexpr bool KEEP_SAME_DATASETS = true;
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
-#define OUTPUT_FILE_NAME "sandor_h58_L_M_1G.t"
+#define OUTPUT_FILE_NAME "sandor_h59_L_M_12G.t"
 
 
-static std::string ver_prefix = "X41";
+static std::string ver_prefix = "X42";
 
 #define DATA_VERSION 5
 
