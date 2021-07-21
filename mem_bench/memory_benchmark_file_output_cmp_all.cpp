@@ -60,10 +60,10 @@ constexpr bool KEEP_SAME_DATASETS = true;
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
-#define OUTPUT_FILE_NAME "sandor_h57_L_M_1G.txt"
+#define OUTPUT_FILE_NAME "sandor_h58_L_M_1G.t"
 
 
-static std::string ver_prefix = "X40";
+static std::string ver_prefix = "X41";
 
 #define DATA_VERSION 5
 
@@ -847,14 +847,14 @@ void bench_choose_L_M(std::ofstream& myfile) {
     SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
 
-    int start_L_size = 64;
-    int stop_M_size = 4096 * 2; // inclusive
+    int start_L_size = 4;
+    int stop_M_size = 1024; // inclusive
     int stop_L_size = total_elements / stop_M_size;
 
     // how many times main_sequence will be run
     total_main_seq_runs = 1;
     for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
-        for (int imode = 0; imode <= 1; ++imode) {
+        for (int imode = 1; imode <= 1; ++imode) {
             total_main_seq_runs += 1;
         }
     }
@@ -863,10 +863,10 @@ void bench_choose_L_M(std::ofstream& myfile) {
     for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
         PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
 
-        for (int imode = 0; imode <= 1; ++imode) {
+        for (int imode = 1; imode <= 1; ++imode) {
             
             switch (imode) {
-            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            //case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
             case 1: CURRENT_MODE = sycl_mode::device_USM; break;
             //case 2: CURRENT_MODE = sycl_mode::host_USM; break;
             default : break;
