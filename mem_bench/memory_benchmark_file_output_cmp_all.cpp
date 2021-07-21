@@ -56,14 +56,14 @@ constexpr bool KEEP_SAME_DATASETS = true;
 #define DATA_TYPE float
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 1
+#define REPEAT_COUNT_REALLOC 4
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
-#define OUTPUT_FILE_NAME "sandor_h54_L_M_1G.txt"
+#define OUTPUT_FILE_NAME "sandor_h57_L_M_1G.txt"
 
 
-static std::string ver_prefix = "X39";
+static std::string ver_prefix = "X40";
 
 #define DATA_VERSION 5
 
@@ -840,7 +840,7 @@ void bench_smid_modes(std::ofstream& myfile) {
 
 void bench_choose_L_M(std::ofstream& myfile) {
 
-    unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
+    unsigned int total_elements = 1024 * 1024 * 256 * 1; // 256 * bytes = 1 GiB.
 
     int imode;
     //MEMCOPY_IS_SYCL = 1;
@@ -848,7 +848,7 @@ void bench_choose_L_M(std::ofstream& myfile) {
     //USE_NAMED_KERNEL = 0;
 
     int start_L_size = 64;
-    int stop_M_size = 4096 * 32; // inclusive
+    int stop_M_size = 4096 * 2; // inclusive
     int stop_L_size = total_elements / stop_M_size;
 
     // how many times main_sequence will be run
