@@ -60,7 +60,7 @@ constexpr bool KEEP_SAME_DATASETS = true;
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
-#define OUTPUT_FILE_NAME "sandor_h59_L_M_6G.t"
+#define OUTPUT_FILE_NAME "sandor_h59_L_M_1G.t"
 
 
 static std::string ver_prefix = "X42";
@@ -842,7 +842,7 @@ void bench_smid_modes(std::ofstream& myfile) {
 
 void bench_choose_L_M(std::ofstream& myfile) {
 
-    long long total_elements = 1024L * 1024L * 256L * 6L; // 256 * bytes = 1 GiB.
+    long long total_elements = 1024L * 1024L * 256L * 1L; // 256 * bytes = 1 GiB.
 
     int imode;
     //MEMCOPY_IS_SYCL = 1;
