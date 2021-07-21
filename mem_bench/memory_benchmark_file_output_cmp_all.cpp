@@ -840,7 +840,7 @@ void bench_smid_modes(std::ofstream& myfile) {
 
 void bench_choose_L_M(std::ofstream& myfile) {
 
-    unsigned int total_elements = 1024 * 1024 * 256 * 1; // 256 * bytes = 1 GiB.
+    unsigned int total_elements = 1024 * 1024 * 256 * 12; // 256 * bytes = 1 GiB.
 
     int imode;
     //MEMCOPY_IS_SYCL = 1;
