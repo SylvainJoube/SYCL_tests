@@ -43,7 +43,7 @@ unsigned long long VECTOR_SIZE_PER_ITERATION;// = 1; // = L ; vector size per wo
 
 sycl_mode CURRENT_MODE = sycl_mode::device_USM;
 
-constexpr int MEMCOPY_IS_SYCL = 1;
+int MEMCOPY_IS_SYCL = 1;
 int SIMD_FOR_LOOP = 0;
 constexpr int USE_NAMED_KERNEL = 1; // Sandor does not support anonymous kernels.
 constexpr bool KEEP_SAME_DATASETS = true; 
@@ -56,15 +56,17 @@ constexpr bool KEEP_SAME_DATASETS = true;
 #define DATA_TYPE float
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 6
+#define REPEAT_COUNT_REALLOC 20
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
 //#define OUTPUT_FILE_NAME "msi_h60_L_M_128MiB_O0.t"
 //#define OUTPUT_FILE_NAME "msi_h60_L_M_1GiB_O2.t"
-#define OUTPUT_FILE_NAME "sandor_h60_L_M_3GiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_h60_L_M_8GiB_O2.t"
+//#define OUTPUT_FILE_NAME "msi_h60_alloclib_1GiB_O2.t"
+//#define OUTPUT_FILE_NAME "msi_h60_simd_1GiB_O2_20pts.t"
 //#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
-const long long total_elements = 1024L * 1024L * 256L * 3L; // 256 * 4 bytes = 1 GiB.
+const long long total_elements = 1024L * 1024L * 256L * 8L; // 256 * 4 bytes = 1 GiB.
 
 
 static std::string ver_prefix = "X42";
@@ -811,8 +813,8 @@ int percent_div_factor = 1;
 
 void bench_smid_modes(std::ofstream& myfile) {
 
-    unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
-    VECTOR_SIZE_PER_ITERATION = 2048;
+    //unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
+    VECTOR_SIZE_PER_ITERATION = 4;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     int imode;
@@ -820,9 +822,12 @@ void bench_smid_modes(std::ofstream& myfile) {
     SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
 
-    percent_div_factor = 2 * 2;
+    log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+    log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
 
-    for (int imcp = 0; imcp < 2; ++imcp) {
+    percent_div_factor = 2 * 3;
+
+    for (int imcp = 0; imcp <= 1; ++imcp) {
         SIMD_FOR_LOOP = imcp;
 
         for (int imode = 0; imode <= 2; ++imode) {
@@ -834,8 +839,46 @@ void bench_smid_modes(std::ofstream& myfile) {
             default : break;
             }
             
-            log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
-            log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  SIMD_FOR_LOOP(" + std::to_string(SIMD_FOR_LOOP) + ")");
+            main_sequence(myfile, CURRENT_MODE);
+            log("");
+        }
+    }
+}
+
+void bench_mem_alloc_modes(std::ofstream& myfile) {
+
+    unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
+    VECTOR_SIZE_PER_ITERATION = 2048;
+    PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
+
+    // how many times main_sequence will be run
+    total_main_seq_runs = 2 * 3;
+
+    int imode;
+    //MEMCOPY_IS_SYCL = 1;
+    SIMD_FOR_LOOP = 0;
+    //USE_NAMED_KERNEL = 0;
+
+    log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+    log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+    
+    percent_div_factor = 2 * 2;
+
+    for (int imcp = 0; imcp <= 1; ++imcp) {
+        MEMCOPY_IS_SYCL = imcp;
+
+        for (int imode = 0; imode <= 2; ++imode) {
+            
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            default : break;
+            }
+            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  MEMCOPY_IS_SYCL(" + std::to_string(MEMCOPY_IS_SYCL) + ")");
+            //log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+            
             main_sequence(myfile, CURRENT_MODE);
             log("");
         }
