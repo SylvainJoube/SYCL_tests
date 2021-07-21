@@ -1,4 +1,5 @@
 #include <iostream>
+#include <filesystem>
 #include <fstream>
 #include <chrono>
 
@@ -55,14 +56,14 @@ constexpr bool KEEP_SAME_DATASETS = true;
 #define DATA_TYPE float
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 12
+#define REPEAT_COUNT_REALLOC 1
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
 #define OUTPUT_FILE_NAME "sandor_h54_L_M_1G.txt"
 
 
-static std::string ver_prefix = "X38";
+static std::string ver_prefix = "X39";
 
 #define DATA_VERSION 5
 
@@ -134,6 +135,22 @@ uint64_t get_ms() {
 void log(std::string str) {
     std::cout << str << std::endl;
 }
+void logs(std::string str) {
+    std::cout << str << std::flush;
+}
+
+// level :
+// 0 : important
+// 1 : info
+// 2 : flood
+
+const int MAX_SHOWN_LEVEL = 1;
+
+void log(std::string str, int level) {
+    if (level <= MAX_SHOWN_LEVEL) {
+        std::cout << str << std::endl;
+    }
+}
 
 // Memory intensive operation (read only)
 int compute_sum(int* array, int size) {
@@ -171,6 +188,20 @@ struct gpu_timer {
     uint64_t t_free_gpu = 0;
 };
 
+int total_main_seq_runs = 1;
+//int current_main_seq_runs = 0;
+int current_iteration_count = 0;
+
+void print_total_progress() {
+    const int total_iteration_count_per_seq = DATASET_NUMBER * (REPEAT_COUNT_REALLOC + REPEAT_COUNT_ONLY_PARALLEL);
+    int total_iteration_count = total_iteration_count_per_seq * total_main_seq_runs;
+
+    int progress = 100 * double(current_iteration_count) / double(total_iteration_count);
+
+    logs( std::to_string(progress) + "% ");
+    //double runs_factor = double(current_main_seq_runs) / double(total_main_seq_runs);
+    //double iterations_factor = 
+}
 
 void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
                           gpu_timer& timer, sycl_mode mode) {
@@ -271,7 +302,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     sycl_q.wait_and_throw();
     timer.t_parallel_for = chrono.reset();
 
-    std::cout << ver_prefix + " - COMPUTE MODE = " + mode_to_string(mode) << std::endl;
+    //std::cout << ver_prefix + " - COMPUTE MODE = " + mode_to_string(mode) << std::endl;
     if ( mode == sycl_mode::device_USM ) {
         //std::cout << "MODE = DEVICE USM OK" << std::endl;
         //if (MEMCOPY_IS_SYCL) 
@@ -309,9 +340,9 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     timer.t_read_from_device = chrono.reset();
 
     if (total_sum == dataset->final_result_verif) {
-        log("VALID - Right data size ! (" + std::to_string(total_sum) + ")");
+        //log("VALID - Right data size ! (" + std::to_string(total_sum) + ")", 1);
     } else {
-        log("ERROR - expected size " + std::to_string(dataset->final_result_verif) + " but found " + std::to_string(total_sum) + ".");
+        log("ERROR on compute - expected size " + std::to_string(dataset->final_result_verif) + " but found " + std::to_string(total_sum) + ".", 1);
     }
 }
 
@@ -320,7 +351,7 @@ void generic_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_
     stime_utils chrono;
     chrono.start();
     
-    std::cout << ver_prefix + " - ALLOC MODE = " + mode_to_string(mode) << std::endl;
+    //std::cout << ver_prefix + " - ALLOC MODE = " + mode_to_string(mode) << std::endl;
     switch (mode) {
     case sycl_mode::device_USM :
         dataset->device_input = static_cast<data_type *> (cl::sycl::malloc_device(INPUT_DATA_SIZE, sycl_q));
@@ -347,11 +378,11 @@ void generic_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_
         // The only way to copy data to the device is to use sycl_q.memcpy
         // For shared memory (host and shared), glibc memcpy can be used.
         if ( (MEMCOPY_IS_SYCL == 1) || (mode == sycl_mode::device_USM) ) {
-            std::cout << "MEM - SYCL MEMCOPY ----\n";
+            log("MEM - SYCL MEMCOPY ----", 2);
             sycl_q.memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE).wait();
             sycl_q.wait_and_throw();
         } else {
-            std::cout << "MEM - GLIBC MEMCOPY ----\n";
+            log("MEM - GLIBC MEMCOPY ----", 2);
             // Probably works with host and shared, most likely does not work with device
             memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE);
         }
@@ -368,7 +399,7 @@ void generic_USM_free(cl::sycl::queue &sycl_q, host_dataset* dataset, gpu_timer&
     stime_utils chrono;
     chrono.start();
 
-    std::cout << ver_prefix + " - FREE MODE = " + mode_to_string(mode) << std::endl;
+    //std::cout << ver_prefix + " - FREE MODE = " + mode_to_string(mode) << std::endl;
 
     cl::sycl::free(dataset->device_input, sycl_q);
     cl::sycl::free(dataset->device_output, sycl_q);
@@ -409,9 +440,10 @@ void host_USM_free(cl::sycl::queue &sycl_q, host_dataset* dataset, gpu_timer& ti
 }*/
 
 
-
+const bool SHOW_TIME_STATS = false;
 
 void print_timer_iter_alloc(gpu_timer& time) {
+    if ( ! SHOW_TIME_STATS ) return;
     uint64_t t_gpu;
     t_gpu = time.t_allocation + time.t_copy_to_device + time.t_read_from_device
             + time.t_parallel_for + time.t_free_gpu;
@@ -429,6 +461,7 @@ void print_timer_iter_alloc(gpu_timer& time) {
 }
 
 void print_timer_iter(gpu_timer& time) {
+    if ( ! SHOW_TIME_STATS ) return;
     //uint64_t t_gpu;
     //t_gpu = time.t_read_from_device + time.t_parallel_for;
     std::cout 
@@ -440,6 +473,7 @@ void print_timer_iter(gpu_timer& time) {
 }
 
 void print_timer_alloc(gpu_timer& time) {
+    if ( ! SHOW_TIME_STATS ) return;
     uint64_t t_alloc_and_free;
     t_alloc_and_free = time.t_allocation + time.t_copy_to_device + time.t_free_gpu;
     std::cout 
@@ -455,7 +489,7 @@ void print_timer_alloc(gpu_timer& time) {
 
 host_dataset* generate_datasets() {
 
-    log("Generating data...");
+    log("Generating data...", 1);
     stime_utils chrono;
     chrono.start();
 
@@ -520,6 +554,8 @@ void delete_datasets(host_dataset* hdata) {
 host_dataset *global_persistent_datasets = nullptr;
 
 void main_sequence(std::ofstream& write_file, sycl_mode mode) {
+
+    
 
     // Pointers to allocation, compute and free SYCL functions.
     void (*sycl_allocation)(cl::sycl::queue &, host_dataset *, gpu_timer &, sycl_mode mode);
@@ -613,12 +649,10 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 
     gtimer.t_data_generation_and_ram_allocation = global_t_data_generation_and_ram_allocation; //chrono.reset(); //get_ms() - t_start;
 
-    log("\n");
     log("Input data size  : " + std::to_string(INPUT_DATA_SIZE)
-        + " (" + std::to_string(INPUT_DATA_SIZE / (1024*1024)) + " MiB)");
+        + " (" + std::to_string(INPUT_DATA_SIZE / (1024*1024)) + " MiB)", 1);
     log("Output data size : " + std::to_string(OUTPUT_DATA_SIZE)
-        + " (" + std::to_string(OUTPUT_DATA_SIZE / (1024*1024)) + " MiB)");
-    log("\n");
+        + " (" + std::to_string(OUTPUT_DATA_SIZE / (1024*1024)) + " MiB)", 1);
 
     // The default device selector will select the most performant device.
     cl::sycl::default_selector d_selector;
@@ -630,12 +664,13 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         gtimer.t_queue_creation = chrono.reset();//get_ms() - t_start;
 
         // Print out the device information used for the kernel code.
-        std::cout << "Running on device: "
-                << sycl_q.get_device().get_info<cl::sycl::info::device::name>() << "\n";
+        log("   " + sycl_q.get_device().get_info<cl::sycl::info::device::name>() + "   = device");
+        /*std::cout << "Running on device: "
+                << sycl_q.get_device().get_info<cl::sycl::info::device::name>() << "\n";*/
 
         // ========== RIP IMPLICIT USM RIP ==========
         
-
+        
 
         // ========== EXPLICIT USM ==========
         //if (mode == sycl_mode::device_USM) {
@@ -643,7 +678,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 
         //log("Mode : EXPLICIT USM");
         
-        log("============== alloc / free each time ==============");
+        log("============== alloc / free each time ==============", 2);
 
         // INPUT_DATA_SIZE OUTPUT_DATA_SIZE PARALLEL_FOR_SIZE VECTOR_SIZE_PER_ITERATION REPEAT_COUNT
         // t_data_generation_and_ram_allocation t_queue_creation
@@ -662,7 +697,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                     << USE_NAMED_KERNEL // flag to indicate if the named kernel was used or traditional lambda kernel
                     << "\n";
 
-        log("\n######## ALLOCATION, COPY AND FREE FOR EACH ITERATION ########");
+        log("\n######## ALLOCATION, COPY AND FREE FOR EACH ITERATION ########", 2);
 
         // Allocation, copy and free each time
         for (int ids = 0; ids < DATASET_NUMBER; ++ids) {
@@ -670,12 +705,13 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
             host_dataset* dataset = &hdata[ids];
             write_file << dataset->seed << "\n";
 
-            log("------- DATASET SEED " + std::to_string(dataset->seed) + " -------\n");
+            log("------- DATASET SEED " + std::to_string(dataset->seed) + " -------\n", 2);
 
             // Allocation and free on device, for each iteration
             for (int rpt = 0; rpt < REPEAT_COUNT_REALLOC; ++rpt) {
-                log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(REPEAT_COUNT_REALLOC));
+                log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(REPEAT_COUNT_REALLOC), 2);
 
+                
                 sycl_allocation(sycl_q, dataset, gtimer, mode);
                 sycl_compute(sycl_q, dataset, gtimer, mode);
                 sycl_free(sycl_q, dataset, gtimer, mode);
@@ -693,10 +729,13 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                 // A new line for each repeat count :
                 // t_allocation t_copy_to_device t_parallel_for t_read_from_device t_free_gpu
                 print_timer_iter_alloc(gtimer);
+
+                ++current_iteration_count;
+                print_total_progress();
             }
         }
 
-        log("\n######## ALLOCATION, COPY AND FREE ONLY ONCE ########");
+        log("\n######## ALLOCATION, COPY AND FREE ONLY ONCE ########", 2);
 
         // Allocation, copy and free once
         for (int ids = 0; ids < DATASET_NUMBER; ++ids) {
@@ -704,12 +743,12 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
             host_dataset* dataset = &hdata[ids];
             write_file << dataset->seed << "\n";
 
-            log("------- DATASET SEED " + std::to_string(dataset->seed) + " -------\n");
+            log("------- DATASET SEED " + std::to_string(dataset->seed) + " -------\n", 2);
             sycl_allocation(sycl_q, dataset, gtimer, mode);
 
             // Allocation and free on device, for each iteration
             for (int rpt = 0; rpt < REPEAT_COUNT_ONLY_PARALLEL; ++rpt) {
-                log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(REPEAT_COUNT_ONLY_PARALLEL));
+                log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(REPEAT_COUNT_ONLY_PARALLEL), 2);
                 
                 sycl_compute(sycl_q, dataset, gtimer, mode);
                 
@@ -722,6 +761,9 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                 // A new line for each repeat count :
                 // t_allocation t_copy_to_device t_parallel_for t_read_from_device t_free_gpu
                 print_timer_iter(gtimer);
+
+                ++current_iteration_count;
+                print_total_progress();
             }
             sycl_free(sycl_q, dataset, gtimer, mode);
 
@@ -736,13 +778,13 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         //}
 
         
-
-        std::cout 
-            << "t_data_ram_init            = " << gtimer.t_data_generation_and_ram_allocation << std::endl
-            << "t_queue_creation           = " << gtimer.t_queue_creation << std::endl
-            ;
-
-        log("");
+        if (MAX_SHOWN_LEVEL >= 2) {
+            std::cout 
+                << "t_data_ram_init            = " << gtimer.t_data_generation_and_ram_allocation << std::endl
+                << "t_queue_creation           = " << gtimer.t_queue_creation << std::endl
+                ;
+            log("");
+        }
 
 
 
@@ -756,9 +798,10 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         delete_datasets(hdata);
     }
 
-    log("Bye.");
+    log("done.");
 }
 
+int percent_div_factor = 1;
 
 void bench_smid_modes(std::ofstream& myfile) {
 
@@ -770,6 +813,8 @@ void bench_smid_modes(std::ofstream& myfile) {
     //MEMCOPY_IS_SYCL = 1;
     SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
+
+    percent_div_factor = 2 * 2;
 
     for (int imcp = 0; imcp < 2; ++imcp) {
         SIMD_FOR_LOOP = imcp;
@@ -786,9 +831,12 @@ void bench_smid_modes(std::ofstream& myfile) {
             log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
             log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
             main_sequence(myfile, CURRENT_MODE);
+            log("");
         }
     }
 }
+
+
 
 void bench_choose_L_M(std::ofstream& myfile) {
 
@@ -800,8 +848,17 @@ void bench_choose_L_M(std::ofstream& myfile) {
     //USE_NAMED_KERNEL = 0;
 
     int start_L_size = 64;
-    int stop_M_size = 4096; // inclusive
+    int stop_M_size = 4096 * 32; // inclusive
     int stop_L_size = total_elements / stop_M_size;
+
+    // how many times main_sequence will be run
+    total_main_seq_runs = 1;
+    for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
+        for (int imode = 0; imode <= 1; ++imode) {
+            total_main_seq_runs += 1;
+        }
+    }
+    //current_main_seq_runs = 0;
 
     for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
         PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
@@ -815,9 +872,13 @@ void bench_choose_L_M(std::ofstream& myfile) {
             default : break;
             }
             
-            log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
-            log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+            log("========================================= " + ver_prefix);
+            log(" - MEMORY = " + mode_to_string(CURRENT_MODE));
+            log(" - L = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+            log(" - M = " + std::to_string(PARALLEL_FOR_SIZE));
             main_sequence(myfile, CURRENT_MODE);
+            log("");
+            //++current_main_seq_runs;
         }
     }
 }
@@ -834,21 +895,35 @@ int main(int argc, char *argv[])
     auto data_path = std::string(argv[1]);*/
     
     std::ofstream myfile;
-    myfile.open ("/home/data_sync/academique/M2/StageM2/SYCL_tests/mem_bench/" + std::string(OUTPUT_FILE_NAME));
-    
+
+
+    std::string wdir_tmp = std::filesystem::current_path();
+    std::string wdir = wdir_tmp + "/";
+    std::string output_file_name = wdir + std::string(OUTPUT_FILE_NAME);
+
+    myfile.open(output_file_name);
+    log("");
+
+    log("current_path     = " + wdir);
+    log("output_file_name = " + output_file_name);
+
+    if (myfile.is_open()) {
+        log("OK, fichier bien ouvert.");
+    } else {
+        log("ERREUR : échec de l'ouverture du fichier en écriture.");
+        return 10;
+    }
+    log("");
 
     myfile << DATA_VERSION << "\n";
 
-    std::cout << "======= FILE VERSION =======" << std::endl;
-    std::cout << "======= FILE VERSION =======" << std::endl;
+    std::cout << "============================" << std::endl;
     std::cout << "   SYCL memory benchmark.   " << std::endl;
-    std::cout << "======= FILE VERSION =======" << std::endl;
-    std::cout << "======= FILE VERSION =======" << std::endl;
+    std::cout << "============================" << std::endl;
     
     std::cout << OUTPUT_FILE_NAME << std::endl;
-    std::cout << OUTPUT_FILE_NAME << std::endl;
-    std::cout << OUTPUT_FILE_NAME << std::endl;
 
+    log("");
     bench_choose_L_M(myfile);
 
     //PARALLEL_FOR_SIZE = 128;//1024;
