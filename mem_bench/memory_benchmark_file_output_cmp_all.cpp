@@ -42,8 +42,10 @@ unsigned int VECTOR_SIZE_PER_ITERATION;// = 1; // = L ; vector size per workitem
 
 sycl_mode CURRENT_MODE = sycl_mode::device_USM;
 
-int MEMCOPY_IS_SYCL = 0;
+constexpr int MEMCOPY_IS_SYCL = 1;
 int SIMD_FOR_LOOP = 0;
+constexpr int USE_NAMED_KERNEL = 1; // Sandor does not support anonymous kernels.
+constexpr bool KEEP_SAME_DATASETS = true; 
 
 // faire un repeat sur les mêmes données pour essayer d'utiliser le cache
 // hypothèse : les données sont évincées du cache avant de pouvoir y avoir accès
@@ -53,17 +55,21 @@ int SIMD_FOR_LOOP = 0;
 #define DATA_TYPE float
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 120
+#define REPEAT_COUNT_REALLOC 12
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
-#define OUTPUT_FILE_NAME "sh_output_bench_h44.shared_txt"
+//#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
+#define OUTPUT_FILE_NAME "sandor_h54_L_M_1G.txt"
 
-static std::string ver_prefix = "X23";
 
-#define DATA_VERSION 4
+static std::string ver_prefix = "X38";
+
+#define DATA_VERSION 5
 
 // number of diffrent datasets
 #define DATASET_NUMBER 1
+
+#define CHECK_SIMD_CPU false
 
 
 #define INPUT_DATA_LENGTH PARALLEL_FOR_SIZE * VECTOR_SIZE_PER_ITERATION
@@ -153,6 +159,7 @@ struct host_dataset {
     data_type *device_input = nullptr;
     data_type *device_output = nullptr;
 };
+unsigned int global_t_data_generation_and_ram_allocation = 0;
 
 struct gpu_timer {
     uint64_t t_data_generation_and_ram_allocation = 0;
@@ -179,9 +186,54 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
     unsigned int local_VECTOR_SIZE_PER_ITERATION = VECTOR_SIZE_PER_ITERATION;
 
+    /*if (USE_NAMED_KERNEL == 0) {
+
+        if (SIMD_FOR_LOOP == 0) {
+            // Starts a kernel - traditional for loop
+            auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
+                int cindex = chunk_index[0];
+                int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
+                int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
+                data_type sum = 0;
+
+                for (int i = start_index; i < stop_index; ++i) {
+                    sum += ddata_input[i];
+                }
+
+                ddata_output[cindex] = sum;
+                //ddata_output_verif[cindex] = sum;
+            });
+            e.wait();
+        } else {
+            // Starts a kernel - SIMD optimized for loop
+            auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
+                int cindex = chunk_index[0];
+                //int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
+                //int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
+                data_type sum = 0;
+
+                for (int it = 0; it < local_VECTOR_SIZE_PER_ITERATION; ++it) {
+                    int iindex = cindex + it * PARALLEL_FOR_SIZE;
+                    sum += ddata_input[iindex];
+                }
+
+                
+
+                ddata_output[cindex] = sum;
+                //ddata_output_verif[cindex] = sum;
+            });
+            e.wait();
+        }
+    } else {*/
+
+    // Sandor does not support anonymous kernels.
+
+    class MyKernel_a;
+    class MyKernel_b;
+
     if (SIMD_FOR_LOOP == 0) {
         // Starts a kernel - traditional for loop
-        auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
+        auto e = sycl_q.parallel_for<MyKernel_a>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
             int cindex = chunk_index[0];
             int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
             int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
@@ -197,10 +249,10 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
         e.wait();
     } else {
         // Starts a kernel - SIMD optimized for loop
-        auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
+        auto e = sycl_q.parallel_for<MyKernel_b>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
             int cindex = chunk_index[0];
-            int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
-            int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
+            //int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
+            //int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
             data_type sum = 0;
 
             for (int it = 0; it < local_VECTOR_SIZE_PER_ITERATION; ++it) {
@@ -213,6 +265,8 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
         });
         e.wait();
     }
+
+    //}
 
     sycl_q.wait_and_throw();
     timer.t_parallel_for = chrono.reset();
@@ -227,6 +281,10 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
     //sycl_q.memcpy(dataset->data_output, ddata_output_verif, OUTPUT_DATA_SIZE);
     //sycl_q.wait_and_throw();
+
+    data_type sum_simd_check_cpu = 0;
+
+
 
     // Value verification
     data_type total_sum = 0;
@@ -395,6 +453,71 @@ void print_timer_alloc(gpu_timer& time) {
 }
 
 
+host_dataset* generate_datasets() {
+
+    log("Generating data...");
+    stime_utils chrono;
+    chrono.start();
+
+    host_dataset *hdata = new host_dataset[DATASET_NUMBER];
+
+    for (int i = 0; i < DATASET_NUMBER; ++i) {
+        host_dataset *hd = &hdata[i];
+
+        hd->data_input = new data_type[INPUT_DATA_LENGTH];
+        hd->data_output = new data_type[OUTPUT_DATA_LENGTH];
+        hd->seed = 452 + i * 68742;
+
+        srand(hd->seed);
+
+        // Fills the array with random data
+        for (int i = 0; i < INPUT_DATA_LENGTH; ++i) {
+            data_type v = rand();
+            hd->data_input[i] = v;
+            hd->final_result_verif += v;
+        }
+
+        // Perform SMID-like operations to verify the sum algorithm
+        if (CHECK_SIMD_CPU) {
+            data_type sum_simd_check_cpu = 0;
+            // SIMD-like check
+            for (int ip = 0; ip < PARALLEL_FOR_SIZE; ++ip) {
+                for (int it = 0; it < VECTOR_SIZE_PER_ITERATION; ++it) {
+                    int iindex = ip + it * PARALLEL_FOR_SIZE;
+                    sum_simd_check_cpu += hd->data_input[iindex];
+                }
+            }
+
+            // SMID-like OKAY VALLID - total sum = -1553315753
+            if (sum_simd_check_cpu == hd->final_result_verif) {
+                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
+                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
+                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
+            } else {
+                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
+                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
+                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
+            }
+        }
+    }
+
+    global_t_data_generation_and_ram_allocation = chrono.reset(); //get_ms() - t_start;
+
+    return hdata;
+}
+
+void delete_datasets(host_dataset* hdata) {
+    if (hdata == nullptr) return;
+
+    for (int i = 0; i < DATASET_NUMBER; ++i) {
+        host_dataset *hd = &hdata[i];
+        delete[] hd->data_input;
+        delete[] hd->data_output;
+    }
+    delete[] hdata;
+}
+
+host_dataset *global_persistent_datasets = nullptr;
 
 void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 
@@ -429,12 +552,24 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 
     stime_utils chrono;
 
-    log("Generating data...");
+    //log("Generating data...");
 
     chrono.start();
     //t_start = get_ms();
+    host_dataset *hdata;
 
-    host_dataset *hdata = new host_dataset[DATASET_NUMBER];
+    if (KEEP_SAME_DATASETS) {
+        if (global_persistent_datasets == nullptr) {
+            // First generation, if no dataset already present
+            global_persistent_datasets = generate_datasets();
+        }
+        hdata = global_persistent_datasets;
+    } else {
+        // New dataset for each run of main_sequence
+        hdata = generate_datasets();
+    }
+
+    /*host_dataset *hdata = new host_dataset[DATASET_NUMBER];
 
     for (int i = 0; i < DATASET_NUMBER; ++i) {
         host_dataset *hd = &hdata[i];
@@ -451,9 +586,32 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
             hd->data_input[i] = v;
             hd->final_result_verif += v;
         }
-    }
 
-    gtimer.t_data_generation_and_ram_allocation = chrono.reset(); //get_ms() - t_start;
+        // Perform SMID-like operations to verify the sum algorithm
+        if (CHECK_SIMD_CPU) {
+            data_type sum_simd_check_cpu = 0;
+            // SIMD-like check
+            for (int ip = 0; ip < PARALLEL_FOR_SIZE; ++ip) {
+                for (int it = 0; it < VECTOR_SIZE_PER_ITERATION; ++it) {
+                    int iindex = ip + it * PARALLEL_FOR_SIZE;
+                    sum_simd_check_cpu += hd->data_input[iindex];
+                }
+            }
+
+            // SMID-like OKAY VALLID - total sum = -1553315753
+            if (sum_simd_check_cpu == hd->final_result_verif) {
+                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
+                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
+                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
+            } else {
+                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
+                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
+                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
+            }
+        }
+    }*/
+
+    gtimer.t_data_generation_and_ram_allocation = global_t_data_generation_and_ram_allocation; //chrono.reset(); //get_ms() - t_start;
 
     log("\n");
     log("Input data size  : " + std::to_string(INPUT_DATA_SIZE)
@@ -500,7 +658,8 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                     << gtimer.t_queue_creation << " "
                     << mode_to_int(mode) << " "
                     << MEMCOPY_IS_SYCL << " " // flag to indicate if sycl mem copy or glibc mem copy
-                    << SIMD_FOR_LOOP // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
+                    << SIMD_FOR_LOOP << " " // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
+                    << USE_NAMED_KERNEL // flag to indicate if the named kernel was used or traditional lambda kernel
                     << "\n";
 
         log("\n######## ALLOCATION, COPY AND FREE FOR EACH ITERATION ########");
@@ -592,15 +751,75 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         std::terminate();
     }
 
-
-    for (int i = 0; i < DATASET_NUMBER; ++i) {
-        host_dataset *hd = &hdata[i];
-        delete[] hd->data_input;
-        delete[] hd->data_output;
+    if ( ! KEEP_SAME_DATASETS ) {
+        // Delete local datasets
+        delete_datasets(hdata);
     }
-    delete[] hdata;
 
     log("Bye.");
+}
+
+
+void bench_smid_modes(std::ofstream& myfile) {
+
+    unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
+    VECTOR_SIZE_PER_ITERATION = 2048;
+    PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
+
+    int imode;
+    //MEMCOPY_IS_SYCL = 1;
+    SIMD_FOR_LOOP = 0;
+    //USE_NAMED_KERNEL = 0;
+
+    for (int imcp = 0; imcp < 2; ++imcp) {
+        SIMD_FOR_LOOP = imcp;
+
+        for (int imode = 0; imode <= 2; ++imode) {
+            
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            default : break;
+            }
+            
+            log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+            log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+            main_sequence(myfile, CURRENT_MODE);
+        }
+    }
+}
+
+void bench_choose_L_M(std::ofstream& myfile) {
+
+    unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
+
+    int imode;
+    //MEMCOPY_IS_SYCL = 1;
+    SIMD_FOR_LOOP = 0;
+    //USE_NAMED_KERNEL = 0;
+
+    int start_L_size = 64;
+    int stop_M_size = 4096; // inclusive
+    int stop_L_size = total_elements / stop_M_size;
+
+    for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
+        PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
+
+        for (int imode = 0; imode <= 1; ++imode) {
+            
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+            //case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            default : break;
+            }
+            
+            log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+            log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+            main_sequence(myfile, CURRENT_MODE);
+        }
+    }
 }
 
 
@@ -630,6 +849,7 @@ int main(int argc, char *argv[])
     std::cout << OUTPUT_FILE_NAME << std::endl;
     std::cout << OUTPUT_FILE_NAME << std::endl;
 
+    bench_choose_L_M(myfile);
 
     //PARALLEL_FOR_SIZE = 128;//1024;
     //VECTOR_SIZE_PER_ITERATION = 256 * 1024 * 8;
@@ -649,33 +869,10 @@ int main(int argc, char *argv[])
 
     // todo : affichage graphique de L et M sur les graphiques
 
-    unsigned int total_elements = 1024 * 1024 * 256; //* 256;// * 8; // 32 millions elements
-
-    VECTOR_SIZE_PER_ITERATION = 2048;
-    PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     // Do that for each mode
 
-    int imode;
-    MEMCOPY_IS_SYCL = 1;
-
-    for (int imcp = 0; imcp < 2; ++imcp) {
-        SIMD_FOR_LOOP = imcp;
-
-        for (int imode = 0; imode <= 2; ++imode) {
-            
-            switch (imode) {
-            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
-            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
-            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
-            default : break;
-            }
-            
-            log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
-            log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
-            main_sequence(myfile, CURRENT_MODE);
-        }
-    }
+    
     /*log("=============== L = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
     log("=============== M = " + std::to_string(PARALLEL_FOR_SIZE));
 
@@ -706,6 +903,12 @@ int main(int argc, char *argv[])
 
     myfile.close();
     log("OK, done.");
+
+    if ( KEEP_SAME_DATASETS ) {
+        // Delete local datasets
+        delete_datasets(global_persistent_datasets);
+        global_persistent_datasets = nullptr;
+    }
 
     return 0;
 
