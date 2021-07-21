@@ -38,8 +38,8 @@ std::string mode_to_string(sycl_mode m) {
 /*#define PARALLEL_FOR_SIZE 1024
 #define VECTOR_SIZE_PER_ITERATION 200 * 1024*/
 
-unsigned int PARALLEL_FOR_SIZE;// = 1024 * 32 * 8;// = M ; work items number
-unsigned int VECTOR_SIZE_PER_ITERATION;// = 1; // = L ; vector size per workitem (i.e. parallel_for task) = nb itérations internes par work item
+unsigned long long PARALLEL_FOR_SIZE;// = 1024 * 32 * 8;// = M ; work items number
+unsigned long long VECTOR_SIZE_PER_ITERATION;// = 1; // = L ; vector size per workitem (i.e. parallel_for task) = nb itérations internes par work item
 
 sycl_mode CURRENT_MODE = sycl_mode::device_USM;
 
@@ -60,7 +60,7 @@ constexpr bool KEEP_SAME_DATASETS = true;
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
-#define OUTPUT_FILE_NAME "sandor_h59_L_M_12G.t"
+#define OUTPUT_FILE_NAME "sandor_h59_L_M_6G.t"
 
 
 static std::string ver_prefix = "X42";
