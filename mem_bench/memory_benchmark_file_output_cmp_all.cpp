@@ -365,6 +365,7 @@ void generic_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_
         dataset->device_input = static_cast<data_type *> (cl::sycl::malloc_shared(INPUT_DATA_SIZE, sycl_q));
         dataset->device_output = static_cast<data_type *> (cl::sycl::malloc_shared(OUTPUT_DATA_SIZE, sycl_q));
         break;
+    default : break; // TODO : add buffers/accessors
     }
     
     sycl_q.wait_and_throw();
@@ -581,6 +582,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         sycl_free = generic_USM_free;
         break;
 
+    default : break; // TODO : add buffers/accessors
     }
 
     uint64_t t_start, t_start2;
@@ -840,16 +842,16 @@ void bench_smid_modes(std::ofstream& myfile) {
 
 void bench_choose_L_M(std::ofstream& myfile) {
 
-    unsigned int total_elements = 1024 * 1024 * 256 * 12; // 256 * bytes = 1 GiB.
+    long long total_elements = 1024L * 1024L * 256L * 12L; // 256 * bytes = 1 GiB.
 
     int imode;
     //MEMCOPY_IS_SYCL = 1;
     SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
 
-    int start_L_size = 4;
-    int stop_M_size = 1024; // inclusive
-    int stop_L_size = total_elements / stop_M_size;
+    long long start_L_size = 4;
+    long long stop_M_size = 1024; // inclusive
+    long long stop_L_size = total_elements / stop_M_size;
 
     // how many times main_sequence will be run
     total_main_seq_runs = 1;
