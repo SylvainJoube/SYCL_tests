@@ -6,7 +6,7 @@ var base_dir_load = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem
 //var base_dir_save = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\gm_graphs\gm_graphs.gmx\save_png\";
 var base_dir_save = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\mem_benck\";
 
-var h_version = "44";
+var h_version = "53";
 
 g_load_path = base_dir_load + "sh_output_bench_h" + h_version + ".shared_txt";
 

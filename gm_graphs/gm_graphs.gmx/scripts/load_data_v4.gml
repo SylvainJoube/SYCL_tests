@@ -23,6 +23,7 @@ while ( ! file_text_eof(file) ) {
     var header_vars = list_to_real(split_string(header_str, " "));
     
     var j = instance_create(0, 0, jobs_fixed);
+    init_job_variables(j);
     ds_list_add(ctrl.jobs_fixed_list, j);
     j.DATASET_NUMBER = ds_list_find_value(header_vars, 0);
     //show_message("j.DATASET_NUMBER = " + string(j.DATASET_NUMBER));

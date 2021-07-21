@@ -1,4 +1,4 @@
-/// load_data(text_file);
+/// load_data_v5(text_file);
 
 var file = argument0;
 
@@ -38,7 +38,19 @@ while ( ! file_text_eof(file) ) {
     j.REPEAT_COUNT_ONLY_PARALLEL = ds_list_find_value(header_vars, 6);
     j.t_data_generation_and_ram_allocation = ds_list_find_value(header_vars, 7);
     j.t_queue_creation = ds_list_find_value(header_vars, 8);
+    
+    // NEW with load data V3 :
+    j.MEMORY_LOCATION = ds_list_find_value(header_vars, 9); // memory allocated 0 shared ; 1 on device ; 2 host ; 3 buffers
+    
+    // NEW with load data V4 :
+    j.MEMCOPY_IS_SYCL = ds_list_find_value(header_vars, 10); // flag to indicate if sycl mem copy or glibc mem copy
+    j.SIMD_FOR_LOOP = ds_list_find_value(header_vars, 11);   // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
+    
+    // NEW with load data V5 :
+    j.USE_NAMED_KERNEL = ds_list_find_value(header_vars, 12);   // flag to indicate wether the kernel was named or not
+    
     j.datasets = ds_list_create();
+    //show_message("j.REPEAT_COUNT_ONLY_PARALLEL = " + string(j.REPEAT_COUNT_ONLY_PARALLEL));
     
     
     if (g_display_LM) {
@@ -87,6 +99,9 @@ while ( ! file_text_eof(file) ) {
     
     for (var i_dataset = 0; i_dataset < j.DATASET_NUMBER; ++i_dataset) {
         var seed_str = file_text_readln(file);
+        //var seed_str2 = file_text_readln(file);
+        //show_message("seed str 1 et 2 : " + seed_str + "  -  " + seed_str2);
+        
         var d = ds_list_find_value(j.datasets, i_dataset);
         //d.iterations_only_parallel = ds_list_create();
         
@@ -109,12 +124,13 @@ while ( ! file_text_eof(file) ) {
         }
         
         var common_values_str = file_text_readln(file);
-        var values = list_to_real(split_string(values_str, " "));
+        var values = list_to_real(split_string(common_values_str, " "));
         var t_allocation = ds_list_find_value(values, 0);
         var t_copy_to_device = ds_list_find_value(values, 1);
         var t_free_gpu = ds_list_find_value(values, 2);
+        //show_message("t_free_gpu = " + string(t_free_gpu) + "  t_allocation = " + string(t_allocation));
         
-        for (var i_iteration = 0; i_iteration < j.REPEAT_COUNT; ++i_iteration) {
+        for (var i_iteration = 0; i_iteration < j.REPEAT_COUNT_ONLY_PARALLEL; ++i_iteration) {
             var iter = ds_list_find_value(d.iterations_only_parallel, i_iteration);
             iter.t_allocation = t_allocation;
             iter.t_copy_to_device = t_copy_to_device;
