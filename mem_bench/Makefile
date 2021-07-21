@@ -1,6 +1,6 @@
 CXX = syclcc
 #dpcpp
-CXXFLAGS = -O0 -g -std=c++17 # -O2 -std=c++17
+CXXFLAGS = -O2 -std=c++17 # -O0 -g     -O2 -std=c++17
 
 FILE_NAME = memory_benchmark_file_output_cmp_all
 #chrono_test

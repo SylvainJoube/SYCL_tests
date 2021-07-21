@@ -56,11 +56,15 @@ constexpr bool KEEP_SAME_DATASETS = true;
 #define DATA_TYPE float
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 4
+#define REPEAT_COUNT_REALLOC 6
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
-#define OUTPUT_FILE_NAME "sandor_h59_L_M_1G.t"
+//#define OUTPUT_FILE_NAME "msi_h60_L_M_128MiB_O0.t"
+//#define OUTPUT_FILE_NAME "msi_h60_L_M_1GiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_h60_L_M_1GiB_O2.t"
+//#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
+const long long total_elements = 1024L * 1024L * 256L * 1L; // 256 * 4 bytes = 1 GiB.
 
 
 static std::string ver_prefix = "X42";
@@ -842,15 +846,15 @@ void bench_smid_modes(std::ofstream& myfile) {
 
 void bench_choose_L_M(std::ofstream& myfile) {
 
-    long long total_elements = 1024L * 1024L * 256L * 1L; // 256 * bytes = 1 GiB.
+    //long long total_elements = 1024L * 1024L * 256L * 1L; // 256 * bytes = 1 GiB.
 
     int imode;
     //MEMCOPY_IS_SYCL = 1;
     SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
 
-    long long start_L_size = 4;
-    long long stop_M_size = 1024; // inclusive
+    long long start_L_size = 2;
+    long long stop_M_size = 128; // inclusive
     long long stop_L_size = total_elements / stop_M_size;
 
     // how many times main_sequence will be run
