@@ -58,22 +58,26 @@ constexpr bool KEEP_SAME_DATASETS = true;
 using data_type = DATA_TYPE;
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 10
+#define REPEAT_COUNT_REALLOC 12
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
 //#define OUTPUT_FILE_NAME "msi_h60_L_M_128MiB_O0.t"
-#define OUTPUT_FILE_NAME "msi_h60_L_M_1GiB_O2.t"
+//#define OUTPUT_FILE_NAME "msi_L_M_512MiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_L_M_512MiB_O2.t"
 //#define OUTPUT_FILE_NAME "sandor_h60_L_M_4GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_alloclib_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_simd_1GiB_O2_20pts.t"
 //#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
 //#define OUTPUT_FILE_NAME "T580_h60_simd_128MiB.t"
-const long long total_elements = 1024L * 1024L * 32L * 1L;
+const long long total_elements = 1024L * 1024L * 128L * 1L;
+// 256 => 1 GiB 
+// 128 => 512 MiB ; 
+// 32  => 128 MiB ; 
 // 256 * 4 bytes = 1   GiB.
 // 32  * 4 bytes = 128 MiB.
 
-static std::string ver_prefix = "X42";
+static std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - 3"); // "X42"
 
 #define DATA_VERSION 5
 
@@ -902,8 +906,8 @@ void bench_choose_L_M(std::ofstream& myfile) {
     SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
 
-    long long start_L_size = 2;
-    long long stop_M_size = 128; // inclusive
+    long long start_L_size = 1;
+    long long stop_M_size = 256; // inclusive
     long long stop_L_size = total_elements / stop_M_size;
 
     // how many times main_sequence will be run
@@ -979,7 +983,8 @@ int main(int argc, char *argv[])
     std::cout << OUTPUT_FILE_NAME << std::endl;
 
     log("");
-    bench_smid_modes(myfile);
+    //bench_smid_modes(myfile);
+    bench_choose_L_M(myfile);
 
     //PARALLEL_FOR_SIZE = 128;//1024;
     //VECTOR_SIZE_PER_ITERATION = 256 * 1024 * 8;
