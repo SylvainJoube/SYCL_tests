@@ -11,7 +11,9 @@ de la locatisation de la mémoire et des valeurs de L et M.
 
 var echelle_log = false;
 
-g_graph_title = "Tempr pris par parallel_for en fonction de L et M";
+//g_graph_title = "Tempr pris par parallel_for en fonction de L et M - SANDOR - 1 GiO";
+//g_graph_title = "Tempr pris par parallel_for en fonction de L et M - MSI - 128 MiB - O0";
+g_graph_title = "Temps pris par parallel_for en fonction de L et M - SANDOR - 4 GiB - O2";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/

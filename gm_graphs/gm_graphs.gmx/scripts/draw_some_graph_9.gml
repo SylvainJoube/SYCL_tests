@@ -13,7 +13,7 @@ Paramètre supplémentaire : boucle for en SIMD vs avec un for classique.
 
 var echelle_log = false;
 
-g_graph_title = "Temps caractéristiques : boucle for classique vs optimisation SIMD";
+g_graph_title = "Boucle for classique vs optimisation SIMD - MSI - O2 - 1 GiB - 20 pts";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
@@ -33,7 +33,7 @@ var merge_cfactor = 0.3;
 
 ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
 ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
-//ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
+ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
 
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
 ds_list_add(colors, merge_colour(c_green, c_black, merge_cfactor)); // device
@@ -54,7 +54,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
     //if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 1 ) continue;
     //if ( j.MEMORY_LOCATION == 2 ) continue; // located on host
     
-    if ( j.SIMD_FOR_LOOP == 0 && j.MEMORY_LOCATION == 2 ) continue; // classic for loop and located on host
+    //if ( j.SIMD_FOR_LOOP == 0 && j.MEMORY_LOCATION == 2 ) continue; // classic for loop and located on host
     
     
     for (var ids = 0; ids < ds_list_size(j.datasets); ++ids) {

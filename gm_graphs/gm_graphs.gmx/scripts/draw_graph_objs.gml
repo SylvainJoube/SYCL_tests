@@ -60,12 +60,17 @@ if (g_display_LM) {
       + "Itérations = " + split_thousands(g_iteration_count)
     );*/
     
-    draw_text(graph_width + xorig - x_space_left + 100, 20,
+    draw_text(graph_width + xorig - x_space_left + 100, 60,
         split_thousands(g_VECTOR_SIZE_PER_ITERATION_common) + " = L" + chr(10)
       + split_thousands(g_PARALLEL_FOR_SIZE_common) + " = M" + chr(10)
       + split_thousands(g_iteration_count) + " pts" + chr(10)
       + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio" + chr(10)
       + "out " + split_thousands(round(g_output_data_size / 1024)) + " kio"
+    );
+} else {
+    draw_text(graph_width + xorig - x_space_left + 100, 60,
+      + split_thousands(g_iteration_count) + " pts" + chr(10)
+      + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio"
     );
 }
 

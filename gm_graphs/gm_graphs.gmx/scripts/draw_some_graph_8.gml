@@ -13,7 +13,7 @@ Paramètre supplémentaire : memcpy de SYCL vs de la glibc.
 
 var echelle_log = false;
 
-g_graph_title = "Temps caractéristiques : allocation glibc vs SYCL";
+g_graph_title = "Allocation glibc vs SYCL - MSI - O2 - 1 GiB";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
@@ -32,11 +32,11 @@ for (var col = 0; col < max_color; col += color_step) {
 var merge_cfactor = 0.3;
 
 ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
-ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
+//ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
 
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
 ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
-ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
+//ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
 
 
 ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
