@@ -70,21 +70,24 @@ using data_type = DATA_TYPE;
 //#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2.t"
 
 //#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2.t"
-#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2.t"
+//#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2.t"
+
+//#define OUTPUT_FILE_NAME "msi_alloc_1GiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_alloc_1GiB_O2.t"
 
 //#define OUTPUT_FILE_NAME "sandor_h60_L_M_4GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_alloclib_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_simd_1GiB_O2_20pts.t"
 //#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
 //#define OUTPUT_FILE_NAME "T580_h60_simd_128MiB.t"
-const long long total_elements = 1024L * 1024L * 256L * 6L;
+const long long total_elements = 1024L * 1024L * 256L * 1L;
 // 256 => 1 GiB 
 // 128 => 512 MiB ; 
 // 32  => 128 MiB ; 
 // 256 * 4 bytes = 1   GiB.
 // 32  * 4 bytes = 128 MiB.
 
-static std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - 7"); // "X42"
+static std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - 8"); // "X42"
 
 #define DATA_VERSION 5
 
@@ -990,7 +993,8 @@ int main(int argc, char *argv[])
     std::cout << OUTPUT_FILE_NAME << std::endl;
 
     log("");
-    bench_smid_modes(myfile);
+    bench_mem_alloc_modes(myfile);
+    //bench_smid_modes(myfile);
     //bench_choose_L_M(myfile);
 
     //PARALLEL_FOR_SIZE = 128;//1024;
