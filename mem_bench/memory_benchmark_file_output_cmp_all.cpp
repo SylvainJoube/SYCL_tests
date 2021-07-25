@@ -73,14 +73,14 @@ using data_type = DATA_TYPE;
 //#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2.t"
 
 //#define OUTPUT_FILE_NAME "msi_alloc_1GiB_O2.t"
-#define OUTPUT_FILE_NAME "sandor_alloc_1GiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_alloc_6GiB_O2.t"
 
 //#define OUTPUT_FILE_NAME "sandor_h60_L_M_4GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_alloclib_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_simd_1GiB_O2_20pts.t"
 //#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
 //#define OUTPUT_FILE_NAME "T580_h60_simd_128MiB.t"
-const long long total_elements = 1024L * 1024L * 256L * 1L;
+const long long total_elements = 1024L * 1024L * 256L * 6L;
 // 256 => 1 GiB 
 // 128 => 512 MiB ; 
 // 32  => 128 MiB ; 
