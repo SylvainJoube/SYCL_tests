@@ -63,23 +63,28 @@ using data_type = DATA_TYPE;
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
 //#define OUTPUT_FILE_NAME "msi_h60_L_M_128MiB_O0.t"
+
 //#define OUTPUT_FILE_NAME "msi_L_M_512MiB_O2_SIMD_2.t"
-#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2_SIMD_2.t"
+//#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2_SIMD_2.t"
 //#define OUTPUT_FILE_NAME "msi_L_M_128MiB_O2_SIMD.t"
 //#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2.t"
+
+//#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_simd_1GiB_O2.t"
+
 //#define OUTPUT_FILE_NAME "sandor_h60_L_M_4GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_alloclib_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_simd_1GiB_O2_20pts.t"
 //#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
 //#define OUTPUT_FILE_NAME "T580_h60_simd_128MiB.t"
-const long long total_elements = 1024L * 1024L * 256L * 6L;
+const long long total_elements = 1024L * 1024L * 256L * 1L;
 // 256 => 1 GiB 
 // 128 => 512 MiB ; 
 // 32  => 128 MiB ; 
 // 256 * 4 bytes = 1   GiB.
 // 32  * 4 bytes = 128 MiB.
 
-static std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - 5"); // "X42"
+static std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - 7"); // "X42"
 
 #define DATA_VERSION 5
 
@@ -824,7 +829,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 void bench_smid_modes(std::ofstream& myfile) {
 
     //unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
-    VECTOR_SIZE_PER_ITERATION = 4;
+    VECTOR_SIZE_PER_ITERATION = 128;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     int imode;
@@ -860,8 +865,8 @@ void bench_smid_modes(std::ofstream& myfile) {
 
 void bench_mem_alloc_modes(std::ofstream& myfile) {
 
-    unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
-    VECTOR_SIZE_PER_ITERATION = 2048;
+    //unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
+    VECTOR_SIZE_PER_ITERATION = 128;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     // how many times main_sequence will be run
@@ -985,8 +990,8 @@ int main(int argc, char *argv[])
     std::cout << OUTPUT_FILE_NAME << std::endl;
 
     log("");
-    //bench_smid_modes(myfile);
-    bench_choose_L_M(myfile);
+    bench_smid_modes(myfile);
+    //bench_choose_L_M(myfile);
 
     //PARALLEL_FOR_SIZE = 128;//1024;
     //VECTOR_SIZE_PER_ITERATION = 256 * 1024 * 8;
