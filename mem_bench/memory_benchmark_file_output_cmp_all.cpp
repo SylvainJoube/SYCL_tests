@@ -56,6 +56,8 @@ constexpr bool KEEP_SAME_DATASETS = true;
 #define DATA_TYPE unsigned int // TODO : try with unsigned int
 
 using data_type = DATA_TYPE;
+// 
+//using data_type_sum = unsigned long long;
 
 // number of iterations - no realloc to make it go faster
 #define REPEAT_COUNT_REALLOC 3
@@ -72,8 +74,8 @@ using data_type = DATA_TYPE;
 //#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2_debug_simd_temp.t"
 //#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2.t"
-//#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2_debug_simd_temp.t"
-#define OUTPUT_FILE_NAME "sandor_simd_8GiB_O2_debug_simd_temp.t"
+#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2_debug_simd_temp.t"
+//#define OUTPUT_FILE_NAME "sandor_simd_8GiB_O2_debug_simd_temp.t"
 
 //#define OUTPUT_FILE_NAME "msi_alloc_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "sandor_alloc_6GiB_O2.t"
@@ -84,8 +86,8 @@ using data_type = DATA_TYPE;
 //#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
 //#define OUTPUT_FILE_NAME "T580_h60_simd_128MiB.t"
 
-const long long total_elements = 1024L * 1024L * 256L * 8L; // 6 GiB
-//const long long total_elements = 1024L * 1024L * 256L * 6L; // 6 GiB
+//const long long total_elements = 1024L * 1024L * 256L * 8L; // 8 GiB
+const long long total_elements = 1024L * 1024L * 256L * 6L; // 6 GiB
 //const long long total_elements = 1024L * 1024L * 256L; // 1 GiB
 // 256 => 1 GiB 
 // 128 => 512 MiB ; 
@@ -183,13 +185,13 @@ void log(std::string str, int level) {
 }
 
 // Memory intensive operation (read only)
-int compute_sum(int* array, int size) {
+/*int compute_sum(int* array, int size) {
     int sum = 0;
     for (int i = 0; i < size; ++i) {
         sum += array[i];
     }
     return sum;
-}
+}*/
 
 
 //static sycl_mode mode = sycl_mode::device_USM;
