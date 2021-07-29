@@ -53,3 +53,12 @@ Pour simplifier les choses, je propose de déjà tout faire uniquement via USM e
 Étudier l'impact du changement de jeu de données : voir si le kernel est recompilé lors de la soumission d'un nouveau parallel for sur un nouveau jeu de données (probablement pas !).
 
 Comparer le temps de transfert des données avec le débit théorique maximal de mon matériel (déjà écrit dans nvvp, mais à vérifier avec des données constructeur).
+
+## Bug SIMD
+
+- Sur mon MSI avec 1 GiB et Sandor avec 6 GiB pas de souci, les résultats sont valides et cohérents entre CPU et GPU.
+- Sur Sandor avec 8 GiB : 
+    - Pour tous les non-simd : -NOT simd- ERROR on compute - expected size 535165021 but found 1855233814.
+    - Pour tous les SIMD     : -IS simd- VALID - Right data size ! (535165021)
+
+Donc manifestement en fait le souci est avec la boucle for classique, je ne sais pas trop où, ça peut être quelque chose d'intéressant à creuser si j'ai le temps, mais comme j'ai pas le temps ça va juste ne pas être résolu, sauf si ça survient à des moments qui me gènent (genre 1 GiB sur le MSI). Là pour l'instant, pour 1 GiB (MSI, Sandor) comme 6 GiB (Sandor) pas de souci avec la boucle for, donc pas de souci, et surtout pas le temps.
