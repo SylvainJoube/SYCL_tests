@@ -70,6 +70,7 @@ using data_type = DATA_TYPE;
 //#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2.t"
 
 //#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2.t"
+//#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2_debug_simd_temp.t"
 //#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2.t"
 #define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2_debug_simd_temp.t"
 
@@ -290,6 +291,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     class MyKernel_b;
 
     if (SIMD_FOR_LOOP == 0) {
+        logs(" -NOT simd- ");
         // Starts a kernel - traditional for loop
         auto e = sycl_q.parallel_for<MyKernel_a>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
             int cindex = chunk_index[0];
@@ -306,6 +308,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
         });
         e.wait();
     } else {
+        logs(" -IS simd- ");
         // Starts a kernel - SIMD optimized for loop
         auto e = sycl_q.parallel_for<MyKernel_b>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
             int cindex = chunk_index[0];
