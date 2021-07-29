@@ -58,7 +58,7 @@ constexpr bool KEEP_SAME_DATASETS = true;
 using data_type = DATA_TYPE;
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 12
+#define REPEAT_COUNT_REALLOC 3
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
@@ -71,23 +71,26 @@ using data_type = DATA_TYPE;
 
 //#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2_debug_simd_temp.t"
 
 //#define OUTPUT_FILE_NAME "msi_alloc_1GiB_O2.t"
-#define OUTPUT_FILE_NAME "sandor_alloc_6GiB_O2.t"
+//#define OUTPUT_FILE_NAME "sandor_alloc_6GiB_O2.t"
 
 //#define OUTPUT_FILE_NAME "sandor_h60_L_M_4GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_alloclib_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_h60_simd_1GiB_O2_20pts.t"
 //#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
 //#define OUTPUT_FILE_NAME "T580_h60_simd_128MiB.t"
-const long long total_elements = 1024L * 1024L * 256L * 6L;
+
+const long long total_elements = 1024L * 1024L * 256L * 6L; // 6 GiB
+//const long long total_elements = 1024L * 1024L * 256L; // 1 GiB
 // 256 => 1 GiB 
 // 128 => 512 MiB ; 
 // 32  => 128 MiB ; 
 // 256 * 4 bytes = 1   GiB.
 // 32  * 4 bytes = 128 MiB.
 
-static std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - 8"); // "X42"
+static std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - 9"); // "X42"
 
 #define DATA_VERSION 5
 
@@ -364,7 +367,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     timer.t_read_from_device = chrono.reset();
 
     if (total_sum == dataset->final_result_verif) {
-        //log("VALID - Right data size ! (" + std::to_string(total_sum) + ")", 1);
+        log("VALID - Right data size ! (" + std::to_string(total_sum) + ")", 1);
     } else {
         log("ERROR on compute - expected size " + std::to_string(dataset->final_result_verif) + " but found " + std::to_string(total_sum) + ".", 1);
     }
@@ -993,8 +996,8 @@ int main(int argc, char *argv[])
     std::cout << OUTPUT_FILE_NAME << std::endl;
 
     log("");
-    bench_mem_alloc_modes(myfile);
-    //bench_smid_modes(myfile);
+    //bench_mem_alloc_modes(myfile);
+    bench_smid_modes(myfile);
     //bench_choose_L_M(myfile);
 
     //PARALLEL_FOR_SIZE = 128;//1024;
