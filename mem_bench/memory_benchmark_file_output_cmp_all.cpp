@@ -53,7 +53,7 @@ constexpr bool KEEP_SAME_DATASETS = true;
 // observation : j'ai l'impression d'être un peu en train de me perdre dans les explorations,
 // avoir une liste pour prioriser ce que je dois faire et 
 
-#define DATA_TYPE int // TODO : try with unsigned int
+#define DATA_TYPE unsigned int // TODO : try with unsigned int
 
 using data_type = DATA_TYPE;
 
