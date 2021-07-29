@@ -1,3 +1,3 @@
 /// draw_some_graph_common();
 
-draw_some_graph_11();
+draw_some_graph_12();

@@ -43,8 +43,8 @@ unsigned long long VECTOR_SIZE_PER_ITERATION;// = 1; // = L ; vector size per wo
 
 sycl_mode CURRENT_MODE = sycl_mode::device_USM;
 
-constexpr int MEMCOPY_IS_SYCL = 1;
-int SIMD_FOR_LOOP = 0;
+int MEMCOPY_IS_SYCL = 1;
+int SIMD_FOR_LOOP = 1;
 constexpr int USE_NAMED_KERNEL = 1; // Sandor does not support anonymous kernels.
 constexpr bool KEEP_SAME_DATASETS = true; 
 
@@ -53,17 +53,41 @@ constexpr bool KEEP_SAME_DATASETS = true;
 // observation : j'ai l'impression d'être un peu en train de me perdre dans les explorations,
 // avoir une liste pour prioriser ce que je dois faire et 
 
-#define DATA_TYPE float
+#define DATA_TYPE int // TODO : try with unsigned int
+
+using data_type = DATA_TYPE;
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 4
+#define REPEAT_COUNT_REALLOC 12
 #define REPEAT_COUNT_ONLY_PARALLEL 0
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
-#define OUTPUT_FILE_NAME "sandor_h59_L_M_6G.t"
+//#define OUTPUT_FILE_NAME "msi_h60_L_M_128MiB_O0.t"
 
+//#define OUTPUT_FILE_NAME "msi_L_M_512MiB_O2_SIMD_2.t"
+//#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2_SIMD_2.t"
+//#define OUTPUT_FILE_NAME "msi_L_M_128MiB_O2_SIMD.t"
+//#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2.t"
 
-static std::string ver_prefix = "X42";
+//#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2.t"
+//#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2.t"
+
+//#define OUTPUT_FILE_NAME "msi_alloc_1GiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_alloc_6GiB_O2.t"
+
+//#define OUTPUT_FILE_NAME "sandor_h60_L_M_4GiB_O2.t"
+//#define OUTPUT_FILE_NAME "msi_h60_alloclib_1GiB_O2.t"
+//#define OUTPUT_FILE_NAME "msi_h60_simd_1GiB_O2_20pts.t"
+//#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
+//#define OUTPUT_FILE_NAME "T580_h60_simd_128MiB.t"
+const long long total_elements = 1024L * 1024L * 256L * 6L;
+// 256 => 1 GiB 
+// 128 => 512 MiB ; 
+// 32  => 128 MiB ; 
+// 256 * 4 bytes = 1   GiB.
+// 32  * 4 bytes = 128 MiB.
+
+static std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - 8"); // "X42"
 
 #define DATA_VERSION 5
 
@@ -162,7 +186,6 @@ int compute_sum(int* array, int size) {
 }
 
 
-using data_type = int;
 //static sycl_mode mode = sycl_mode::device_USM;
 // static bool wait_queue = true;
 
@@ -215,7 +238,8 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
     //data_type* ddata_output_verif = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
 
-    unsigned int local_VECTOR_SIZE_PER_ITERATION = VECTOR_SIZE_PER_ITERATION;
+    const unsigned int local_VECTOR_SIZE_PER_ITERATION = VECTOR_SIZE_PER_ITERATION;
+    const unsigned int local_PARALLEL_FOR_SIZE = PARALLEL_FOR_SIZE;
 
     /*if (USE_NAMED_KERNEL == 0) {
 
@@ -287,7 +311,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
             data_type sum = 0;
 
             for (int it = 0; it < local_VECTOR_SIZE_PER_ITERATION; ++it) {
-                int iindex = cindex + it * PARALLEL_FOR_SIZE;
+                int iindex = cindex + it * local_PARALLEL_FOR_SIZE;
                 sum += ddata_input[iindex];
             }
 
@@ -666,7 +690,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         gtimer.t_queue_creation = chrono.reset();//get_ms() - t_start;
 
         // Print out the device information used for the kernel code.
-        log("   " + sycl_q.get_device().get_info<cl::sycl::info::device::name>() + "   = device");
+        log("--   " + sycl_q.get_device().get_info<cl::sycl::info::device::name>() + "   --");
         /*std::cout << "Running on device: "
                 << sycl_q.get_device().get_info<cl::sycl::info::device::name>() << "\n";*/
 
@@ -803,22 +827,27 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
     log("done.");
 }
 
-int percent_div_factor = 1;
+//int percent_div_factor = 1;
 
 void bench_smid_modes(std::ofstream& myfile) {
 
-    unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
-    VECTOR_SIZE_PER_ITERATION = 2048;
+    //unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
+    VECTOR_SIZE_PER_ITERATION = 128;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     int imode;
     //MEMCOPY_IS_SYCL = 1;
-    SIMD_FOR_LOOP = 0;
+    //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
 
-    percent_div_factor = 2 * 2;
+    log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+    log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+    
+    total_main_seq_runs = 2 * 3;
+    
+    //percent_div_factor = 2 * 3;
 
-    for (int imcp = 0; imcp < 2; ++imcp) {
+    for (int imcp = 0; imcp <= 1; ++imcp) {
         SIMD_FOR_LOOP = imcp;
 
         for (int imode = 0; imode <= 2; ++imode) {
@@ -830,8 +859,46 @@ void bench_smid_modes(std::ofstream& myfile) {
             default : break;
             }
             
-            log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
-            log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  SIMD_FOR_LOOP(" + std::to_string(SIMD_FOR_LOOP) + ")");
+            main_sequence(myfile, CURRENT_MODE);
+            log("");
+        }
+    }
+}
+
+void bench_mem_alloc_modes(std::ofstream& myfile) {
+
+    //unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
+    VECTOR_SIZE_PER_ITERATION = 128;
+    PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
+
+    // how many times main_sequence will be run
+    total_main_seq_runs = 2 * 3;
+
+    int imode;
+    //MEMCOPY_IS_SYCL = 1;
+    //SIMD_FOR_LOOP = 0;
+    //USE_NAMED_KERNEL = 0;
+
+    log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+    log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+    
+    //percent_div_factor = 2 * 2;
+
+    for (int imcp = 0; imcp <= 1; ++imcp) {
+        MEMCOPY_IS_SYCL = imcp;
+
+        for (int imode = 0; imode <= 2; ++imode) {
+            
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            default : break;
+            }
+            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  MEMCOPY_IS_SYCL(" + std::to_string(MEMCOPY_IS_SYCL) + ")");
+            //log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+            
             main_sequence(myfile, CURRENT_MODE);
             log("");
         }
@@ -842,19 +909,19 @@ void bench_smid_modes(std::ofstream& myfile) {
 
 void bench_choose_L_M(std::ofstream& myfile) {
 
-    long long total_elements = 1024L * 1024L * 256L * 12L; // 256 * bytes = 1 GiB.
+    //long long total_elements = 1024L * 1024L * 256L * 1L; // 256 * bytes = 1 GiB.
 
     int imode;
     //MEMCOPY_IS_SYCL = 1;
-    SIMD_FOR_LOOP = 0;
+    //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
 
-    long long start_L_size = 4;
-    long long stop_M_size = 1024; // inclusive
+    long long start_L_size = 1;
+    long long stop_M_size = 256; // inclusive
     long long stop_L_size = total_elements / stop_M_size;
 
     // how many times main_sequence will be run
-    total_main_seq_runs = 1;
+    total_main_seq_runs = 0;
     for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
         for (int imode = 1; imode <= 1; ++imode) {
             total_main_seq_runs += 1;
@@ -926,7 +993,9 @@ int main(int argc, char *argv[])
     std::cout << OUTPUT_FILE_NAME << std::endl;
 
     log("");
-    bench_choose_L_M(myfile);
+    bench_mem_alloc_modes(myfile);
+    //bench_smid_modes(myfile);
+    //bench_choose_L_M(myfile);
 
     //PARALLEL_FOR_SIZE = 128;//1024;
     //VECTOR_SIZE_PER_ITERATION = 256 * 1024 * 8;

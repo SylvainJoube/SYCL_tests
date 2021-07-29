@@ -55,6 +55,7 @@
       <script>scripts\draw_some_graph_10.gml</script>
       <script>scripts\draw_some_graph_10b.gml</script>
       <script>scripts\draw_some_graph_11.gml</script>
+      <script>scripts\draw_some_graph_12.gml</script>
       <script>scripts\draw_test_qualtiles.gml</script>
       <script>scripts\mem_location_to_str.gml</script>
       <script>scripts\mem_location_to_str_prefix.gml</script>
@@ -84,6 +85,7 @@
     <font>fonts\ft_base</font>
     <font>fonts\ft_point_label</font>
     <font>fonts\ft_small_number</font>
+    <font>fonts\ft_small_number_ylabel</font>
     <font>fonts\ft_very_small_number</font>
   </fonts>
   <objects name="objects">

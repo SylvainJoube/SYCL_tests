@@ -13,7 +13,7 @@ Paramètre supplémentaire : memcpy de SYCL vs de la glibc.
 
 var echelle_log = false;
 
-g_graph_title = "Temps caractéristiques : allocation glibc vs SYCL";
+g_graph_title = "Allocation glibc vs SYCL - SANDOR - 6 GiB - O2";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
