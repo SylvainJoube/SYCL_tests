@@ -159,7 +159,9 @@ var scale_height_factor = (graph_height - y_space_left * 2) / scale_height;
 var drawn_labels_y = ds_list_create();
 var drawn_labels_x = ds_list_create();
 var drawn_labels_str = ds_list_create();
-var min_distance_draw_label_y = 30;
+
+draw_set_font(ft_small_number_ylabel)
+var min_distance_draw_label_y = string_height("0123456789") + 2; // 30
 
 var line_width_div2 = 5;
 var line_width_div2_max = 10;
@@ -249,7 +251,7 @@ for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
             }
             
             if (can_draw) {
-                draw_set_font(ft_small_number);
+                draw_set_font(ft_small_number_ylabel);
                 //draw_set_color(c_black);
                 draw_set_color(pt.color);
                 draw_set_alpha(1);

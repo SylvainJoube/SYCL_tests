@@ -76,6 +76,11 @@ if (step == 2) {
     draw_clear(c_white);
     draw_some_graph_common();
     surface_reset_target();
+    
+    //g_save_path_default_base_path = base_dir_save + "sh_save_surf_h" + h_version;
+    ///g_save_path_extension = ".png";
+    //MAJ dans load_data_common
+    
     var max_trials = 300;
     var fpath = "";
     for (var i = 0; i &lt; max_trials; ++i) {

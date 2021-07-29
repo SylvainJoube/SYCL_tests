@@ -1,23 +1,21 @@
 
 /*
 
-v11 : évaluation du temps pris en fonction 
+v11 : évaluation du temps pris par les parallel_for en fonction 
 de la locatisation de la mémoire et des valeurs de L et M.
-
-Pour tous les temps caractéristiques :
-- 
 
 - évolution du temps pris d'une itération à l'autre
     x = n° itération (1, 2, ...)
     y = temps pris par [parallel for | allocation | copie | ... ]
 */
 
-var echelle_log = false;
+var echelle_log_x = true;
+var echelle_log_y = true;
 
-//g_graph_title = "Tempr pris par parallel_for en fonction de L et M - SANDOR - 1 GiO";
-//g_graph_title = "Tempr pris par parallel_for en fonction de L et M - MSI - 128 MiB - O0";
-//g_graph_title = "Temps pris par parallel_for en fonction de L et M - SANDOR - 4 GiB - O2";
-g_graph_title = "Temps pris par parallel_for en fonction de L et M - SANDOR - 6 GiB - O2 - SIMD";
+//g_graph_title = "Tempr pris en fonction de L et M - SANDOR - 1 GiO";
+//g_graph_title = "Tempr pris en fonction de L et M - MSI - 128 MiB - O0";
+g_graph_title = g_file_name;//"Temps pris en fonction de L et M - SANDOR - 512 MiB - O2 - for classique";
+//g_graph_title = "Temps pris en fonction de L et M - SANDOR - 6 GiB - O2 - SIMD";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
@@ -35,16 +33,25 @@ for (var col = 0; col < max_color; col += color_step) {
 
 var merge_cfactor = 0.3;
 
-ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
+/*ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
 ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
 ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
 
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
 ds_list_add(colors, merge_colour(c_green, c_black, merge_cfactor)); // device
 ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
+*/
+/*
+case 0: time_name = "gpu allocation";   time_sname = "al"; break;
+case 1: time_name = "copy to device";   time_sname = "cp"; break;
+case 2: time_name = "parellel for";     time_sname = "pf"; break;
+case 3: time_name = "read from device"; time_sname = "rd"; break;
+case 4: time_name = "free gpu mem";     time_sname = "fr"; break;
+*/
 
+ds_list_add(colors, c_blue, c_green, c_orange, c_maroon, c_red, c_black);
 
-ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
+//ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
 var current_color_index = 0;
 
 g_iteration_count = 0;
@@ -84,8 +91,22 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
         
         var lsize = ds_list_size(used_iteration_list);
         if (lsize > g_iteration_count) g_iteration_count = lsize;
-        if (lsize != 0) {
-        //"dataset " + split_thousands(ids)
+        
+        // Pour toutes les mesures
+        if (lsize != 0) for (var itime = 0; itime <= 4; ++itime) {
+            
+            var time_name = "unknown time";
+            var time_sname = "uk";
+            switch (itime) {
+            case 0: time_name = "gpu allocation";   time_sname = "al"; break;
+            case 1: time_name = "copy to device";   time_sname = "cp"; break;
+            case 2: time_name = "parellel for";     time_sname = "pf"; break;
+            case 3: time_name = "read from device"; time_sname = "rd"; break;
+            case 4: time_name = "free gpu mem";     time_sname = "fr"; break;
+            default: break;
+            }
+            
+            //"dataset " + split_thousands(ids)
             var total_item_count = j.PARALLEL_FOR_SIZE * j.VECTOR_SIZE_PER_ITERATION;
             //gp = find_or_create_graph_points_ext(graph_list, "Nb. élems = " + string(total_item_count), ids); /// "nb. workitems = " + split_thousands(j.PARALLEL_FOR_SIZE)
             /*var memcopy_name = "non connue";
@@ -97,8 +118,8 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 memcopy_name = "anonyme";
                 memcopy_short_name = "a";
             }*/
-            var gpname = "Kernel " + mem_location_to_str(j.MEMORY_LOCATION);// + " (" + memcopy_name + ")";
-            var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION);// + "" + memcopy_short_name;
+            var gpname = "" + mem_location_to_str(j.MEMORY_LOCATION) + " (" + time_name + ")";// + " (" + memcopy_name + ")";
+            var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + time_sname;// + "" + memcopy_short_name;
             
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
             if (gp.newly_created) {
@@ -121,14 +142,27 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 
                 
                 // L and M values
-                var as_x = log2(j.VECTOR_SIZE_PER_ITERATION);
-                var as_y = iter.t_parallel_for;
+                var as_x = j.VECTOR_SIZE_PER_ITERATION;
+                var as_y_orig = 1;
+                var as_y = 1;
+                switch (itime) {
+                case 0: as_y_orig = iter.t_allocation; break;
+                case 1: as_y_orig = iter.t_copy_to_device; break;
+                case 2: as_y_orig = iter.t_parallel_for; break;
+                case 3: as_y_orig = iter.t_read_from_device; break;
+                case 4: as_y_orig = iter.t_free_gpu; break;
+                }
+                as_y = as_y_orig;
+                
+                if (echelle_log_x && (as_x >= 1)) as_x = log2(as_x);
+                if (echelle_log_y && (as_y >= 1)) as_y = log2(as_y);
+                
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
                 pt.xlabel = "L(" + split_thousands(j.VECTOR_SIZE_PER_ITERATION) + ")" + chr(10)
                           + "M(" + split_thousands(j.PARALLEL_FOR_SIZE) + ")";
-                pt.ylabel = split_thousands(as_y);
+                pt.ylabel = split_thousands(as_y_orig);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
                 
@@ -278,7 +312,7 @@ for (var i = 0; i <= 2; ++i) {
     ds_list_add(sorted_glist, ds_list_find_value(graph_list, 3 + i));
 }
 
-draw_graph_objs(graph_list, 20, 20, "Grandeur mesurée", "Temps pris en microsecondes", 0, -1, -1, -1);
+draw_graph_objs(graph_list, 20, 20, "Grandeur mesurée", "Temps pris en microsecondes", -1, -1, -1, -1);
 
 ds_list_destroy(graph_list);
 ds_list_destroy(sorted_glist);

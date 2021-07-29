@@ -13,7 +13,7 @@ Paramètre supplémentaire : boucle for en SIMD vs avec un for classique.
 
 var echelle_log = false;
 
-g_graph_title = "Boucle for classique vs optimisation SIMD - MSI - O2 - 1 GiB - 20 pts";
+g_graph_title = "Boucle for classique vs optimisation SIMD - SANDOR - O2 - 6 GiB";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
@@ -51,11 +51,11 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
     //show_message("ij index = " + string(ij));
     
     // ingore when copy strategy is glibc and on device (no glibc on device)
-    //if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 1 ) continue;
+    //if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 2 ) continue;
     //if ( j.MEMORY_LOCATION == 2 ) continue; // located on host
     
     //if ( j.SIMD_FOR_LOOP == 0 && j.MEMORY_LOCATION == 2 ) continue; // classic for loop and located on host
-    
+    //if ( j.MEMORY_LOCATION == 2 ) continue;
     
     for (var ids = 0; ids < ds_list_size(j.datasets); ++ids) {
     

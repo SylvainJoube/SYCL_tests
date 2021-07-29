@@ -15,7 +15,7 @@ var h_version = "53";
 //g_load_path = base_dir_load + "msi_h60_L_M_128MiB_O0.t";
 //g_load_path = base_dir_load + "msi_h60_alloclib_1GiB_O2.t";
 //g_load_path = base_dir_load + "msi_h60_simd_1GiB_O2_20pts.t";
-g_load_path = base_dir_load + "sandor_h60_L_M_4GiB_O2.t";
+g_load_path = base_dir_load + "fichier"; //"sandor_h60_L_M_4GiB_O2.t";
 
 
 
