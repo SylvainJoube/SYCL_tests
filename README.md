@@ -62,3 +62,27 @@ Comparer le temps de transfert des données avec le débit théorique maximal de
     - Pour tous les SIMD     : -IS simd- VALID - Right data size ! (535165021)
 
 Donc manifestement en fait le souci est avec la boucle for classique, je ne sais pas trop où, ça peut être quelque chose d'intéressant à creuser si j'ai le temps, mais comme j'ai pas le temps ça va juste ne pas être résolu, sauf si ça survient à des moments qui me gènent (genre 1 GiB sur le MSI). Là pour l'instant, pour 1 GiB (MSI, Sandor) comme 6 GiB (Sandor) pas de souci avec la boucle for, donc pas de souci, et surtout pas le temps.
+
+
+## Pour ne rien casser depuis mon MSI, je hold tant que ça marche
+
+Je n'ai vraiment pas envie qu'une mise à jour me casse quelque chose.
+
+```
+apt-mark hold code
+sudo apt-mark hold libnvidia*
+sudo apt-mark hold hipsycl*
+sudo apt-mark hold cuda*
+sudo apt-mark hold nvidia*
+```
+
+ou plus simplement :
+```
+apt hold code
+apt hold libnvidia*
+apt hold hipsycl*
+apt hold cuda*
+apt hold nvidia*
+```
+
+Bon, j'ai un conflit à la con quand je fais apt upgrade, je verrai ça un jour quand j'aurai du temps...
