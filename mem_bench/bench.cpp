@@ -9,234 +9,15 @@
 #include <sys/time.h>
 #include <stdlib.h>
 
+#include "utils.h"
+#include "constants.h"
 
-enum sycl_mode {shared_USM, device_USM, host_USM, accessors};
-//enum dataset_type {implicit_USM, device_USM, host_USM, accessors};
-
-int mode_to_int(sycl_mode m) {
-    switch (m) {
-    case shared_USM : return 0;
-    case device_USM : return 1;
-    case host_USM : return 2;
-    case accessors : return 3;
-    }
-    return -1;
-}
-
-std::string mode_to_string(sycl_mode m) {
-    switch (m) {
-    case shared_USM : return "shared_USM";
-    case device_USM : return "device_USM";
-    case host_USM : return "host_USM";
-    case accessors : return "accessors";
-    }
-    return "unknown";
-}
 
 // Comparison of various USM flavours
 
-/*#define PARALLEL_FOR_SIZE 1024
-#define VECTOR_SIZE_PER_ITERATION 200 * 1024*/
-
-unsigned long long PARALLEL_FOR_SIZE;// = 1024 * 32 * 8;// = M ; work items number
-unsigned long long VECTOR_SIZE_PER_ITERATION;// = 1; // = L ; vector size per workitem (i.e. parallel_for task) = nb itérations internes par work item
-
-sycl_mode CURRENT_MODE = sycl_mode::device_USM;
-
-int MEMCOPY_IS_SYCL = 1;
-int SIMD_FOR_LOOP = 1;
-constexpr int USE_NAMED_KERNEL = 1; // Sandor does not support anonymous kernels.
-constexpr bool KEEP_SAME_DATASETS = true; 
-
-// faire un repeat sur les mêmes données pour essayer d'utiliser le cache
-// hypothèse : les données sont évincées du cache avant de pouvoir y avoir accès
-// observation : j'ai l'impression d'être un peu en train de me perdre dans les explorations,
-// avoir une liste pour prioriser ce que je dois faire et 
-
-#define DATA_TYPE unsigned int // TODO : try with unsigned int
-
-using data_type = DATA_TYPE;
-// 
-//using data_type_sum = unsigned long long;
-
-// number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 3
-#define REPEAT_COUNT_ONLY_PARALLEL 0
-
-//#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
-//#define OUTPUT_FILE_NAME "msi_h60_L_M_128MiB_O0.t"
-
-//#define OUTPUT_FILE_NAME "msi_L_M_512MiB_O2_SIMD_2.t"
-//#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2_SIMD_2.t"
-//#define OUTPUT_FILE_NAME "msi_L_M_128MiB_O2_SIMD.t"
-//#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2.t"
-
-//#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2.t"
-//#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2_debug_simd_temp.t"
-//#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2.t"
-#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2_debug_simd_temp.t"
-//#define OUTPUT_FILE_NAME "sandor_simd_8GiB_O2_debug_simd_temp.t"
-
-//#define OUTPUT_FILE_NAME "msi_alloc_1GiB_O2.t"
-//#define OUTPUT_FILE_NAME "sandor_alloc_6GiB_O2.t"
-
-//#define OUTPUT_FILE_NAME "sandor_h60_L_M_4GiB_O2.t"
-//#define OUTPUT_FILE_NAME "msi_h60_alloclib_1GiB_O2.t"
-//#define OUTPUT_FILE_NAME "msi_h60_simd_1GiB_O2_20pts.t"
-//#define OUTPUT_FILE_NAME "T580_h60_L_M_128MiB.t"
-//#define OUTPUT_FILE_NAME "T580_h60_simd_128MiB.t"
-
-//const long long total_elements = 1024L * 1024L * 256L * 8L; // 8 GiB
-const long long total_elements = 1024L * 1024L * 256L * 6L; // 6 GiB
-//const long long total_elements = 1024L * 1024L * 256L; // 1 GiB
-// 256 => 1 GiB 
-// 128 => 512 MiB ; 
-// 32  => 128 MiB ; 
-// 256 * 4 bytes = 1   GiB.
-// 32  * 4 bytes = 128 MiB.
-
-static std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - 9"); // "X42"
-
-#define DATA_VERSION 5
-
-// number of diffrent datasets
-#define DATASET_NUMBER 1
-
-#define CHECK_SIMD_CPU false
-
-
-#define INPUT_DATA_LENGTH PARALLEL_FOR_SIZE * VECTOR_SIZE_PER_ITERATION
-#define OUTPUT_DATA_LENGTH PARALLEL_FOR_SIZE
-
-
-#define INPUT_DATA_SIZE INPUT_DATA_LENGTH * sizeof(DATA_TYPE)
-#define OUTPUT_DATA_SIZE OUTPUT_DATA_LENGTH * sizeof(DATA_TYPE)
-
-
-
-// SyCL asynchronous exception handler
-// Create an exception handler for asynchronous SYCL exceptions
-static auto exception_handler = [](cl::sycl::exception_list e_list) {
-  for (std::exception_ptr const &e : e_list) {
-    try {
-      std::rethrow_exception(e);
-    }
-    catch (std::exception const &e) {
-#if _DEBUG
-      std::cout << "Failure" << std::endl;
-#endif
-      std::terminate();
-    }
-  }
-};
-
-
-
-class stime_utils {
-private :
-    std::chrono::_V2::steady_clock::time_point _start, _stop;
-
-public :
-    
-    void start() {
-        _start = std::chrono::steady_clock::now();
-    }
-
-    // Gets the us count since last start or reset.
-    uint64_t reset() {
-        std::chrono::duration<int64_t, std::nano> dur = std::chrono::steady_clock::now() - _start;
-        _start = std::chrono::steady_clock::now();
-        int64_t ns = dur.count();
-        int64_t us = ns / 1000;
-        return us;
-    }
-
-};
-
-uint64_t get_ms() {
-    auto tm = std::chrono::steady_clock::now();
-    std::chrono::duration<double> s = tm - tm;
-
-
-    struct timeval tp;
-    gettimeofday(&tp, NULL);
-    uint64_t ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
-    return ms;
-}
-
-void log(std::string str) {
-    std::cout << str << std::endl;
-}
-void logs(std::string str) {
-    std::cout << str << std::flush;
-}
-
-// level :
-// 0 : important
-// 1 : info
-// 2 : flood
-
-const int MAX_SHOWN_LEVEL = 1;
-
-void log(std::string str, int level) {
-    if (level <= MAX_SHOWN_LEVEL) {
-        std::cout << str << std::endl;
-    }
-}
-
-// Memory intensive operation (read only)
-/*int compute_sum(int* array, int size) {
-    int sum = 0;
-    for (int i = 0; i < size; ++i) {
-        sum += array[i];
-    }
-    return sum;
-}*/
-
-
-//static sycl_mode mode = sycl_mode::device_USM;
-// static bool wait_queue = true;
-
-struct host_dataset {
-    //bool need_copy; // USM device needs a copy, but not host or shared.
-    data_type *data_input;
-    data_type *data_output;
-    data_type final_result_verif = 0;
-    unsigned int seed;
-    // Memory allocated on the device
-    data_type *device_input = nullptr;
-    data_type *device_output = nullptr;
-};
-unsigned int global_t_data_generation_and_ram_allocation = 0;
-
-struct gpu_timer {
-    uint64_t t_data_generation_and_ram_allocation = 0;
-    uint64_t t_queue_creation = 0;
-    uint64_t t_allocation = 0;
-    uint64_t t_copy_to_device = 0;
-    uint64_t t_parallel_for = 0;
-    uint64_t t_read_from_device = 0;
-    uint64_t t_free_gpu = 0;
-};
-
-int total_main_seq_runs = 1;
-//int current_main_seq_runs = 0;
-int current_iteration_count = 0;
-
-void print_total_progress() {
-    const int total_iteration_count_per_seq = DATASET_NUMBER * (REPEAT_COUNT_REALLOC + REPEAT_COUNT_ONLY_PARALLEL);
-    int total_iteration_count = total_iteration_count_per_seq * total_main_seq_runs;
-
-    int progress = 100 * double(current_iteration_count) / double(total_iteration_count);
-
-    logs( std::to_string(progress) + "% ");
-    //double runs_factor = double(current_main_seq_runs) / double(total_main_seq_runs);
-    //double iterations_factor = 
-}
 
 void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
                           gpu_timer& timer, sycl_mode mode) {
-
     stime_utils chrono;
     chrono.start();
 
@@ -249,53 +30,13 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     const unsigned int local_VECTOR_SIZE_PER_ITERATION = VECTOR_SIZE_PER_ITERATION;
     const unsigned int local_PARALLEL_FOR_SIZE = PARALLEL_FOR_SIZE;
 
-    /*if (USE_NAMED_KERNEL == 0) {
-
-        if (SIMD_FOR_LOOP == 0) {
-            // Starts a kernel - traditional for loop
-            auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
-                int cindex = chunk_index[0];
-                int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
-                int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
-                data_type sum = 0;
-
-                for (int i = start_index; i < stop_index; ++i) {
-                    sum += ddata_input[i];
-                }
-
-                ddata_output[cindex] = sum;
-                //ddata_output_verif[cindex] = sum;
-            });
-            e.wait();
-        } else {
-            // Starts a kernel - SIMD optimized for loop
-            auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
-                int cindex = chunk_index[0];
-                //int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
-                //int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
-                data_type sum = 0;
-
-                for (int it = 0; it < local_VECTOR_SIZE_PER_ITERATION; ++it) {
-                    int iindex = cindex + it * PARALLEL_FOR_SIZE;
-                    sum += ddata_input[iindex];
-                }
-
-                
-
-                ddata_output[cindex] = sum;
-                //ddata_output_verif[cindex] = sum;
-            });
-            e.wait();
-        }
-    } else {*/
-
     // Sandor does not support anonymous kernels.
 
     class MyKernel_a;
     class MyKernel_b;
 
     if (SIMD_FOR_LOOP == 0) {
-        logs(" -NOT simd- ");
+        //logs(" -NOT simd- ");
         // Starts a kernel - traditional for loop
         auto e = sycl_q.parallel_for<MyKernel_a>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
             int cindex = chunk_index[0];
@@ -312,12 +53,10 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
         });
         e.wait();
     } else {
-        logs(" -IS simd- ");
+        //logs(" -IS simd- ");
         // Starts a kernel - SIMD optimized for loop
         auto e = sycl_q.parallel_for<MyKernel_b>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
             int cindex = chunk_index[0];
-            //int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
-            //int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
             data_type sum = 0;
 
             for (int it = 0; it < local_VECTOR_SIZE_PER_ITERATION; ++it) {
@@ -330,8 +69,6 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
         });
         e.wait();
     }
-
-    //}
 
     sycl_q.wait_and_throw();
     timer.t_parallel_for = chrono.reset();
@@ -348,8 +85,6 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     //sycl_q.wait_and_throw();
 
     data_type sum_simd_check_cpu = 0;
-
-
 
     // Value verification
     data_type total_sum = 0;
@@ -374,11 +109,14 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     timer.t_read_from_device = chrono.reset();
 
     if (total_sum == dataset->final_result_verif) {
-        log("VALID - Right data size ! (" + std::to_string(total_sum) + ")", 1);
+        //log("VALID - Right data size ! (" + std::to_string(total_sum) + ")", 1);
     } else {
         log("ERROR on compute - expected size " + std::to_string(dataset->final_result_verif) + " but found " + std::to_string(total_sum) + ".", 1);
     }
 }
+
+
+
 
 
 void generic_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_timer& timer, sycl_mode mode) {
@@ -425,17 +163,15 @@ void generic_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_
     }
 
     // TODO : also copy data from dataset to shared memory.
-
-
-
 }
+
+
+
 
 void generic_USM_free(cl::sycl::queue &sycl_q, host_dataset* dataset, gpu_timer& timer, sycl_mode mode) {
     stime_utils chrono;
     chrono.start();
-
     //std::cout << ver_prefix + " - FREE MODE = " + mode_to_string(mode) << std::endl;
-
     cl::sycl::free(dataset->device_input, sycl_q);
     cl::sycl::free(dataset->device_output, sycl_q);
     sycl_q.wait_and_throw();
@@ -444,153 +180,21 @@ void generic_USM_free(cl::sycl::queue &sycl_q, host_dataset* dataset, gpu_timer&
     dataset->device_output = nullptr;
 }
 
-
-/*void host_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_timer& timer, sycl_mode mode) {
-    stime_utils chrono;
-    chrono.start();
-    
-    dataset->device_input = static_cast<data_type *> (cl::sycl::malloc_host(INPUT_DATA_SIZE, sycl_q));
-    dataset->device_output = static_cast<data_type *> (cl::sycl::malloc_host(OUTPUT_DATA_SIZE, sycl_q));
-
-    sycl_q.wait_and_throw();
-    timer.t_allocation = chrono.reset();
-
-    //sycl_q.memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE);
-    
-    //sycl_q.wait_and_throw();
-    //timer.t_copy_to_device = chrono.reset();
-}
-
-
-void host_USM_free(cl::sycl::queue &sycl_q, host_dataset* dataset, gpu_timer& timer, sycl_mode mode) {
-    stime_utils chrono;
-    chrono.start();
-
-    cl::sycl::free(dataset->device_input, sycl_q);
-    cl::sycl::free(dataset->device_output, sycl_q);
-    sycl_q.wait_and_throw();
-    timer.t_free_gpu = chrono.reset();
-    dataset->device_input = nullptr;
-    dataset->device_output = nullptr;
-}*/
-
-
-const bool SHOW_TIME_STATS = false;
-
-void print_timer_iter_alloc(gpu_timer& time) {
-    if ( ! SHOW_TIME_STATS ) return;
-    uint64_t t_gpu;
-    t_gpu = time.t_allocation + time.t_copy_to_device + time.t_read_from_device
-            + time.t_parallel_for + time.t_free_gpu;
-    std::cout 
-            << "t_gpu - - - - - - - - - -  = " << t_gpu << std::endl
-            //<< "t_queue_creation           = " << t_queue_creation << std::endl
-            << "t_allocation - - - - - - - = " << time.t_allocation << std::endl
-            << "t_copy_to_device           = " << time.t_copy_to_device << std::endl
-            << "t_parallel_for - - - - - - = " << time.t_parallel_for << std::endl
-            << "t_read_from_device         = " << time.t_read_from_device << std::endl
-            << "t_free_gpu - - - - - - - - = " << time.t_free_gpu << std::endl
-            ;
-
-    log("");
-}
-
-void print_timer_iter(gpu_timer& time) {
-    if ( ! SHOW_TIME_STATS ) return;
-    //uint64_t t_gpu;
-    //t_gpu = time.t_read_from_device + time.t_parallel_for;
-    std::cout 
-            << "t_parallel_for - - - - - - = " << time.t_parallel_for << std::endl
-            << "t_read_from_device         = " << time.t_read_from_device << std::endl
-            ;
-
-    log("");
-}
-
-void print_timer_alloc(gpu_timer& time) {
-    if ( ! SHOW_TIME_STATS ) return;
-    uint64_t t_alloc_and_free;
-    t_alloc_and_free = time.t_allocation + time.t_copy_to_device + time.t_free_gpu;
-    std::cout 
-            << "t_alloc_and_free - - - - - = " << t_alloc_and_free << std::endl
-            << "t_allocation - - - - - - - = " << time.t_allocation << std::endl
-            << "t_copy_to_device           = " << time.t_copy_to_device << std::endl
-            << "t_free_gpu - - - - - - - - = " << time.t_free_gpu << std::endl
-            ;
-
-    log("");
-}
 
 
 host_dataset* generate_datasets() {
-
-    log("Generating data...", 1);
-    stime_utils chrono;
-    chrono.start();
-
-    host_dataset *hdata = new host_dataset[DATASET_NUMBER];
-
-    for (int i = 0; i < DATASET_NUMBER; ++i) {
-        host_dataset *hd = &hdata[i];
-
-        hd->data_input = new data_type[INPUT_DATA_LENGTH];
-        hd->data_output = new data_type[OUTPUT_DATA_LENGTH];
-        hd->seed = 452 + i * 68742;
-
-        srand(hd->seed);
-
-        // Fills the array with random data
-        for (int i = 0; i < INPUT_DATA_LENGTH; ++i) {
-            data_type v = rand();
-            hd->data_input[i] = v;
-            hd->final_result_verif += v;
-        }
-
-        // Perform SMID-like operations to verify the sum algorithm
-        if (CHECK_SIMD_CPU) {
-            data_type sum_simd_check_cpu = 0;
-            // SIMD-like check
-            for (int ip = 0; ip < PARALLEL_FOR_SIZE; ++ip) {
-                for (int it = 0; it < VECTOR_SIZE_PER_ITERATION; ++it) {
-                    int iindex = ip + it * PARALLEL_FOR_SIZE;
-                    sum_simd_check_cpu += hd->data_input[iindex];
-                }
-            }
-
-            // SMID-like OKAY VALLID - total sum = -1553315753
-            if (sum_simd_check_cpu == hd->final_result_verif) {
-                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
-                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
-                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
-            } else {
-                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
-                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
-                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
-            }
-        }
-    }
-
-    global_t_data_generation_and_ram_allocation = chrono.reset(); //get_ms() - t_start;
-
-    return hdata;
+    return
+    generate_datasets(DATASET_NUMBER, INPUT_DATA_LENGTH, OUTPUT_DATA_LENGTH,
+                     CHECK_SIMD_CPU, PARALLEL_FOR_SIZE, VECTOR_SIZE_PER_ITERATION);
 }
 
 void delete_datasets(host_dataset* hdata) {
-    if (hdata == nullptr) return;
-
-    for (int i = 0; i < DATASET_NUMBER; ++i) {
-        host_dataset *hd = &hdata[i];
-        delete[] hd->data_input;
-        delete[] hd->data_output;
-    }
-    delete[] hdata;
+    delete_datasets(hdata, DATASET_NUMBER);
 }
 
 host_dataset *global_persistent_datasets = nullptr;
 
 void main_sequence(std::ofstream& write_file, sycl_mode mode) {
-
-    
 
     // Pointers to allocation, compute and free SYCL functions.
     void (*sycl_allocation)(cl::sycl::queue &, host_dataset *, gpu_timer &, sycl_mode mode);
@@ -641,48 +245,6 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         hdata = generate_datasets();
     }
 
-    /*host_dataset *hdata = new host_dataset[DATASET_NUMBER];
-
-    for (int i = 0; i < DATASET_NUMBER; ++i) {
-        host_dataset *hd = &hdata[i];
-
-        hd->data_input = new data_type[INPUT_DATA_LENGTH];
-        hd->data_output = new data_type[OUTPUT_DATA_LENGTH];
-        hd->seed = 452 + i * 68742;
-
-        srand(hd->seed);
-
-        // Fills the array with random data
-        for (int i = 0; i < INPUT_DATA_LENGTH; ++i) {
-            data_type v = rand();
-            hd->data_input[i] = v;
-            hd->final_result_verif += v;
-        }
-
-        // Perform SMID-like operations to verify the sum algorithm
-        if (CHECK_SIMD_CPU) {
-            data_type sum_simd_check_cpu = 0;
-            // SIMD-like check
-            for (int ip = 0; ip < PARALLEL_FOR_SIZE; ++ip) {
-                for (int it = 0; it < VECTOR_SIZE_PER_ITERATION; ++it) {
-                    int iindex = ip + it * PARALLEL_FOR_SIZE;
-                    sum_simd_check_cpu += hd->data_input[iindex];
-                }
-            }
-
-            // SMID-like OKAY VALLID - total sum = -1553315753
-            if (sum_simd_check_cpu == hd->final_result_verif) {
-                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
-                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
-                std::cout << "SMID-like OKAY VALLID - total sum = " << sum_simd_check_cpu << std::endl;
-            } else {
-                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
-                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
-                std::cout << "SMID-like ERROR should be " << hd->final_result_verif << " but is " << sum_simd_check_cpu << " - ERROR ERROR" << std::endl;
-            }
-        }
-    }*/
-
     gtimer.t_data_generation_and_ram_allocation = global_t_data_generation_and_ram_allocation; //chrono.reset(); //get_ms() - t_start;
 
     log("Input data size  : " + std::to_string(INPUT_DATA_SIZE)
@@ -701,23 +263,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 
         // Print out the device information used for the kernel code.
         log("--   " + sycl_q.get_device().get_info<cl::sycl::info::device::name>() + "   --");
-        /*std::cout << "Running on device: "
-                << sycl_q.get_device().get_info<cl::sycl::info::device::name>() << "\n";*/
-
-        // ========== RIP IMPLICIT USM RIP ==========
         
-        
-
-        // ========== EXPLICIT USM ==========
-        //if (mode == sycl_mode::device_USM) {
-        //int change_data_round = REPEAT_COUNT / 2;
-
-        //log("Mode : EXPLICIT USM");
-        
-        log("============== alloc / free each time ==============", 2);
-
-        // INPUT_DATA_SIZE OUTPUT_DATA_SIZE PARALLEL_FOR_SIZE VECTOR_SIZE_PER_ITERATION REPEAT_COUNT
-        // t_data_generation_and_ram_allocation t_queue_creation
         write_file << DATASET_NUMBER << " "
                     << INPUT_DATA_SIZE << " "
                     << OUTPUT_DATA_SIZE << " "
@@ -730,7 +276,9 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                     << mode_to_int(mode) << " "
                     << MEMCOPY_IS_SYCL << " " // flag to indicate if sycl mem copy or glibc mem copy
                     << SIMD_FOR_LOOP << " " // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
-                    << USE_NAMED_KERNEL // flag to indicate if the named kernel was used or traditional lambda kernel
+                    << USE_NAMED_KERNEL << " " // flag to indicate if the named kernel was used or traditional lambda kernel
+                    // wether there is a copy from SYCL host so device, ou normal (allocated by new) copy to device, to test DMA access
+                    //<< USE_HOST_SYCL_BUFFER 
                     << "\n";
 
         log("\n######## ALLOCATION, COPY AND FREE FOR EACH ITERATION ########", 2);
@@ -747,11 +295,9 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
             for (int rpt = 0; rpt < REPEAT_COUNT_REALLOC; ++rpt) {
                 log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(REPEAT_COUNT_REALLOC), 2);
 
-                
                 sycl_allocation(sycl_q, dataset, gtimer, mode);
                 sycl_compute(sycl_q, dataset, gtimer, mode);
                 sycl_free(sycl_q, dataset, gtimer, mode);
-                
 
                 write_file << gtimer.t_allocation << " "
                             << gtimer.t_copy_to_device << " "
@@ -759,9 +305,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                             << gtimer.t_read_from_device << " "
                             << gtimer.t_free_gpu
                             << "\n";
-
-                // New line in file, output format :
-                // ... see above ...
+                
                 // A new line for each repeat count :
                 // t_allocation t_copy_to_device t_parallel_for t_read_from_device t_free_gpu
                 print_timer_iter_alloc(gtimer);
@@ -792,8 +336,6 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                             << gtimer.t_read_from_device << " "
                             << "\n";
 
-                // New line in file, output format :
-                // ... see above ...
                 // A new line for each repeat count :
                 // t_allocation t_copy_to_device t_parallel_for t_read_from_device t_free_gpu
                 print_timer_iter(gtimer);
@@ -811,9 +353,6 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
             print_timer_alloc(gtimer);
         }
 
-        //}
-
-        
         if (MAX_SHOWN_LEVEL >= 2) {
             std::cout 
                 << "t_data_ram_init            = " << gtimer.t_data_generation_and_ram_allocation << std::endl
@@ -965,17 +504,7 @@ void bench_choose_L_M(std::ofstream& myfile) {
 
 int main(int argc, char *argv[])
 {
-    // Not sure I'll need that
-    /*if (argc < 2){
-        std::cout << "Not enough arguments, minimum requirement: " << std::endl;
-        std::cout << "./exe <data_path>" << std::endl;
-        return -1;
-    }
-    auto data_path = std::string(argv[1]);*/
-    
     std::ofstream myfile;
-
-
     std::string wdir_tmp = std::filesystem::current_path();
     std::string wdir = wdir_tmp + "/output_bench/";
     std::string output_file_name = wdir + std::string(OUTPUT_FILE_NAME);
@@ -1001,7 +530,8 @@ int main(int argc, char *argv[])
     std::cout << "============================" << std::endl;
     
     std::cout << OUTPUT_FILE_NAME << std::endl;
-
+    log("");
+    log("-------------- " + ver_indicator + " --------------");
     log("");
     //bench_mem_alloc_modes(myfile);
     bench_smid_modes(myfile);
