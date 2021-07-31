@@ -977,7 +977,7 @@ int main(int argc, char *argv[])
 
 
     std::string wdir_tmp = std::filesystem::current_path();
-    std::string wdir = wdir_tmp + "/";
+    std::string wdir = wdir_tmp + "/output_bench/";
     std::string output_file_name = wdir + std::string(OUTPUT_FILE_NAME);
 
     myfile.open(output_file_name);
