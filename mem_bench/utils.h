@@ -139,7 +139,17 @@ struct gpu_timer {
     uint64_t t_data_generation_and_ram_allocation = 0;
     uint64_t t_queue_creation = 0;
     uint64_t t_allocation = 0;
+
+    // used if USE_HOST_SYCL_BUFFER = true
+    uint64_t t_sycl_host_alloc = 0;
+    uint64_t t_sycl_host_copy = 0;
+
+    // if USE_HOST_SYCL_BUFFER, this is malloc_host -> shared/device/host
+    // otherwise this is (classic buffer allocated with new) -> shared/device/host
     uint64_t t_copy_to_device = 0;
+
+    uint64_t t_sycl_host_free = 0;
+
     uint64_t t_parallel_for = 0;
     uint64_t t_read_from_device = 0;
     uint64_t t_free_gpu = 0;

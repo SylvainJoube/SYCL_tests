@@ -143,23 +143,57 @@ void generic_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_
     sycl_q.wait_and_throw();
     timer.t_allocation = chrono.reset();
 
-    // Explicit copy only if malloc_device
-    if ( (mode == sycl_mode::device_USM)
-    ||   (mode == sycl_mode::host_USM)
-    ||   (mode == sycl_mode::shared_USM) ) {
+    if (USE_HOST_SYCL_BUFFER) {
+        //logs("SYCL hbuffer");
+        // Copy from glibc buffer to SYCL malloc_host
+        // and then from this malloc_host buffer to shared/device/host buffer
 
-        // The only way to copy data to the device is to use sycl_q.memcpy
-        // For shared memory (host and shared), glibc memcpy can be used.
-        if ( (MEMCOPY_IS_SYCL == 1) || (mode == sycl_mode::device_USM) ) {
-            log("MEM - SYCL MEMCOPY ----", 2);
-            sycl_q.memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE).wait();
+        // Only supports MEMCOPY_IS_SYCL, so I'll assume (MEMCOPY_IS_SYCL == true)
+
+        // USM
+        if ( (mode == sycl_mode::device_USM)
+        ||   (mode == sycl_mode::host_USM)
+        ||   (mode == sycl_mode::shared_USM) ) {
+            // copy from glibc buffer to SYCL buffer malloc_host
+            data_type* sycl_host_ds = static_cast<data_type *> (cl::sycl::malloc_host(INPUT_DATA_SIZE, sycl_q));
+            timer.t_sycl_host_alloc = chrono.reset();
+
+            sycl_q.memcpy(sycl_host_ds, dataset->data_input, INPUT_DATA_SIZE).wait();
             sycl_q.wait_and_throw();
-        } else {
-            log("MEM - GLIBC MEMCOPY ----", 2);
-            // Probably works with host and shared, most likely does not work with device
-            memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE);
+            timer.t_sycl_host_copy = chrono.reset();
+
+            // Copy from host SYCL buffer malloc_host to shared/device/host buffer
+            sycl_q.memcpy(dataset->device_input, sycl_host_ds, INPUT_DATA_SIZE).wait();
+            sycl_q.wait_and_throw();
+            timer.t_copy_to_device = chrono.reset();
+
+            cl::sycl::free(sycl_host_ds, sycl_q);
+            sycl_q.wait_and_throw();
+            timer.t_sycl_host_free = chrono.reset();
         }
-        timer.t_copy_to_device = chrono.reset();
+
+    } else { // directly copy from glibc buffer to SYCL
+        //logs("classic buffer");
+        if ( (mode == sycl_mode::device_USM)
+        ||   (mode == sycl_mode::host_USM)
+        ||   (mode == sycl_mode::shared_USM) ) {
+
+            // The only way to copy data to the device is to use sycl_q.memcpy
+            // For shared memory (host and shared), glibc memcpy can be used.
+            if ( (MEMCOPY_IS_SYCL == 1) || (mode == sycl_mode::device_USM) ) {
+                log("MEM - SYCL MEMCOPY ----", 2);
+                sycl_q.memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE).wait();
+                sycl_q.wait_and_throw();
+            } else {
+                log("MEM - GLIBC MEMCOPY ----", 2);
+                // Probably works with host and shared, most likely does not work with device
+                memcpy(dataset->device_input, dataset->data_input, INPUT_DATA_SIZE);
+            }
+            timer.t_copy_to_device = chrono.reset();
+            //timer.t_sycl_host_alloc = 0;
+            //timer.t_sycl_host_copy = 0;
+            //timer.t_sycl_host_free = 0;
+        }
     }
 
     // TODO : also copy data from dataset to shared memory.
@@ -277,8 +311,8 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                     << MEMCOPY_IS_SYCL << " " // flag to indicate if sycl mem copy or glibc mem copy
                     << SIMD_FOR_LOOP << " " // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
                     << USE_NAMED_KERNEL << " " // flag to indicate if the named kernel was used or traditional lambda kernel
-                    // wether there is a copy from SYCL host so device, ou normal (allocated by new) copy to device, to test DMA access
-                    //<< USE_HOST_SYCL_BUFFER 
+                    // wether there is a copy from SYCL host to device, or normal (allocated by new) copy to device, to test DMA access
+                    << USE_HOST_SYCL_BUFFER 
                     << "\n";
 
         log("\n######## ALLOCATION, COPY AND FREE FOR EACH ITERATION ########", 2);
@@ -300,7 +334,11 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                 sycl_free(sycl_q, dataset, gtimer, mode);
 
                 write_file << gtimer.t_allocation << " "
+                            << gtimer.t_sycl_host_alloc << " " // v6
+                            << gtimer.t_sycl_host_copy << " " // v6
                             << gtimer.t_copy_to_device << " "
+                            << gtimer.t_sycl_host_free << " " // v6
+                            // TODO : do the same with alloc/cpy only once
                             << gtimer.t_parallel_for << " " 
                             << gtimer.t_read_from_device << " "
                             << gtimer.t_free_gpu
@@ -346,7 +384,10 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
             sycl_free(sycl_q, dataset, gtimer, mode);
 
             write_file << gtimer.t_allocation << " "
+                        << gtimer.t_sycl_host_alloc << " " // v6
+                        << gtimer.t_sycl_host_copy << " " // v6
                         << gtimer.t_copy_to_device << " "
+                        << gtimer.t_sycl_host_free << " " // v6
                         << gtimer.t_free_gpu
                         << "\n";
 
@@ -454,6 +495,44 @@ void bench_mem_alloc_modes(std::ofstream& myfile) {
     }
 }
 
+void bench_host_copy_buffer(std::ofstream& myfile) {
+
+    VECTOR_SIZE_PER_ITERATION = 128;
+    PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
+
+    // how many times main_sequence will be run
+    total_main_seq_runs = 2 * 3;
+
+    int imode;
+    //MEMCOPY_IS_SYCL = 1;
+    //SIMD_FOR_LOOP = 0;
+    //USE_NAMED_KERNEL = 0;
+
+    log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+    log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+    
+    //percent_div_factor = 2 * 2;
+
+    for (int imcp = 0; imcp <= 1; ++imcp) {
+        USE_HOST_SYCL_BUFFER = imcp;
+
+        for (int imode = 0; imode <= 2; ++imode) {
+            
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            default : break;
+            }
+            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  USE_HOST_SYCL_BUFFER(" + std::to_string(USE_HOST_SYCL_BUFFER) + ")");
+            //log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+            
+            main_sequence(myfile, CURRENT_MODE);
+            log("");
+        }
+    }
+}
+
 
 
 void bench_choose_L_M(std::ofstream& myfile) {
@@ -534,7 +613,8 @@ int main(int argc, char *argv[])
     log("-------------- " + ver_indicator + " --------------");
     log("");
     //bench_mem_alloc_modes(myfile);
-    bench_smid_modes(myfile);
+    //bench_smid_modes(myfile);
+    bench_host_copy_buffer(myfile);
     //bench_choose_L_M(myfile);
 
     //PARALLEL_FOR_SIZE = 128;//1024;

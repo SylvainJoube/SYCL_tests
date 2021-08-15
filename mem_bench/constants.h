@@ -31,7 +31,7 @@ int MEMCOPY_IS_SYCL = 1;
 int SIMD_FOR_LOOP = 1;
 constexpr int USE_NAMED_KERNEL = 1; // Sandor does not support anonymous kernels.
 constexpr bool KEEP_SAME_DATASETS = true; 
-//bool USE_HOST_SYCL_BUFFER = false; 
+int USE_HOST_SYCL_BUFFER = 0; 
 
 // faire un repeat sur les mêmes données pour essayer d'utiliser le cache
 // hypothèse : les données sont évincées du cache avant de pouvoir y avoir accès
@@ -53,10 +53,14 @@ constexpr bool KEEP_SAME_DATASETS = true;
 //#define OUTPUT_FILE_NAME "sandor_L_M_6GiB_O2.t"
 
 //#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2.t"
-#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2_debug.temp"
+//#define OUTPUT_FILE_NAME "msi_simd_1GiB_O2_debug.temp"
 //#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2.t"
 //#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2_debug_simd_temp.t"
 //#define OUTPUT_FILE_NAME "sandor_simd_8GiB_O2_debug_simd_temp.t"
+
+//#define OUTPUT_FILE_NAME "msi_dma_1GiB_O2.t"
+#define OUTPUT_FILE_NAME "sandor_dma_1GiB_O2.t"
+//#define OUTPUT_FILE_NAME "msi_dma_512MiB_O2.t"
 
 //#define OUTPUT_FILE_NAME "msi_alloc_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "sandor_alloc_6GiB_O2.t"
@@ -70,6 +74,7 @@ constexpr bool KEEP_SAME_DATASETS = true;
 //const long long total_elements = 1024L * 1024L * 256L * 8L; // 8 GiB
 //const long long total_elements = 1024L * 1024L * 256L * 6L; // 6 GiB
 const long long total_elements = 1024L * 1024L * 256L; // 1 GiB
+//const long long total_elements = 1024L * 1024L * 128L; // 512 MiB
 // 256 => 1 GiB 
 // 128 => 512 MiB ; 
 // 32  => 128 MiB ; 
@@ -79,11 +84,11 @@ const long long total_elements = 1024L * 1024L * 256L; // 1 GiB
 // /!\ WARNING : do not forget to change to the desired function in the main
 // of bench.cpp !
 
-std::string ver_indicator = std::string("11");
+std::string ver_indicator = std::string("12d");
 std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); // "X42"
 
 
-#define DATA_VERSION 5
+#define DATA_VERSION 6
 
 // number of diffrent datasets
 #define DATASET_NUMBER 1
