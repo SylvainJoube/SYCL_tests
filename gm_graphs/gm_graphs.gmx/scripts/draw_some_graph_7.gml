@@ -311,4 +311,3 @@ ds_list_destroy(colors);
 with(graph_single_point) { instance_destroy(); }
 with(graph_points) { instance_destroy(); }
 
-

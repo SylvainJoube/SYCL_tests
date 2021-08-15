@@ -1,19 +1,16 @@
 
 /*
 
-v8 : comparaison des différents temps en fonction de la locatlisation de la mémoire.
+v13 : comparaison des différents temps en fonction de la locatlisation de la mémoire.
 i.e. temps parall_for, allocation, copy... en fonction de si la mémoire est
 allouée en host, device ou shared.
-Paramètre supplémentaire : memcpy de SYCL vs de la glibc.
+Paramètre supplémentaire : utilisation d'un buffer intermédiaire sur l'hôte ou non.
 
-- évolution du temps pris d'une itération à l'autre
-    x = n° itération (1, 2, ...)
-    y = temps pris par [parallel for | allocation | copie | ... ]
 */
 
 var echelle_log = false;
 
-g_graph_title = "Allocation glibc vs SYCL - SANDOR - 6 GiB - O2";
+//deprecated  g_graph_title = "Boucle for classique vs optimisation SIMD - SANDOR - O2 - 6 GiB";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
@@ -29,14 +26,19 @@ for (var col = 0; col < max_color; col += color_step) {
     ds_list_add(colors, merge_color(c_blue, c_black, col));
 }*/
 
+// Dessiner ou non les temps d'allocation et de copie
+// depuis le buffer temporaire
+var DISPLAY_TEMP_COPY_BUFF_TIMES = true;
+
 var merge_cfactor = 0.3;
 
 ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
+ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
 ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
 
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
-ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
-ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
+ds_list_add(colors, merge_colour(c_green, c_black, merge_cfactor)); // device
+ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host
 
 
 ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
@@ -50,9 +52,11 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
     //show_message("ij index = " + string(ij));
     
     // ingore when copy strategy is glibc and on device (no glibc on device)
-    if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 1 ) continue;
+    //if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 2 ) continue;
     //if ( j.MEMORY_LOCATION == 2 ) continue; // located on host
     
+    //if ( j.SIMD_FOR_LOOP == 0 && j.MEMORY_LOCATION == 2 ) continue; // classic for loop and located on host
+    //if ( j.MEMORY_LOCATION == 2 ) continue;
     
     for (var ids = 0; ids < ds_list_size(j.datasets); ++ids) {
     
@@ -82,16 +86,16 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
             //gp = find_or_create_graph_points_ext(graph_list, "Nb. élems = " + string(total_item_count), ids); /// "nb. workitems = " + split_thousands(j.PARALLEL_FOR_SIZE)
             var memcopy_name = "non connue";
             var memcopy_short_name = "nc";
-            if (j.MEMCOPY_IS_SYCL == 1 /*|| j.MEMORY_LOCATION == 1*/) { // copy strategy SYCL or mem on device (no glibc on device)
-                memcopy_name = "copie SYCL";
-                memcopy_short_name = "s";
+            if (j.USE_HOST_SYCL_BUFFER == 1) { // utilisation du buffer temporaire
+                memcopy_name = "buffer temporaire";
+                memcopy_short_name = "b";
             } else {
-                memcopy_name = "copie glibc";
-                memcopy_short_name = "g";
+                memcopy_name = "copie directe";
+                memcopy_short_name = "d";
             }
             var gpname = "Mem location = " + mem_location_to_str(j.MEMORY_LOCATION) + " (" + memcopy_name + ")";
             var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + memcopy_short_name;
-            // MEMCOPY_IS_SYCL
+            
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
             if (gp.newly_created) {
                 gp.color = ds_list_find_value(colors, current_color_index % ds_list_size(colors));
@@ -103,7 +107,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var iter = ds_list_find_value(used_iteration_list, i_iteration);
                 
                 var gxoffset = 0;
-                gxoffset = j.MEMORY_LOCATION * 2 + j.MEMCOPY_IS_SYCL * 0.5;
+                gxoffset = j.MEMORY_LOCATION * 2 + j.SIMD_FOR_LOOP * 0.5;
                 
                 /*if (j.MEMCOPY_IS_SYCL == 1 || j.MEMORY_LOCATION == 1) {
                     gxoffset = j.MEMORY_LOCATION * 3;
@@ -111,32 +115,63 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                     gxoffset = j.MEMORY_LOCATION * 3 + j.MEMCOPY_IS_SYCL * 0.7;
                 }*/
                 
+                var label_offset_count = 0;
                 
                 //var as_x = j.VECTOR_SIZE_PER_ITERATION;
                 // allocation
-                var as_x = 0 + gxoffset;
+                var as_x = 10 * label_offset_count + gxoffset;
                 var as_y = iter.t_allocation;
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "gpu allocation"; //split_thousands(j.PARALLEL_FOR_SIZE);
+                pt.xlabel = "sycl mem alloc";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
+                ++label_offset_count;
+                
+                if (DISPLAY_TEMP_COPY_BUFF_TIMES) {
+                    // t_sycl_host_alloc : allocation du buffer hôte SYCL
+                    var as_x = 10 * label_offset_count + gxoffset;
+                    var as_y = iter.t_sycl_host_alloc;
+                    var pt = instance_create(0, 0, graph_single_point);
+                    pt.xx = as_x;
+                    pt.yy = as_y;
+                    pt.xlabel = "temp alloc";
+                    pt.ylabel = split_thousands(as_y);
+                    pt.color = gp.color; // <- debug only
+                    ds_list_add(gp.points, pt);
+                    ++label_offset_count;
+                    
+                    
+                    // t_sycl_host_copy : copie depuis le buffer hôte SYCL vers
+                    // la mémoire sycl accessible depuis le GPU
+                    var as_x = 10 * label_offset_count + gxoffset;
+                    var as_y = iter.t_sycl_host_copy;
+                    var pt = instance_create(0, 0, graph_single_point);
+                    pt.xx = as_x;
+                    pt.yy = as_y;
+                    pt.xlabel = "temp copy";
+                    pt.ylabel = split_thousands(as_y);
+                    pt.color = gp.color; // <- debug only
+                    ds_list_add(gp.points, pt);
+                    ++label_offset_count;
+                }
                 
                 // t_copy_to_device
-                var as_x = 10 + gxoffset;
+                var as_x = 10 * label_offset_count + gxoffset;
                 var as_y = iter.t_copy_to_device;
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "copy to device";
+                pt.xlabel = "copy to sycl mem";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
+                ++label_offset_count;
                 
                 // t_parallel_for
-                var as_x = 20 + gxoffset;
+                var as_x = 10 * label_offset_count + gxoffset;
                 var as_y = iter.t_parallel_for;
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
@@ -145,28 +180,31 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
+                ++label_offset_count;
                 
                 // t_read_from_device
-                var as_x = 30 + gxoffset;
+                var as_x = 10 * label_offset_count + gxoffset;
                 var as_y = iter.t_read_from_device;
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "read from device";
+                pt.xlabel = "read from SYCL mem";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
+                ++label_offset_count;
                 
                 // t_free_gpu
-                var as_x = 40 + gxoffset;
+                var as_x = 10 * label_offset_count + gxoffset;
                 var as_y = iter.t_free_gpu; //t_free_gpu
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "free gpu mem";
+                pt.xlabel = "free SYCL mem";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
+                ++label_offset_count;
                 
                 
                 

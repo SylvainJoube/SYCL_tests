@@ -65,7 +65,7 @@ game_end();*/
           <argument>
             <kind>1</kind>
             <string>
-if (step == 2) {
+if (step == 2) repeat (1) {
 
     var graph_height = 700;
     var graph_width = 800;

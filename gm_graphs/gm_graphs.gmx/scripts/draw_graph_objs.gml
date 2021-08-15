@@ -49,7 +49,7 @@ draw_text_transformed(xorig - 90, yorig - floor(graph_height / 2), ylabel, 1, 1,
 
 // Draw graph title
 var xcenter_surface = floor((graph_width + xorig * 2) / 2);
-draw_text(xcenter_surface, 20, g_graph_title);
+draw_text(xcenter_surface, 20, g_graph_display_name);
 
 // Draw L and M, if their values are shared
 draw_set_halign(fa_right);
@@ -456,5 +456,4 @@ Je pense que ce qu'on observe pour l'instant avec la courbe décroissante, c'est
 
 Demain je ne vais pas pouvoir faire de graphiques parce qu'il faudrait que je configure mon logiciel 
 */
-
 

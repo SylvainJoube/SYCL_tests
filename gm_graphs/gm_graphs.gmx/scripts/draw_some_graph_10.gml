@@ -1,14 +1,16 @@
 
 /*
 
-v9 : comparaison des différents temps en fonction de la locatlisation de la mémoire.
+(Kernel non nommé vs nommé)
+
+v10 : comparaison des différents temps en fonction de la locatlisation de la mémoire.
 i.e. temps parall_for, allocation, copy... en fonction de si la mémoire est
 allouée en host, device ou shared.
-Paramètre supplémentaire : boucle for SIMD vs boucle for classique
+Paramètre supplémentaire : kernel nommé vs kernel anonyme.
 
-- évolution du temps pris d'une itération à l'autre
-    x = n° itération (1, 2, ...)
-    y = temps pris par [parallel for | allocation | copie | ... ]
+x = temps mesuré : parallel for | allocation | copie | ... 
+y = temps pris
+
 */
 
 var echelle_log = false;
@@ -327,5 +329,4 @@ ds_list_destroy(sorted_glist);
 ds_list_destroy(colors);
 with(graph_single_point) { instance_destroy(); }
 with(graph_points) { instance_destroy(); }
-
 

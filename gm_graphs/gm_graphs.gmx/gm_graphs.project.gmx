@@ -37,9 +37,12 @@
       <script>scripts\load_data_v3.gml</script>
       <script>scripts\load_data_v4.gml</script>
       <script>scripts\load_data_v5.gml</script>
+      <script>scripts\load_data_v6.gml</script>
       <script>scripts\load_data_v0_deprecated.gml</script>
       <script>scripts\load_data_common.gml</script>
       <script>scripts\init_job_variables.gml</script>
+      <script>scripts\init_iter_variables.gml</script>
+      <script>scripts\load_data_common_init.gml</script>
     </scripts>
     <scripts name="draw_graph_specific">
       <script>scripts\draw_some_graph_common.gml</script>
@@ -56,9 +59,13 @@
       <script>scripts\draw_some_graph_10b.gml</script>
       <script>scripts\draw_some_graph_11.gml</script>
       <script>scripts\draw_some_graph_12.gml</script>
+      <script>scripts\draw_some_graph_13.gml</script>
+      <script>scripts\draw_some_graph_8_bis.gml</script>
       <script>scripts\draw_test_qualtiles.gml</script>
       <script>scripts\mem_location_to_str.gml</script>
       <script>scripts\mem_location_to_str_prefix.gml</script>
+      <script>scripts\computer_id_to_name.gml</script>
+      <script>scripts\computer_id_to_name_prefix.gml</script>
     </scripts>
     <scripts name="draw_graph_base">
       <script>scripts\draw_test_graph.gml</script>

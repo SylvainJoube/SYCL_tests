@@ -1,10 +1,10 @@
-/// load_data(text_file);
+/// load_data_v6(text_file);
 
 var file = argument0;
 
 var delimiter = " ";
 
-var limit_iterations = g_limit_iterations;//-1; //12;
+var limit_iterations = g_limit_iterations;
 
 while ( ! file_text_eof(file) ) {
     
@@ -30,6 +30,16 @@ while ( ! file_text_eof(file) ) {
     
     // NEW with load data V3 :
     j.MEMORY_LOCATION = ds_list_find_value(header_vars, 9); // memory allocated 0 shared ; 1 on device ; 2 host ; 3 buffers
+    
+    // NEW with load data V4 :
+    j.MEMCOPY_IS_SYCL = ds_list_find_value(header_vars, 10); // flag to indicate if sycl mem copy or glibc mem copy
+    j.SIMD_FOR_LOOP = ds_list_find_value(header_vars, 11);   // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
+    
+    // NEW with load data V5 :
+    j.USE_NAMED_KERNEL = ds_list_find_value(header_vars, 12);   // flag to indicate wether the kernel was named or not
+    
+    // NEW with load data V6 :
+    j.USE_HOST_SYCL_BUFFER = ds_list_find_value(header_vars, 13);
     
     j.datasets = ds_list_create();
     //show_message("j.REPEAT_COUNT_ONLY_PARALLEL = " + string(j.REPEAT_COUNT_ONLY_PARALLEL));
@@ -70,10 +80,16 @@ while ( ! file_text_eof(file) ) {
             ds_list_add(d.iterations, iter);
             var values = list_to_real(split_string(values_str, " "));
             iter.t_allocation = ds_list_find_value(values, 0);
-            iter.t_copy_to_device = ds_list_find_value(values, 1);
-            iter.t_parallel_for = ds_list_find_value(values, 2);
-            iter.t_read_from_device = ds_list_find_value(values, 3);
-            iter.t_free_gpu = ds_list_find_value(values, 4);
+            // used if USE_HOST_SYCL_BUFFER = true
+            iter.t_sycl_host_alloc = ds_list_find_value(values, 1); // new in v6
+            iter.t_sycl_host_copy = ds_list_find_value(values, 2); // new in v6
+            // if USE_HOST_SYCL_BUFFER, this is malloc_host -> shared/device/host
+            // otherwise this is (classic buffer alocated with new) -> shared/device/host
+            iter.t_copy_to_device = ds_list_find_value(values, 3);
+            iter.t_sycl_host_free = ds_list_find_value(values, 4); // new in v6
+            iter.t_parallel_for = ds_list_find_value(values, 5);
+            iter.t_read_from_device = ds_list_find_value(values, 6);
+            iter.t_free_gpu = ds_list_find_value(values, 7);
         }
         
     }
@@ -108,14 +124,23 @@ while ( ! file_text_eof(file) ) {
         var common_values_str = file_text_readln(file);
         var values = list_to_real(split_string(common_values_str, " "));
         var t_allocation = ds_list_find_value(values, 0);
-        var t_copy_to_device = ds_list_find_value(values, 1);
-        var t_free_gpu = ds_list_find_value(values, 2);
+        // used if USE_HOST_SYCL_BUFFER = true
+        var t_sycl_host_alloc = ds_list_find_value(values, 1); // new in v6
+        var t_sycl_host_copy = ds_list_find_value(values, 2); // new in v6
+        // if USE_HOST_SYCL_BUFFER, this is malloc_host -> shared/device/host
+        // otherwise this is (classic buffer alocated with new) -> shared/device/host
+        var t_copy_to_device = ds_list_find_value(values, 3);
+        var t_sycl_host_free = ds_list_find_value(values, 4);
+        var t_free_gpu = ds_list_find_value(values, 5);
         //show_message("t_free_gpu = " + string(t_free_gpu) + "  t_allocation = " + string(t_allocation));
         
         for (var i_iteration = 0; i_iteration < j.REPEAT_COUNT_ONLY_PARALLEL; ++i_iteration) {
             var iter = ds_list_find_value(d.iterations_only_parallel, i_iteration);
             iter.t_allocation = t_allocation;
+            iter.t_sycl_host_alloc = t_sycl_host_alloc;
+            iter.t_sycl_host_copy = t_sycl_host_copy;
             iter.t_copy_to_device = t_copy_to_device;
+            iter.t_sycl_host_free = t_sycl_host_free;
             iter.t_free_gpu = t_free_gpu;
         }
     }
@@ -132,6 +157,5 @@ while ( ! file_text_eof(file) ) {
 //show_message("ctrl.jobs_fixed_list size = " + string(ds_list_size(ctrl.jobs_fixed_list)));
 
 //check_load_data();
-
 
 

@@ -1,10 +1,13 @@
 
 /*
 
-v8 : comparaison des différents temps en fonction de la locatlisation de la mémoire.
+v8_bis : comparaison des différents temps en fonction de la locatlisation de la mémoire.
 i.e. temps parall_for, allocation, copy... en fonction de si la mémoire est
 allouée en host, device ou shared.
 Paramètre supplémentaire : memcpy de SYCL vs de la glibc.
+
+Un graphe pour glibc et un graphe pour copie SYCL.
+Et sur un même graphe comparaison entre MSI et Sandor.
 
 - évolution du temps pris d'une itération à l'autre
     x = n° itération (1, 2, ...)
@@ -13,7 +16,8 @@ Paramètre supplémentaire : memcpy de SYCL vs de la glibc.
 
 var echelle_log = false;
 
-g_graph_title = "Allocation glibc vs SYCL - SANDOR - 6 GiB - O2";
+//g_graph_title = "Allocation glibc - Sandor vs MSI - 1 GiB - O2";
+//g_graph_title = "Allocation SYCL - Sandor vs MSI - 1 GiB - O2";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
@@ -32,12 +36,14 @@ for (var col = 0; col < max_color; col += color_step) {
 var merge_cfactor = 0.3;
 
 ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
+ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
 ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
 
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
-ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
+ds_list_add(colors, merge_colour(c_green, c_black, merge_cfactor)); // device
 ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
 
+memcpy_only_show_this_id = 0; // copie SYCL
 
 ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
 var current_color_index = 0;
@@ -47,10 +53,16 @@ g_iteration_count = 0;
 for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
 
     var j = ds_list_find_value(ctrl.jobs_fixed_list, ij);
+    
+    if (j.MEMCOPY_IS_SYCL != memcpy_only_show_this_id) continue;
+    
+    var computer_name = computer_id_to_name(j.COMPUTER_ID);
+    var computer_name_prefix = computer_id_to_name_prefix(j.COMPUTER_ID);
+    
     //show_message("ij index = " + string(ij));
     
     // ingore when copy strategy is glibc and on device (no glibc on device)
-    if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 1 ) continue;
+    //if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 1 ) continue;
     //if ( j.MEMORY_LOCATION == 2 ) continue; // located on host
     
     
@@ -89,8 +101,9 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 memcopy_name = "copie glibc";
                 memcopy_short_name = "g";
             }
-            var gpname = "Mem location = " + mem_location_to_str(j.MEMORY_LOCATION) + " (" + memcopy_name + ")";
-            var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + memcopy_short_name;
+            // "Mem location = "
+            var gpname = "" + computer_name + ", " + mem_location_to_str(j.MEMORY_LOCATION) + ", " + memcopy_name + "";
+            var gpshort_name = computer_name_prefix + mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + memcopy_short_name;
             // MEMCOPY_IS_SYCL
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
             if (gp.newly_created) {
@@ -103,7 +116,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var iter = ds_list_find_value(used_iteration_list, i_iteration);
                 
                 var gxoffset = 0;
-                gxoffset = j.MEMORY_LOCATION * 2 + j.MEMCOPY_IS_SYCL * 0.5;
+                gxoffset = j.MEMORY_LOCATION * 2 + (j.COMPUTER_ID - 2) * 0.5; // only 2 MSI and 3 SANDOR
                 
                 /*if (j.MEMCOPY_IS_SYCL == 1 || j.MEMORY_LOCATION == 1) {
                     gxoffset = j.MEMORY_LOCATION * 3;
@@ -119,7 +132,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "gpu allocation"; //split_thousands(j.PARALLEL_FOR_SIZE);
+                pt.xlabel = "sycl mem alloc"; //split_thousands(j.PARALLEL_FOR_SIZE);
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -130,7 +143,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "copy to device";
+                pt.xlabel = "copy to sycl mem";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -152,7 +165,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "read from device";
+                pt.xlabel = "read from SYCL mem";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -163,7 +176,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "free gpu mem";
+                pt.xlabel = "free SYCL mem";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -173,6 +186,12 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 //show_message("ij index = " + string(ij) + " ds index = " + string(ids) + "  pt index = " + string(i_iteration) + "  pt size = " + string(ds_list_size(gp.points)));
             }
         }
+    }
+}
+
+if (echelle_log) {
+    with (graph_single_point) {
+        yy = log2(yy);
     }
 }
 

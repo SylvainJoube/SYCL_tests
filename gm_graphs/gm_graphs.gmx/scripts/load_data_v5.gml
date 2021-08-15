@@ -4,18 +4,7 @@ var file = argument0;
 
 var delimiter = " ";
 
-ctrl.jobs_fixed_list = ds_list_create();
-
-// used to draw L and M if they are the same every time
-g_VECTOR_SIZE_PER_ITERATION_common = -1; // L
-g_PARALLEL_FOR_SIZE_common = -1; // M
-
-g_display_LM = true;
-
 var limit_iterations = g_limit_iterations;//-1; //12;
-
-g_input_data_size = 0;
-g_output_data_size = 0;
 
 while ( ! file_text_eof(file) ) {
     

@@ -4,12 +4,8 @@
 v11 : évaluation du temps pris en fonction 
 de la locatisation de la mémoire et des valeurs de L et M.
 
-Pour tous les temps caractéristiques :
-- 
+Affichage du temps pris par le parallel_for uniquement.
 
-- évolution du temps pris d'une itération à l'autre
-    x = n° itération (1, 2, ...)
-    y = temps pris par [parallel for | allocation | copie | ... ]
 */
 
 var echelle_log = false;
@@ -17,7 +13,8 @@ var echelle_log = false;
 //g_graph_title = "Tempr pris par parallel_for en fonction de L et M - SANDOR - 1 GiO";
 //g_graph_title = "Tempr pris par parallel_for en fonction de L et M - MSI - 128 MiB - O0";
 //g_graph_title = "Temps pris par parallel_for en fonction de L et M - SANDOR - 4 GiB - O2";
-g_graph_title = "Temps pris par parallel_for en fonction de L et M - SANDOR - 6 GiB - O2 - SIMD";
+//g_graph_title = "Temps pris par parallel_for en fonction de L et M - SANDOR - 6 GiB - O2 - SIMD";
+// g_graph_title n'est plus une variable utilisée
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
@@ -97,8 +94,15 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 memcopy_name = "anonyme";
                 memcopy_short_name = "a";
             }*/
-            var gpname = "Kernel " + mem_location_to_str(j.MEMORY_LOCATION);// + " (" + memcopy_name + ")";
-            var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION);// + "" + memcopy_short_name;
+            var gpname;
+            var gpshort_name;
+            if (g_multiple_load_file_number == 1) {
+                gpname = "Kernel " + mem_location_to_str(j.MEMORY_LOCATION);// + " (" + memcopy_name + ")";
+                gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION);// + "" + memcopy_short_name;
+            } else {
+                gpname = j.FILE_NAME + " (" + string(j.FILE_COUNT) + ")";
+                gpshort_name = string(j.FILE_COUNT);
+            }
             
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
             if (gp.newly_created) {
@@ -285,5 +289,4 @@ ds_list_destroy(sorted_glist);
 ds_list_destroy(colors);
 with(graph_single_point) { instance_destroy(); }
 with(graph_points) { instance_destroy(); }
-
 

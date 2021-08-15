@@ -2,11 +2,16 @@
 
 // Sets the global variables
 
-var base_dir_load = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\";
+var base_dir_load = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench";
 //var base_dir_save = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\gm_graphs\gm_graphs.gmx\save_png\";
 var base_dir_save = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\mem_benck\";
 
 var h_version = "53";
+
+g_multiple_load_LM = true;
+g_graph_display_name = "Nom inconnu";
+g_multiple_load_file_number = 1;
+g_multiple_load_file_current_count = 0;
 
 //g_load_path = base_dir_load + "sh_output_bench_h" + h_version + ".shared_txt";
 
@@ -17,7 +22,7 @@ var h_version = "53";
 //g_load_path = base_dir_load + "msi_h60_simd_1GiB_O2_20pts.t";
 g_load_path = base_dir_load + "fichier"; //"sandor_h60_L_M_4GiB_O2.t";
 
-
+DEFAULT_COMPUTER_ID = 0; // unknown
 
 ///g_save_path_default = base_dir_load + "mem_benck\sh_save_surf_h" + h_version + ".png";
 

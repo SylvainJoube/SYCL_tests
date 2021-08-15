@@ -1,12 +1,9 @@
 
 /*
 
-v11 : évaluation du temps pris par les parallel_for en fonction 
-de la locatisation de la mémoire et des valeurs de L et M.
+v12 : évolution de tous les temps caractéristiques en fonction des valeurs de L et M.
+(et non plus uniquement évolution du temps pris par le parallel_for)
 
-- évolution du temps pris d'une itération à l'autre
-    x = n° itération (1, 2, ...)
-    y = temps pris par [parallel for | allocation | copie | ... ]
 */
 
 var echelle_log_x = true;
@@ -203,7 +200,7 @@ for (var i = 0; i < ds_list_size(graph_list); ++i) {
     }
 }
 
-var strange_value_factor = 6; // normal : 1.5, inclusive : 6
+var strange_value_factor = 12; // normal : 1.5, inclusive : 6
 
 var delete_strange_values = true;
 
@@ -319,5 +316,4 @@ ds_list_destroy(sorted_glist);
 ds_list_destroy(colors);
 with(graph_single_point) { instance_destroy(); }
 with(graph_points) { instance_destroy(); }
-
 
