@@ -140,11 +140,11 @@ struct gpu_timer {
     uint64_t t_queue_creation = 0;
     uint64_t t_allocation = 0;
 
-    // used if USE_HOST_SYCL_BUFFER = true
+    // used if USE_HOST_SYCL_BUFFER_DMA = true
     uint64_t t_sycl_host_alloc = 0;
     uint64_t t_sycl_host_copy = 0;
 
-    // if USE_HOST_SYCL_BUFFER, this is malloc_host -> shared/device/host
+    // if USE_HOST_SYCL_BUFFER_DMA, this is malloc_host -> shared/device/host
     // otherwise this is (classic buffer allocated with new) -> shared/device/host
     uint64_t t_copy_to_device = 0;
 
@@ -272,9 +272,209 @@ int total_main_seq_runs = 1;
 //int current_main_seq_runs = 0;
 int current_iteration_count = 0;
 
+void init_progress() {
+    total_main_seq_runs = 1;
+    current_iteration_count = 0;
+}
+
 void print_total_progress() {
     const int total_iteration_count_per_seq = DATASET_NUMBER * (REPEAT_COUNT_REALLOC + REPEAT_COUNT_ONLY_PARALLEL);
     int total_iteration_count = total_iteration_count_per_seq * total_main_seq_runs;
     int progress = 100 * double(current_iteration_count) / double(total_iteration_count);
     logs( std::to_string(progress) + "% ");
 }
+
+
+/* Classes can inherit from the device_selector class to allow users
+ * to dictate the criteria for choosing a device from those that might be
+ * present on a system. This example looks for a device with SPIR support
+ * and prefers GPUs over CPUs. */
+class custom_device_selector : public cl::sycl::device_selector {
+private:
+    cl::sycl::default_selector def_selector;
+public:
+    custom_device_selector() : cl::sycl::device_selector() {}
+
+    /* The selection is performed via the () operator in the base
+    * selector class.This method will be called once per device in each
+    * platform. Note that all platforms are evaluated whenever there is
+    * a device selection. */
+    int operator()(const cl::sycl::device& device) const override {
+        
+        if ( ! FORCE_EXECUTION_ON_NAMED_DEVICE ) {
+            // Use the default recommended device
+            return def_selector(device);
+        } else {
+            // Use the specified device
+            // Multiple devices may have the same name but not the same score
+            // so I return the device score if it has the right name
+            // and -1 (i.e. never choose this one) otherwise.
+            std::string devName =  device.get_info<cl::sycl::info::device::name>();
+            if (devName.compare(MUST_RUN_ON_DEVICE_NAME) == 0) {
+                int devScore = def_selector(device);
+                log("Right device found, score(" + std::to_string(devScore) + ") - " + devName);
+                return devScore;
+            }
+            return -1;
+        }
+    }
+};
+
+class selector_list_devices : public cl::sycl::device_selector {
+private:
+    cl::sycl::default_selector def_selector;
+public:
+    selector_list_devices() : cl::sycl::device_selector() {}
+
+    /* The selection is performed via the () operator in the base
+    * selector class.This method will be called once per device in each
+    * platform. Note that all platforms are evaluated whenever there is
+    * a device selection. */
+    int operator()(const cl::sycl::device& device) const override {
+        
+        // List device names and return the default score for the device
+        std::string devName =  device.get_info<cl::sycl::info::device::name>();
+        logs("    " + devName);
+
+        std::string devType = "";
+        switch (device.get_info<cl::sycl::info::device::device_type>()) {
+        case cl::sycl::info::device_type::cpu :  devType = "cpu"; break;
+        case cl::sycl::info::device_type::gpu :  devType = "gpu"; break;
+        case cl::sycl::info::device_type::host : devType = "host"; break;
+        default : devType = "unknown type"; break;
+        }
+        logs(" (" + devType + ")");
+
+        int defaultScore = def_selector(device);
+
+        log(" - score " + std::to_string(defaultScore));
+
+        if (devName.compare(DEVICE_NAME_ON_THINKPAD) == 0) {
+            currently_running_on_computer_id = 1; // 1 Thinkpad
+        }
+        if (devName.compare(DEVICE_NAME_ON_MSI_INTEL) == 0) {
+            currently_running_on_computer_id = 2; // 2 or 3 for MSI, those values are the same
+        }
+        if (devName.compare(DEVICE_NAME_ON_MSI_NVIDIA) == 0) {
+            currently_running_on_computer_id = 2;
+        }
+        if (devName.compare(DEVICE_NAME_ON_SANDOR) == 0) {
+            currently_running_on_computer_id = 4; // 4 Sandor
+        }
+
+        // Return the default device score
+        return defaultScore;
+    }
+};
+
+void list_devices(std::function<void(cl::sycl::exception_list)> func) {
+    log("== List of available devices ==");
+    selector_list_devices dev_list_select;
+    cl::sycl::queue temp_queue(dev_list_select, func);
+}
+
+
+/*
+Taken from : https://github.com/codeplaysoftware/computecpp-sdk/blob/master/samples/custom-device-selector.cpp#L46
+pointed by the answer https://stackoverflow.com/questions/59061444/how-do-you-make-sycl-default-selector-select-an-intel-gpu-rather-than-an-nvidi
+
+//class example_kernel;
+
+// Classes can inherit from the device_selector class to allow users
+// to dictate the criteria for choosing a device from those that might be
+// present on a system. This example looks for a device with SPIR support
+// and prefers GPUs over CPUs.
+class custom_selector : public cl::sycl::device_selector {
+private:
+    cl::sycl::default_selector def_selector;
+public:
+    custom_selector() : cl::sycl::device_selector() {}
+
+    // The selection is performed via the () operator in the base
+    // selector class.This method will be called once per device in each
+    // platform. Note that all platforms are evaluated whenever there is
+    // a device selection.
+    int operator()(const cl::sycl::device& device) const override {
+        
+        if ( ! FORCE_EXECUTION_ON_NAMED_DEVICE ) {
+            // Use the recommended device
+            return def_selector(device);
+        } else {
+            // Use the specified device
+            // declared on constants.h : MUST_RUN_ON_DEVICE_NAME
+            std::string devName =  device.get_info<cl::sycl::info::device::name>();
+            if (devName.compare(MUST_RUN_ON_DEVICE_NAME) == 0) {
+                return 100;
+            }
+            return -1;
+        }
+
+        // We only give a valid score to devices that support SPIR.
+        if (device.has_extension(cl::sycl::string_class("cl_khr_spir")) ||
+            device.has_extension(cl::sycl::string_class("cl_khr_il_program"))) {
+            if (device.get_info<cl::sycl::info::device::device_type>() ==
+                cl::sycl::info::device_type::cpu) {
+                return 50;
+            }
+
+            if (device.get_info<cl::sycl::info::device::device_type>()
+                == cl::sycl::info::device_type::gpu) {
+                return 100;
+            }
+        }
+
+        std::string devName =  device.get_info<cl::sycl::info::device::name>();
+
+        logs("Device name = " + devName);
+        if (devName.compare("Intel(R) UHD Graphics 620 [0x5917]") == 0) logs(" is my boooy and");
+
+        if (device.get_info<cl::sycl::info::device::device_type>()
+                == cl::sycl::info::device_type::gpu) {
+                log(" is GPU.");
+                return 100;
+            }
+        
+        if (device.get_info<cl::sycl::info::device::device_type>()
+                == cl::sycl::info::device_type::cpu) {
+                log(" is CPU.");
+                return 10;
+            }
+        log(" is something I don't know.");
+        // Devices with a negative score will never be chosen.
+        return -1;
+    }
+};
+
+int example_custom_selector() {
+  const int dataSize = 64;
+  int ret = -1;
+  float data[dataSize] = {0.f};
+
+  cl::sycl::range<1> dataRange(dataSize);
+  cl::sycl::buffer<float, 1> buf(data, dataRange);
+
+  // We create an object of custom_selector type and use it
+  // like any other selector.
+  custom_selector selector;
+  cl::sycl::queue myQueue(selector);
+
+  myQueue.submit([&](cl::sycl::handler& cgh) {
+    auto ptr = buf.get_access<cl::sycl::access::mode::read_write>(cgh);
+
+    cgh.parallel_for<example_kernel>(dataRange, [=](cl::sycl::item<1> item) {
+      size_t idx = item.get_linear_id();
+      ptr[item.get_linear_id()] = static_cast<float>(idx);
+    });
+  });
+
+  // A host accessor can be used to force an update from the device to the
+  // host, allowing the data to be checked.
+  cl::sycl::accessor<float, 1, cl::sycl::access::mode::read_write, cl::sycl::access::target::host_buffer>
+      hostPtr(buf);
+
+  if (hostPtr[10] == 10.0f) {
+    ret = 0;
+  }
+
+  return ret;
+}*/

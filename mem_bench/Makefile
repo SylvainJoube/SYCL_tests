@@ -35,9 +35,17 @@ run_hello:
 build_hello_named:
 	$(CXX) $(CXXFLAGS) -o bin/hello_world_named hello_world_named.cpp
 
+
 run_hello_named: 
 	./bin/hello_world_named
 
+# Testing launch wait and order
+hello_sleep:
+	$(CXX) $(CXXFLAGS) -o bin/hello_world_named_sleep hello_world_named_sleep.cpp
+	./bin/hello_world_named_sleep 1
+	./bin/hello_world_named_sleep 2
+	./bin/hello_world_named_sleep 3
+	./bin/hello_world_named_sleep 4
 
 build_mbf:
 	$(CXX) $(CXXFLAGS) -o bin/mbfoca_named mbfoca_named.cpp
@@ -54,6 +62,9 @@ gcc_build :
 
 run: 
 	./$(RUN_EXE_NAME)
+
+#run_all:
+
 
 clean: 
 	rm -f $(RUN_EXE_NAME)

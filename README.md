@@ -14,7 +14,9 @@ cd /home/data_sync/academique/M2/StageM2/SYCL_tests/mem_bench
 
 Accès à syncthing :  
 ```
-ssh -X 192.168.0.169
+ssh 192.168.0.169
+ou
+ssh 192.168.1.170
 syncthing
 ```
 

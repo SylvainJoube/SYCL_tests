@@ -11,16 +11,10 @@
 #include <stdlib.h>
 
 #define DATA_TYPE unsigned int // TODO : try with unsigned int
-
 using data_type = DATA_TYPE;
-// 
 //using data_type_sum = unsigned long long;
-
 enum sycl_mode {shared_USM, device_USM, host_USM, accessors};
 //enum dataset_type {implicit_USM, device_USM, host_USM, accessors};
-
-/*#define PARALLEL_FOR_SIZE 1024
-#define VECTOR_SIZE_PER_ITERATION 200 * 1024*/
 
 unsigned long long PARALLEL_FOR_SIZE;// = 1024 * 32 * 8;// = M ; work items number
 unsigned long long VECTOR_SIZE_PER_ITERATION;// = 1; // = L ; vector size per workitem (i.e. parallel_for task) = nb itérations internes par work item
@@ -31,7 +25,7 @@ int MEMCOPY_IS_SYCL = 1;
 int SIMD_FOR_LOOP = 1;
 constexpr int USE_NAMED_KERNEL = 1; // Sandor does not support anonymous kernels.
 constexpr bool KEEP_SAME_DATASETS = true; 
-int USE_HOST_SYCL_BUFFER = 0; 
+int USE_HOST_SYCL_BUFFER_DMA = 0; 
 
 // faire un repeat sur les mêmes données pour essayer d'utiliser le cache
 // hypothèse : les données sont évincées du cache avant de pouvoir y avoir accès
@@ -39,10 +33,21 @@ int USE_HOST_SYCL_BUFFER = 0;
 // avoir une liste pour prioriser ce que je dois faire et 
 
 
+// SEE main on bench.cpp
+// SEE main on bench.cpp
+// SEE main on bench.cpp
+// SEE main on bench.cpp
+// SEE main on bench.cpp
+// SEE main on bench.cpp
+// SEE main on bench.cpp
+
 
 // number of iterations - no realloc to make it go faster
-#define REPEAT_COUNT_REALLOC 3
-#define REPEAT_COUNT_ONLY_PARALLEL 0
+int REPEAT_COUNT_REALLOC = 3;
+int REPEAT_COUNT_ONLY_PARALLEL = 0;
+
+bool FORCE_EXECUTION_ON_NAMED_DEVICE = true;
+std::string MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]"; //std::string("s");
 
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
 //#define OUTPUT_FILE_NAME "msi_h60_L_M_128MiB_O0.t"
@@ -58,8 +63,26 @@ int USE_HOST_SYCL_BUFFER = 0;
 //#define OUTPUT_FILE_NAME "sandor_simd_6GiB_O2_debug_simd_temp.t"
 //#define OUTPUT_FILE_NAME "sandor_simd_8GiB_O2_debug_simd_temp.t"
 
+// A device name that can be used to identify the computer
+// the program is running on
+std::string DEVICE_NAME_ON_THINKPAD   = "Intel(R) UHD Graphics 620 [0x5917]";
+std::string DEVICE_NAME_ON_MSI_INTEL  = "NVIDIA GeForce GTX 960M";
+std::string DEVICE_NAME_ON_MSI_NVIDIA = "NVIDIA GeForce GTX 960M";
+std::string DEVICE_NAME_ON_SANDOR     = "???";
+
+uint currently_running_on_computer_id = 0; // 1 thinkpad, 2 ou 3 msi, 4 sandor
+// les valeurs 2 et 3 sont équivalentes ici.
+/*
+case 1 : return "T580";
+case 2 : return "MSI Intel";
+case 3 : return "MSI Nvidia";
+case 4 : return "SANDOR";
+*/
+
+// OUTPUT_FILE_NAME is now obsolete
+std::string OUTPUT_FILE_NAME = "thinkpad_dma_1GiB_O2.t";
 //#define OUTPUT_FILE_NAME "msi_dma_1GiB_O2.t"
-#define OUTPUT_FILE_NAME "sandor_dma_1GiB_O2.t"
+//#define OUTPUT_FILE_NAME "sandor_dma_1GiB_O2.t"
 //#define OUTPUT_FILE_NAME "msi_dma_512MiB_O2.t"
 
 //#define OUTPUT_FILE_NAME "msi_alloc_1GiB_O2.t"
@@ -73,7 +96,7 @@ int USE_HOST_SYCL_BUFFER = 0;
 
 //const long long total_elements = 1024L * 1024L * 256L * 8L; // 8 GiB
 //const long long total_elements = 1024L * 1024L * 256L * 6L; // 6 GiB
-const long long total_elements = 1024L * 1024L * 256L; // 1 GiB
+long long total_elements = 1024L * 1024L * 256L; // 1 GiB
 //const long long total_elements = 1024L * 1024L * 128L; // 512 MiB
 // 256 => 1 GiB 
 // 128 => 512 MiB ; 
@@ -84,7 +107,9 @@ const long long total_elements = 1024L * 1024L * 256L; // 1 GiB
 // /!\ WARNING : do not forget to change to the desired function in the main
 // of bench.cpp !
 
-std::string ver_indicator = std::string("12d");
+std::string ver_indicator = std::string("13d");
+
+// ver_prefix is now obsolete
 std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); // "X42"
 
 
@@ -102,3 +127,13 @@ std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); 
 
 #define INPUT_DATA_SIZE INPUT_DATA_LENGTH * sizeof(DATA_TYPE)
 #define OUTPUT_DATA_SIZE OUTPUT_DATA_LENGTH * sizeof(DATA_TYPE)
+
+std::string get_computer_name(int computer_id) {
+    switch (computer_id) {
+    case 1 : return "Thinkpad";
+    case 2 : return "MSI";
+    case 3 : return "MSI";
+    case 4 : return "Thinkpad";
+    default : return "unknown computer";
+    }
+}

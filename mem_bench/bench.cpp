@@ -143,7 +143,7 @@ void generic_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_
     sycl_q.wait_and_throw();
     timer.t_allocation = chrono.reset();
 
-    if (USE_HOST_SYCL_BUFFER) {
+    if (USE_HOST_SYCL_BUFFER_DMA) {
         //logs("SYCL hbuffer");
         // Copy from glibc buffer to SYCL malloc_host
         // and then from this malloc_host buffer to shared/device/host buffer
@@ -287,7 +287,8 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         + " (" + std::to_string(OUTPUT_DATA_SIZE / (1024*1024)) + " MiB)", 1);
 
     // The default device selector will select the most performant device.
-    cl::sycl::default_selector d_selector;
+    //cl::sycl::default_selector d_selector;
+    custom_device_selector d_selector;
 
     try {
         chrono.reset(); //t_start = get_ms();
@@ -312,7 +313,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                     << SIMD_FOR_LOOP << " " // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
                     << USE_NAMED_KERNEL << " " // flag to indicate if the named kernel was used or traditional lambda kernel
                     // wether there is a copy from SYCL host to device, or normal (allocated by new) copy to device, to test DMA access
-                    << USE_HOST_SYCL_BUFFER 
+                    << USE_HOST_SYCL_BUFFER_DMA 
                     << "\n";
 
         log("\n######## ALLOCATION, COPY AND FREE FOR EACH ITERATION ########", 2);
@@ -514,7 +515,7 @@ void bench_host_copy_buffer(std::ofstream& myfile) {
     //percent_div_factor = 2 * 2;
 
     for (int imcp = 0; imcp <= 1; ++imcp) {
-        USE_HOST_SYCL_BUFFER = imcp;
+        USE_HOST_SYCL_BUFFER_DMA = imcp;
 
         for (int imode = 0; imode <= 2; ++imode) {
             
@@ -524,7 +525,7 @@ void bench_host_copy_buffer(std::ofstream& myfile) {
             case 2: CURRENT_MODE = sycl_mode::host_USM; break;
             default : break;
             }
-            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  USE_HOST_SYCL_BUFFER(" + std::to_string(USE_HOST_SYCL_BUFFER) + ")");
+            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  USE_HOST_SYCL_BUFFER_DMA(" + std::to_string(USE_HOST_SYCL_BUFFER_DMA) + ")");
             //log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
             
             main_sequence(myfile, CURRENT_MODE);
@@ -543,8 +544,11 @@ void bench_choose_L_M(std::ofstream& myfile) {
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
+    
+    // start with 2 as I want to use 1GiB but MSI has only 2 (1.5 GiB ok, 2 GiB not ok)
+    // for input (1 GiB and output 512MiB)
+    long long start_L_size = 2;
 
-    long long start_L_size = 1;
     long long stop_M_size = 256; // inclusive
     long long stop_L_size = total_elements / stop_M_size;
 
@@ -569,7 +573,7 @@ void bench_choose_L_M(std::ofstream& myfile) {
             default : break;
             }
             
-            log("========================================= " + ver_prefix);
+            log("========================================="); // + ver_prefix); ver_prefix is now obsolete
             log(" - MEMORY = " + mode_to_string(CURRENT_MODE));
             log(" - L = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
             log(" - M = " + std::to_string(PARALLEL_FOR_SIZE));
@@ -581,7 +585,7 @@ void bench_choose_L_M(std::ofstream& myfile) {
 }
 
 
-int main(int argc, char *argv[])
+int main_of_program(std::function<void(std::ofstream &)> bench_function)
 {
     std::ofstream myfile;
     std::string wdir_tmp = std::filesystem::current_path();
@@ -612,9 +616,16 @@ int main(int argc, char *argv[])
     log("");
     log("-------------- " + ver_indicator + " --------------");
     log("");
+
+    list_devices(exception_handler);
+
+    init_progress();
+
+    bench_function(myfile);
+
     //bench_mem_alloc_modes(myfile);
     //bench_smid_modes(myfile);
-    bench_host_copy_buffer(myfile);
+    //bench_host_copy_buffer(myfile);
     //bench_choose_L_M(myfile);
 
     //PARALLEL_FOR_SIZE = 128;//1024;
@@ -678,6 +689,194 @@ int main(int argc, char *argv[])
 
     return 0;
 
+}
+
+/// Reset variables that may have been changed during benchmarking
+void reset_bench_variables() {
+    MEMCOPY_IS_SYCL = 1;
+    SIMD_FOR_LOOP = 1;
+    USE_HOST_SYCL_BUFFER_DMA = 0;
+}
+
+void run_single_test_generic(std::string size_prefix, std::string computer_name,
+                             uint test_id, uint run_count) {
+    std::string file_name_prefix = "_" + computer_name + "_" + size_prefix + "_O2";
+    std::string file_name_const_part = file_name_prefix + "_RUN" + std::to_string(run_count) + ".t";
+
+    switch (test_id) {
+    
+    // LM
+    case 1:
+        OUTPUT_FILE_NAME = "v02_LM" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_choose_L_M);
+        break;
+    
+    // DMA
+    case 2: 
+        OUTPUT_FILE_NAME = "v02_dma" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_host_copy_buffer);
+        break;
+
+    // Mem optimisation SIMD
+    case 3: 
+        OUTPUT_FILE_NAME = "v02_simd" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_smid_modes);
+        break;
+
+    // SYCL alloc vs glibc alloc
+    case 4: 
+        OUTPUT_FILE_NAME = "v02_alloc" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_mem_alloc_modes);
+        break;
+    
+    default : break;
+    }
+}
+
+void run_all_test_generic(std::string size_prefix, std::string computer_name) {
+    std::string file_name_prefix = "_" + computer_name + "_" + size_prefix + "_O2";
+    // new naming convention : vXX_benchType_computer_size.t
+
+    // Tests to compare against, to check graphs validity
+    int test_runs_count = 4;
+    for (uint irun = 0; irun < test_runs_count; ++irun) {
+        for (uint itest = 1; itest <= 4; ++itest) {
+            run_single_test_generic(size_prefix, computer_name, itest, irun);
+        }
+    }
+    
+    /*for (int i = 1; i <= test_runs_count; ++i) {
+
+        std::string file_name_const_part = file_name_prefix + "_RUN" + std::to_string(i) + ".t";
+        //OUTPUT_FILE_NAME = "v02_thinkpad_L_M_" + size_prefix + "_O2_RUN" + run_count_str + ".t";
+
+        OUTPUT_FILE_NAME = "v02_LM" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_choose_L_M);
+
+        OUTPUT_FILE_NAME = "v02_dma" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_host_copy_buffer);
+
+        OUTPUT_FILE_NAME = "v02_simd" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_smid_modes);
+
+        OUTPUT_FILE_NAME = "v02_alloc" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_mem_alloc_modes);
+    }*/
+}
+
+
+
+// NextCloud sur les ordis + rsync sur prdi portable
+
+void run_all_test_on_thinkpad() {
+    std::string size_prefix, computer_name, file_name_prefix;
+    // size_prefix could be computed too
+    // and computer_name could be found out on run
+
+    log("====== RUN ALL TESTS ON THINKPAD ======");
+    log("======                           ======");
+    log("====== RUN ALL TESTS ON THINKPAD ======");
+    log("======                           ======");
+
+    FORCE_EXECUTION_ON_NAMED_DEVICE = true;
+    MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]";
+
+    REPEAT_COUNT_REALLOC = 3;
+    REPEAT_COUNT_ONLY_PARALLEL = 0;
+
+    //total_elements = 1024L * 1024L * 256L; // 1 GiB
+    total_elements = 1024L * 1024L * 128L; // 512 MiB
+    run_all_test_generic("512MiB", "thinkpad");
+
+    //bench_mem_alloc_modes(myfile);
+    //bench_smid_modes(myfile);
+    //bench_host_copy_buffer(myfile);
+    //bench_choose_L_M(myfile);
+
+}
+
+void run_all_test_on_msiNvidia() {
+    std::string size_prefix, computer_name, file_name_prefix;
+    // size_prefix could be computed too
+    // and computer_name could be found out on run
+
+    log("====== RUN ALL TESTS ON MSI NVIDIA ======");
+    log("======                             ======");
+    log("====== RUN ALL TESTS ON MSI NVIDIA ======");
+    log("======                             ======");
+
+    FORCE_EXECUTION_ON_NAMED_DEVICE = false;
+    //MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]";
+
+    REPEAT_COUNT_REALLOC = 12;
+    REPEAT_COUNT_ONLY_PARALLEL = 0;
+
+    //total_elements = 1024L * 1024L * 256L; // 1 GiB
+    total_elements = 1024L * 1024L * 128L; // 512 MiB
+    run_all_test_generic("512MiB", "msiNvidia");
+
+
+}
+
+int main(int argc, char *argv[])
+{
+
+    log("========~~~~~~~ VERSION 001C ~~~~~~~========");
+    log("argc = " + std::to_string(argc));
+    
+    list_devices(exception_handler);
+
+    log("Currently running on " + get_computer_name(currently_running_on_computer_id));
+
+    // No argument : print the list of avaliable devices
+    if (argc == 1) {
+        
+    }
+
+    // Run all tests at once
+    if (argc == 2) {
+        /*
+        case 1 : return "T580";
+        case 2 : return "MSI Intel";
+        case 3 : return "MSI Nvidia";
+        case 4 : return "SANDOR";
+        */
+        std::string computerName = argv[1];
+        if (computerName.compare("thinkpad") == 0) {
+            log("Will run on thinkpad.");
+        }
+        if (computerName.compare("msiIntel") == 0) {
+            log("Will run on MSI : intel.");
+        }
+        if (computerName.compare("msiNvidia") == 0) {
+            log("Will run on MSI : Nvidia.");
+        }
+        if (computerName.compare("sandor") == 0) {
+            log("Will run on Sandor.");
+        }
+    }
+
+    // Run one single test
+    if (argc == 5) {
+        //std::string computerName = argv[1]; deduces from the device list
+        std::string testID = argv[2];
+        std::string runCount = argv[3];
+        // not useful... std::string deviceIndex = argv[4]; // For MSI only, for Intel and AMD GPU
+
+
+
+    }
+    
+    //run_all_test_on_msiNvidia();
+    return 0;
 }
 
 /*
