@@ -100,8 +100,9 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 gpname = "Kernel " + mem_location_to_str(j.MEMORY_LOCATION);// + " (" + memcopy_name + ")";
                 gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION);// + "" + memcopy_short_name;
             } else {
-                gpname = j.FILE_NAME + " (" + string(j.FILE_COUNT) + ")";
-                gpshort_name = string(j.FILE_COUNT);
+                
+                gpshort_name = number_to_letter(j.FILE_COUNT);
+                gpname = j.FILE_NAME + " (" + gpshort_name + ")";
             }
             
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
@@ -142,6 +143,8 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
     }
 }
 
+
+/*
 // For each graph_points instance, group points with the same x
 for (var i = 0; i < ds_list_size(graph_list); ++i) {
     var gp = ds_list_find_value(graph_list, i);
@@ -239,6 +242,8 @@ for (var i = 0; i < ds_list_size(graph_list); ++i) {
     var gp = ds_list_find_value(graph_list, i);
     total_point_count += ds_list_size(gp.points);
 }
+*/
+draw_some_graph_shared_code(graph_list);
 
 //show_message("total pts = " + string(total_point_count) + "  deleted = " + string(deleted_points_count) + "  : "
 //             + string(deleted_points_count / total_point_count) + "%");
@@ -289,4 +294,3 @@ ds_list_destroy(sorted_glist);
 ds_list_destroy(colors);
 with(graph_single_point) { instance_destroy(); }
 with(graph_points) { instance_destroy(); }
-

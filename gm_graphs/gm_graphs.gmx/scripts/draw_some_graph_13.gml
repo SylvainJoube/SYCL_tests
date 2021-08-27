@@ -28,7 +28,7 @@ for (var col = 0; col < max_color; col += color_step) {
 
 // Dessiner ou non les temps d'allocation et de copie
 // depuis le buffer temporaire
-var DISPLAY_TEMP_COPY_BUFF_TIMES = true;
+var DISPLAY_TEMP_COPY_BUFF_TIMES = false;
 
 var merge_cfactor = 0.3;
 
@@ -88,7 +88,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
             var memcopy_short_name = "nc";
             if (j.USE_HOST_SYCL_BUFFER == 1) { // utilisation du buffer temporaire
                 memcopy_name = "buffer temporaire";
-                memcopy_short_name = "b";
+                memcopy_short_name = "t";
             } else {
                 memcopy_name = "copie directe";
                 memcopy_short_name = "d";
@@ -214,6 +214,12 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
     }
 }
 
+if (echelle_log) {
+    with (graph_single_point) {
+        yy = log2(yy);
+    }
+}
+/*
 // For each graph_points instance, group points with the same x
 for (var i = 0; i < ds_list_size(graph_list); ++i) {
     var gp = ds_list_find_value(graph_list, i);
@@ -310,7 +316,9 @@ var total_point_count = 0;
 for (var i = 0; i < ds_list_size(graph_list); ++i) {
     var gp = ds_list_find_value(graph_list, i);
     total_point_count += ds_list_size(gp.points);
-}
+}*/
+
+draw_some_graph_shared_code(graph_list);
 
 //show_message("total pts = " + string(total_point_count) + "  deleted = " + string(deleted_points_count) + "  : "
 //             + string(deleted_points_count / total_point_count) + "%");
@@ -361,4 +369,3 @@ ds_list_destroy(sorted_glist);
 ds_list_destroy(colors);
 with(graph_single_point) { instance_destroy(); }
 with(graph_points) { instance_destroy(); }
-

@@ -26,4 +26,3 @@ gp.points = ds_list_create(); // list of graph_single_point instances
 gp.name = pname;
 gp.dataset_index = dataset_index;
 return gp;
-

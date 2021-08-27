@@ -181,6 +181,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
     }
 }
 
+/*
 // For each graph_points instance, group points with the same x
 for (var i = 0; i < ds_list_size(graph_list); ++i) {
     var gp = ds_list_find_value(graph_list, i);
@@ -277,7 +278,8 @@ var total_point_count = 0;
 for (var i = 0; i < ds_list_size(graph_list); ++i) {
     var gp = ds_list_find_value(graph_list, i);
     total_point_count += ds_list_size(gp.points);
-}
+}*/
+draw_some_graph_shared_code(graph_list);
 
 //show_message("total pts = " + string(total_point_count) + "  deleted = " + string(deleted_points_count) + "  : "
 //             + string(deleted_points_count / total_point_count) + "%");
@@ -328,4 +330,3 @@ ds_list_destroy(sorted_glist);
 ds_list_destroy(colors);
 with(graph_single_point) { instance_destroy(); }
 with(graph_points) { instance_destroy(); }
-

@@ -1,0 +1,101 @@
+/// load_draw_save_graph(graph object);
+
+// Chargement des données, dessin du graphe et sauvegarde en png
+
+// Un exemple de script complet :
+
+//g_multiple_load_file_current_count = 1;
+// g_multiple_load_LM is declared in init()
+
+var graph = argument0;
+
+if ( ! graph.valid ) {
+    error_add("Graphe invalide, non dessiné.");
+    return -1;
+}
+
+// == Load phase ==
+
+/*var nbfiles = 1;
+if ( g_multiple_load_LM && ( ! g_debug_fast_load ) ) {
+    nbfiles = get_integer("Nombre de fichiers à lire :", nbfiles);
+}
+
+var l_file_name = ds_list_create();
+var output_base_path = "";
+g_multiple_load_file_number = nbfiles;*/
+
+load_data_common_init();
+
+// Load files
+
+var nbfiles = ds_list_size(graph.files_list);
+
+for (var ifile = 0; ifile < nbfiles; ++ifile) {
+    var ofile = ds_list_find_value(graph.files_list, ifile);
+    var fpath = ofile.path;
+    g_file_name = ofile.curve_name; // nom de la courbe dessinée
+    g_multiple_load_file_current_count = ifile;
+    
+    if ( ! dFileExists(fpath) ) {
+        error_add("Fichier d'entrée introuvable : " + fpath);
+        return 2;
+    }
+    
+    fpath = get_open_filename("", fpath);
+    var file = file_text_open_read(fpath);
+    //show_message("file = " + string(file) + " - path = " + fpath);
+    
+    /*g_save_path_default_base_path = fpath + "_default";
+    
+    var wlist = split_string(fpath, "\");
+    g_file_name = "Fichier inconnu.";
+    if (ds_list_size(wlist) != 0) {
+        g_file_name = ds_list_find_value(wlist, ds_list_size(wlist) - 1);
+        
+        // output_png
+        var char_count = string_length(fpath) - string_length(g_file_name);
+        var base_path = string_copy(fpath, 1, char_count);
+        output_base_path = base_path; // should be the same for every file
+        
+        //show_message("g_save_path_default_base_path = " + g_save_path_default_base_path);
+        ds_list_add(l_file_name, g_file_name);
+    }
+    ds_list_destroy(wlist);*/
+    
+    var version_str = file_text_readln(file);
+    var version = real(version_str);
+    
+    DEFAULT_COMPUTER_ID = ofile.computer_id;
+    
+    if (version == 2) load_data_v2(file);
+    if (version == 3) load_data_v3(file);
+    if (version == 4) load_data_v4(file);
+    if (version == 5) load_data_v5(file);
+    if (version == 6) load_data_v6(file);
+    
+    file_text_close(file);
+    //++g_multiple_load_file_current_count;
+}
+
+g_graph_display_name = graph.display_name;
+// g_save_path_default_base_path ??
+// output_base_path ???
+
+// == Draw phase ==
+var graph_height = g_graph_height;
+var graph_width = g_graph_width;
+g_graph_surface = surface_create(g_surface_width, g_surface_height);
+surface_set_target(g_graph_surface);
+draw_clear(c_white);
+script_execute(graph.use_script); // no argument //draw_some_graph_common();
+surface_reset_target();
+
+if ( dFileExists(graph.output_path) ) {
+    error_add("Fichier de sortie déjà présent : " + graph.output_path);
+    return 2;
+}
+
+surface_save(g_graph_surface, get_save_filename("", graph.output_path));
+surface_free(g_graph_surface);
+

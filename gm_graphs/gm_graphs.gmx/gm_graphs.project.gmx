@@ -31,6 +31,13 @@
   <paths name="paths"/>
   <scripts name="scripts">
     <script>scripts\init.gml</script>
+    <scripts name="batch">
+      <script>scripts\run_batch_msi_1.gml</script>
+      <script>scripts\run_batch_msi_1_old_code.gml</script>
+      <script>scripts\load_draw_save_graph.gml</script>
+      <script>scripts\batch_add_graph.gml</script>
+      <script>scripts\batch_add_file.gml</script>
+    </scripts>
     <script>scripts\s_info.gml</script>
     <scripts name="load">
       <script>scripts\load_data_v2.gml</script>
@@ -40,6 +47,7 @@
       <script>scripts\load_data_v6.gml</script>
       <script>scripts\load_data_v0_deprecated.gml</script>
       <script>scripts\load_data_common.gml</script>
+      <script>scripts\load_data_common_old.gml</script>
       <script>scripts\init_job_variables.gml</script>
       <script>scripts\init_iter_variables.gml</script>
       <script>scripts\load_data_common_init.gml</script>
@@ -60,18 +68,22 @@
       <script>scripts\draw_some_graph_11.gml</script>
       <script>scripts\draw_some_graph_12.gml</script>
       <script>scripts\draw_some_graph_13.gml</script>
+      <script>scripts\draw_some_graph_13dbg.gml</script>
       <script>scripts\draw_some_graph_8_bis.gml</script>
       <script>scripts\draw_test_qualtiles.gml</script>
       <script>scripts\mem_location_to_str.gml</script>
       <script>scripts\mem_location_to_str_prefix.gml</script>
       <script>scripts\computer_id_to_name.gml</script>
       <script>scripts\computer_id_to_name_prefix.gml</script>
+      <script>scripts\draw_some_graph_shared_code.gml</script>
     </scripts>
     <scripts name="draw_graph_base">
+      <script>scripts\draw_graph_objs.gml</script>
       <script>scripts\draw_test_graph.gml</script>
       <script>scripts\draw_graph.gml</script>
       <script>scripts\draw_graph_objs_old.gml</script>
-      <script>scripts\draw_graph_objs.gml</script>
+      <script>scripts\draw_graph_objs_v2.gml</script>
+      <script>scripts\draw_graph_objs_v1.gml</script>
       <script>scripts\find_or_create_graph_points.gml</script>
       <script>scripts\find_or_create_graph_points_ext.gml</script>
     </scripts>
@@ -83,6 +95,8 @@
       <script>scripts\lfind.gml</script>
       <script>scripts\draw_text_outline.gml</script>
       <script>scripts\dFileExists.gml</script>
+      <script>scripts\error_add.gml</script>
+      <script>scripts\number_to_letter.gml</script>
     </scripts>
     <scripts name="tests">
       <script>scripts\check_load_data.gml</script>
@@ -96,18 +110,26 @@
     <font>fonts\ft_very_small_number</font>
   </fonts>
   <objects name="objects">
-    <object>objects\ctrl</object>
+    <object>objects\ctrl_prompt</object>
+    <object>objects\ctrl_batch</object>
     <object>objects\jobs_fixed</object>
     <object>objects\dataset_fixed</object>
     <object>objects\iteration_only_parallel</object>
     <object>objects\iteration</object>
     <object>objects\graph_points</object>
     <object>objects\graph_single_point</object>
+    <object>objects\graph_single_point_median</object>
     <object>objects\graph_single_point_xgroup</object>
     <object>objects\store_variables_generic</object>
+    <object>objects\xgroup_fscale</object>
+    <object>objects\global_xgroup</object>
+    <object>objects\median_xgroup</object>
+    <object>objects\o_input_file</object>
+    <object>objects\o_graph</object>
   </objects>
   <rooms name="rooms">
-    <room>rooms\room0</room>
+    <room>rooms\rm_batch</room>
+    <room>rooms\rm_prompt</room>
   </rooms>
   <help>
     <rtf>help.rtf</rtf>

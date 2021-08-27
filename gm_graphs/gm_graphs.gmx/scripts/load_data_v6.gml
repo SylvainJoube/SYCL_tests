@@ -157,5 +157,3 @@ while ( ! file_text_eof(file) ) {
 //show_message("ctrl.jobs_fixed_list size = " + string(ds_list_size(ctrl.jobs_fixed_list)));
 
 //check_load_data();
-
-

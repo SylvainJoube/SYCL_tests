@@ -1,7 +1,8 @@
 /// load_data_common_init();
 // common initialization, just before the load_data_vX(file).
 
-ctrl.jobs_fixed_list = ds_list_create();
+if (instance_exists(ctrl_batch)) with (ctrl_batch) jobs_fixed_list = ds_list_create();
+if (instance_exists(ctrl_prompt)) with (ctrl_prompt) jobs_fixed_list = ds_list_create();
 
 // used to draw L and M if they are the same every time
 g_VECTOR_SIZE_PER_ITERATION_common = -1; // L

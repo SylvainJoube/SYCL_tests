@@ -25,23 +25,10 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>step = 0;
-
-g_graph_title = "Mon zouli graphe.";
-
-g_graph_surface = -1;
+            <string>wait = true;
+ctrl = self;
 
 init();
-
-//draw_test_qualtiles();
-//game_end();
-
-/*var str = "";
-for (var i = 0; i &lt; 10; ++i) {
-    str += split_thousands(power(10, i)) + chr(10);
-}
-show_message(str);
-game_end();*/
 </string>
           </argument>
         </arguments>
@@ -64,49 +51,12 @@ game_end();*/
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>
-if (step == 2) repeat (1) {
+            <string>/// Execute everything
 
-    var graph_height = 700;
-    var graph_width = 800;
-
-    load_data_common(g_load_path);
-    g_graph_surface = surface_create(graph_width + 200, graph_height + 260);
-    surface_set_target(g_graph_surface);
-    draw_clear(c_white);
-    draw_some_graph_common();
-    surface_reset_target();
-    
-    //g_save_path_default_base_path = base_dir_save + "sh_save_surf_h" + h_version;
-    ///g_save_path_extension = ".png";
-    //MAJ dans load_data_common
-    
-    var max_trials = 300;
-    var fpath = "";
-    for (var i = 0; i &lt; max_trials; ++i) {
-        if (i == 0) {
-            fpath = g_save_path_default_base_path + g_save_path_extension;
-        } else {
-            var istr = string(i);
-            var nblen = 3;
-            var fill_count = nblen - string_length(istr);
-            for (var ti = 0; ti &lt; fill_count; ++ti) {
-                istr = "0" + istr; // dirtyyy
-            }
-            fpath = g_save_path_default_base_path + "_" + istr + g_save_path_extension;
-        }
-        if ( ! dFileExists(fpath) ) break;
-    }
-    //show_message("fpath= " + fpath + chr(10) + " exists = " + string(dFileExists(fpath)));
-    //get_save_filename("", fpath);
-    //show_message("fpath= " + fpath + chr(10) + " exists = " + string(dFileExists(fpath)));
-    
-    surface_save(g_graph_surface, get_save_filename("", fpath));
-    //surface_free(s);
+if ( wait ) {
+    run_batch_msi_1();
+    wait = false;
 }
-
-++step;
-
 </string>
           </argument>
         </arguments>
@@ -152,14 +102,29 @@ if (step == 2) repeat (1) {
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>if (step &lt; 3) exit;
+            <string>
+if ( wait ) exit;
 
-if (surface_exists(g_graph_surface)) {
-    draw_surface(g_graph_surface, 0, 0);
+var errcount = ds_list_size(g_display_error_list);
+
+draw_set_font(ft_base);
+draw_set_color(c_black);
+draw_set_alpha(1);
+draw_set_halign(fa_left);
+    
+if (errcount != 0) {
+    draw_clear(merge_colour(c_white, c_red, 0.2));
+    var xerr = 30;
+    var yerr = 30;
+    for (var ierr = 0; ierr &lt; errcount; ++ierr) {
+        var errstr = ds_list_find_value(g_display_error_list, ierr);
+        draw_text(xerr, yerr, errstr);
+        yerr += string_height(errstr);
+    }
+} else {
+    draw_clear(merge_colour(c_white, c_green, 0.2));
+    draw_text(30, 30, "Programme terminé sans erreur.");
 }
-
-//draw_some_graph_2();
-//draw_test_graph();
 </string>
           </argument>
         </arguments>
