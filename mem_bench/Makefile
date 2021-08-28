@@ -30,7 +30,7 @@ run:
 	./$(RUN_EXE_NAME)
 
 run_all_tests:
-	./$(RUN_EXE_NAME) 4
+	./$(RUN_EXE_NAME) 2
 # 4 runs for every tests
 
 # for testID in 1 2 3 4 ; do 
