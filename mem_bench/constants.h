@@ -66,11 +66,13 @@ std::string MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]"; //st
 // A device name that can be used to identify the computer
 // the program is running on
 std::string DEVICE_NAME_ON_THINKPAD   = "Intel(R) UHD Graphics 620 [0x5917]";
-std::string DEVICE_NAME_ON_MSI_INTEL  = "NVIDIA GeForce GTX 960M";
+std::string DEVICE_NAME_ON_MSI_INTEL  = "???";
 std::string DEVICE_NAME_ON_MSI_NVIDIA = "NVIDIA GeForce GTX 960M";
 std::string DEVICE_NAME_ON_SANDOR     = "???";
 
-uint currently_running_on_computer_id = 0; // 1 thinkpad, 2 ou 3 msi, 4 sandor
+std::string BENCHMARK_VERSION = "v05";
+
+uint currently_running_on_computer_id = 0; // 1 thinkpad, 2 msi Intel (dpcpp), 3 msi Nvidia (syclcc), 4 sandor
 // les valeurs 2 et 3 sont équivalentes ici.
 /*
 case 1 : return "T580";
@@ -131,9 +133,20 @@ std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); 
 std::string get_computer_name(int computer_id) {
     switch (computer_id) {
     case 1 : return "Thinkpad";
-    case 2 : return "MSI";
-    case 3 : return "MSI";
-    case 4 : return "Thinkpad";
+    case 2 : return "MSI_Intel";
+    case 3 : return "MSI_Nvidia";
+    case 4 : return "Sandor";
     default : return "unknown computer";
+    }
+}
+
+/// For output file name.
+std::string get_computer_name_ofile(int computer_id) {
+    switch (computer_id) {
+    case 1 : return "thinkpad";
+    case 2 : return "msiIntel";
+    case 3 : return "msiNvidia";
+    case 4 : return "sandor";
+    default : return "unknownComputer";
     }
 }

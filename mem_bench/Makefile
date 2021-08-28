@@ -13,17 +13,49 @@ RUN_EXE_NAME = bin/$(FILE_NAME)
 
 all: build run
 
-hello: build_hello run_hello
+# Build and run all tests in a single program
+all_tests: build run_all_tests
 
-hello_named: build_hello_named run_hello_named
+# Builds and runs each test separately
+each_test: build run_each_test
 
-mbf: build_mbf run_mbf
 
 #terminalout_build:
 #	$(CXX) $(CXXFLAGS) -o bin/memory_benchmark memory_benchmark.cpp
 
 build:
 	$(CXX) $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
+
+run: 
+	./$(RUN_EXE_NAME)
+
+run_all_tests:
+	./$(RUN_EXE_NAME) 4
+# 4 runs for every tests
+
+# for testID in 1 2 3 4 ; do 
+# 
+run_each_test:
+	for runCount in 1 2 3 4 ; do \
+		for testID in 1 2 3 4 5 ; do \
+        	echo run $$runCount testid $$testID ; \
+			./$(RUN_EXE_NAME) $$testID $$runCount ; \
+    	done \
+    done
+
+
+clean: 
+	rm -f $(RUN_EXE_NAME)
+
+
+
+
+
+hello: build_hello run_hello
+
+hello_named: build_hello_named run_hello_named
+
+mbf: build_mbf run_mbf
 
 build_hello:
 	$(CXX) $(CXXFLAGS) -o bin/hello_world hello_world.cpp
@@ -60,14 +92,7 @@ run_mbf:
 gcc_build :
 	g++ -O0 -g -std=c++17 -o bin/simple_stupid_gcc simple_stupid_gcc.cpp
 
-run: 
-	./$(RUN_EXE_NAME)
 
-#run_all:
-
-
-clean: 
-	rm -f $(RUN_EXE_NAME)
 
 
 # Creates needed directories

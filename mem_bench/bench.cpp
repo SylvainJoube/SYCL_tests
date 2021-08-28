@@ -547,7 +547,7 @@ void bench_choose_L_M(std::ofstream& myfile) {
     
     // start with 2 as I want to use 1GiB but MSI has only 2 (1.5 GiB ok, 2 GiB not ok)
     // for input (1 GiB and output 512MiB)
-    long long start_L_size = 2;
+    long long start_L_size = 1;
 
     long long stop_M_size = 256; // inclusive
     long long stop_L_size = total_elements / stop_M_size;
@@ -705,46 +705,55 @@ void run_single_test_generic(std::string size_prefix, std::string computer_name,
 
     switch (test_id) {
     
-    // LM
+    // LMoptim
     case 1:
-        OUTPUT_FILE_NAME = "v02_LM" + file_name_const_part;
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_LMoptim" + file_name_const_part;
         reset_bench_variables();
+        SIMD_FOR_LOOP = 1;
         main_of_program(bench_choose_L_M);
         break;
     
     // DMA
     case 2: 
-        OUTPUT_FILE_NAME = "v02_dma" + file_name_const_part;
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_dma" + file_name_const_part;
         reset_bench_variables();
         main_of_program(bench_host_copy_buffer);
         break;
 
     // Mem optimisation SIMD
     case 3: 
-        OUTPUT_FILE_NAME = "v02_simd" + file_name_const_part;
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_simd" + file_name_const_part;
         reset_bench_variables();
         main_of_program(bench_smid_modes);
         break;
 
     // SYCL alloc vs glibc alloc
     case 4: 
-        OUTPUT_FILE_NAME = "v02_alloc" + file_name_const_part;
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_alloc" + file_name_const_part;
         reset_bench_variables();
         main_of_program(bench_mem_alloc_modes);
+        break;
+    
+    // LM
+    case 5:
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_LMclassic" + file_name_const_part;
+        reset_bench_variables();
+        SIMD_FOR_LOOP = 0;
+        main_of_program(bench_choose_L_M);
         break;
     
     default : break;
     }
 }
 
-void run_all_test_generic(std::string size_prefix, std::string computer_name) {
+void run_all_test_generic(std::string size_prefix, std::string computer_name, int runs_count = 4) {
     std::string file_name_prefix = "_" + computer_name + "_" + size_prefix + "_O2";
     // new naming convention : vXX_benchType_computer_size.t
 
     // Tests to compare against, to check graphs validity
-    int test_runs_count = 4;
-    for (uint irun = 0; irun < test_runs_count; ++irun) {
-        for (uint itest = 1; itest <= 4; ++itest) {
+    //int test_runs_count = runs_count;
+    for (uint irun = 1; irun <= runs_count; ++irun) {
+        for (uint itest = 1; itest <= 5; ++itest) {
             run_single_test_generic(size_prefix, computer_name, itest, irun);
         }
     }
@@ -775,7 +784,7 @@ void run_all_test_generic(std::string size_prefix, std::string computer_name) {
 
 
 // NextCloud sur les ordis + rsync sur prdi portable
-
+/*
 void run_all_test_on_thinkpad() {
     std::string size_prefix, computer_name, file_name_prefix;
     // size_prefix could be computed too
@@ -824,32 +833,53 @@ void run_all_test_on_msiNvidia() {
     run_all_test_generic("512MiB", "msiNvidia");
 
 
-}
+}*/
 
 int main(int argc, char *argv[])
 {
 
-    log("========~~~~~~~ VERSION 001C ~~~~~~~========");
+    log("========~~~~~~~ VERSION 004C ~~~~~~~========");
     log("argc = " + std::to_string(argc));
-    
-    list_devices(exception_handler);
+    list_devices(exception_handler); // print the list of avaliable devices
+    log("\n=== Currently running on " + get_computer_name(currently_running_on_computer_id) + " ===\n");
 
-    log("Currently running on " + get_computer_name(currently_running_on_computer_id));
+    std::string computerName = get_computer_name_ofile(currently_running_on_computer_id);
 
-    // No argument : print the list of avaliable devices
-    if (argc == 1) {
-        
-    }
+    // if (argc == 1) no argument, only print devices
+
+    // Common variables declaration
+
+    FORCE_EXECUTION_ON_NAMED_DEVICE = true;
+    //MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]";
+    REPEAT_COUNT_REALLOC = 120;
+    REPEAT_COUNT_ONLY_PARALLEL = 0;
+
+    //total_elements = 1024L * 1024L * 256L;   // 256 milions elements * 4 bytes => 1 GiB
+    //std::string size_str = "1GiB";
+    total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
+    std::string size_str = "512MiB";
+
 
     // Run all tests at once
     if (argc == 2) {
+        std::string runCount = argv[1];
+        if ( ! is_number(runCount) ) {
+            log("ERROR, runCount(" + runCount + ") as argv[2] is not a number.");
+            return 3;
+        }
+
+        log("=> Run all tests at once, runCount(" + runCount + ") <=");
+
+        // AT stands for All Tests
+        run_all_test_generic(size_str, computerName + "_AT", std::stoi(runCount));
+
         /*
         case 1 : return "T580";
         case 2 : return "MSI Intel";
         case 3 : return "MSI Nvidia";
         case 4 : return "SANDOR";
         */
-        std::string computerName = argv[1];
+        /*std::string computerName = argv[1];
         if (computerName.compare("thinkpad") == 0) {
             log("Will run on thinkpad.");
         }
@@ -861,16 +891,29 @@ int main(int argc, char *argv[])
         }
         if (computerName.compare("sandor") == 0) {
             log("Will run on Sandor.");
-        }
+        }*/
     }
 
     // Run one single test
-    if (argc == 5) {
+    if (argc == 3) {
         //std::string computerName = argv[1]; deduces from the device list
-        std::string testID = argv[2];
-        std::string runCount = argv[3];
-        // not useful... std::string deviceIndex = argv[4]; // For MSI only, for Intel and AMD GPU
+        std::string testID = argv[1];
+        std::string runCount = argv[2];
 
+        if ( ! is_number(testID) ) {
+            log("ERROR, testID(" + testID + ") as argv[1] is not a number.");
+            return 3;
+        }
+        if ( ! is_number(runCount) ) {
+            log("ERROR, runCount(" + runCount + ") as argv[2] is not a number.");
+            return 3;
+        }
+
+        log("=> Run single test, testID(" + testID + "), runCount(" + runCount + ") <=");
+
+        // not useful... std::string deviceIndex = argv[4]; // For MSI only, for Intel and AMD GPU
+        // ST for "single test"
+        run_single_test_generic(size_str, computerName + "_ST", std::stoi(testID), std::stoi(runCount));
 
 
     }
