@@ -68,7 +68,7 @@ std::string MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]"; //st
 std::string DEVICE_NAME_ON_THINKPAD   = "Intel(R) UHD Graphics 620 [0x5917]";
 std::string DEVICE_NAME_ON_MSI_INTEL  = "???";
 std::string DEVICE_NAME_ON_MSI_NVIDIA = "NVIDIA GeForce GTX 960M";
-std::string DEVICE_NAME_ON_SANDOR     = "???";
+std::string DEVICE_NAME_ON_SANDOR     = "Quadro RTX 5000";
 
 std::string BENCHMARK_VERSION = "v05";
 
