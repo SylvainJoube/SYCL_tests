@@ -351,15 +351,19 @@ public:
 
         if (devName.compare(DEVICE_NAME_ON_THINKPAD) == 0) {
             currently_running_on_computer_id = 1; // 1 Thinkpad
+            MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_THINKPAD;
         }
         if (devName.compare(DEVICE_NAME_ON_MSI_INTEL) == 0) {
-            currently_running_on_computer_id = 2; // 2 or 3 for MSI, those values are the same
+            currently_running_on_computer_id = 2; // MSI Intel (no Nvidia device is visible with dpcpp)
+            MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_MSI_INTEL;
         }
         if (devName.compare(DEVICE_NAME_ON_MSI_NVIDIA) == 0) {
-            currently_running_on_computer_id = 2;
+            currently_running_on_computer_id = 3; // MSI Nvidia (no Intel device is visible when using syclcc)
+            MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_MSI_NVIDIA;
         }
         if (devName.compare(DEVICE_NAME_ON_SANDOR) == 0) {
             currently_running_on_computer_id = 4; // 4 Sandor
+            MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_SANDOR;
         }
 
         // Return the default device score
@@ -478,3 +482,10 @@ int example_custom_selector() {
 
   return ret;
 }*/
+
+bool is_number(const std::string& s)
+{
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
