@@ -12,13 +12,13 @@ graph.output_path = "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\out
 graph.use_script = draw_some_graph_13dbg;
 graph.display_name = "bench_msi_dma_1GiB_O2 !new!";*/
 
-var graph = batch_add_graph(
+var graph = batch_add_graph_v1(
 /*output_path*/  "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\bench9_msi_dma_1GiB_O2.png",
 /*use_script*/   draw_some_graph_13dbg,
 /*display_name*/ "bench_msi_dma_1GiB_O2 !new!"
 );
 
-batch_add_file(
+batch_add_file_v1(
 /*graph*/       graph,
 /*path*/        "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\msi_dma_1GiB_O2.t",
 /*curve_name*/  "aucun nom", // nom de la courbe associée
@@ -38,13 +38,13 @@ load_draw_save_graph(graph);
 
 // L & M
 
-var graph = batch_add_graph(
+var graph = batch_add_graph_v1(
 /*output_path*/  "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\bench9_msi_L_M_1GiB_O2.png",
 /*use_script*/   draw_some_graph_11,
 /*display_name*/ "msi_L_M_1GiB_O2 !new!"
 );
 
-batch_add_file(
+batch_add_file_v1(
 /*graph*/       graph,
 /*path*/        "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\msi_L_M_1GiB_O2.t",
 /*curve_name*/  "aucun nom", // nom de la courbe associée
@@ -71,5 +71,4 @@ load_draw_save_graph(graph);
 
 
 // Comparaison L & M sur MSI avec et sans SIMD
-
 

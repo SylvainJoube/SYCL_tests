@@ -85,7 +85,30 @@ g_graph_display_name = graph.display_name;
 // == Draw phase ==
 var graph_height = g_graph_height;
 var graph_width = g_graph_width;
-g_graph_surface = surface_create(g_surface_width, g_surface_height);
+
+// J'ai un un problème avec lenombre de vertex dessinés par GM à une step donnée
+// je l'ai contourné en faisant un draw étendu sur plusieurs steps,
+// probablement que GM gère mal le dessin de beaucoup de vertex à une même "step".
+var must_recreate = false;
+if ( (g_graph_surface == -1) || ( ! surface_exists(g_graph_surface) ) ) {
+    must_recreate = true;
+    //show_message("Surf = " + string(g_graph_surface) + "  exists = " + string(surface_exists(g_graph_surface)));
+} else {
+    if (
+    surface_get_height(g_graph_surface) != g_surface_height
+    || surface_get_width(g_graph_surface) != g_surface_width) {
+        must_recreate = true;
+        //show_message("Surf = " + string(g_graph_surface) + "  bad size. Must recreate.");
+        surface_free(g_graph_surface);
+    }
+}
+if (must_recreate) {
+    //show_message("recreate surf (load_draw_save_graph)");
+    g_graph_surface = surface_create(g_surface_width, g_surface_height);
+} else {
+    //show_message("reuse surf (load_draw_save_graph)");
+}
+
 surface_set_target(g_graph_surface);
 draw_clear(c_white);
 script_execute(graph.use_script); // no argument //draw_some_graph_common();
@@ -97,5 +120,4 @@ if ( dFileExists(graph.output_path) ) {
 }
 
 surface_save(g_graph_surface, get_save_filename("", graph.output_path));
-surface_free(g_graph_surface);
-
+//surface_free(g_graph_surface);

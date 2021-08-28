@@ -13,7 +13,7 @@ Paramètre supplémentaire : boucle for en SIMD vs avec un for classique.
 
 var echelle_log = false;
 
-g_graph_title = "Boucle for classique vs optimisation SIMD - SANDOR - O2 - 6 GiB";
+// deprecated g_graph_title = "Boucle for classique vs optimisation SIMD - SANDOR - O2 - 6 GiB";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
@@ -106,7 +106,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var iter = ds_list_find_value(used_iteration_list, i_iteration);
                 
                 var gxoffset = 0;
-                gxoffset = j.MEMORY_LOCATION * 2 + j.SIMD_FOR_LOOP * 0.5;
+                //gxoffset = j.MEMORY_LOCATION * 2 + j.SIMD_FOR_LOOP * 0.5;
                 
                 /*if (j.MEMCOPY_IS_SYCL == 1 || j.MEMORY_LOCATION == 1) {
                     gxoffset = j.MEMORY_LOCATION * 3;
@@ -128,7 +128,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 ds_list_add(gp.points, pt);
                 
                 // t_copy_to_device
-                var as_x = 10 + gxoffset;
+                var as_x = 10 + gxoffset; //+ 10
                 var as_y = iter.t_copy_to_device;
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
@@ -139,7 +139,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 ds_list_add(gp.points, pt);
                 
                 // t_parallel_for
-                var as_x = 20 + gxoffset;
+                var as_x = 20 + gxoffset; // + 20
                 var as_y = iter.t_parallel_for;
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
@@ -150,7 +150,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 ds_list_add(gp.points, pt);
                 
                 // t_read_from_device
-                var as_x = 30 + gxoffset;
+                var as_x = 30 + gxoffset; // + 30
                 var as_y = iter.t_read_from_device;
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
@@ -161,7 +161,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 ds_list_add(gp.points, pt);
                 
                 // t_free_gpu
-                var as_x = 40 + gxoffset;
+                var as_x = 40 + gxoffset; // + 40
                 var as_y = iter.t_free_gpu; //t_free_gpu
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;

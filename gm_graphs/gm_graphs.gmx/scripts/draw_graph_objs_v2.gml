@@ -713,5 +713,3 @@ ds_list_destroy(drawn_labels_x);
 ds_list_destroy(drawn_labels_y);
 ds_list_destroy(drawn_labels_str);
 draw_set_alpha(1);
-
-

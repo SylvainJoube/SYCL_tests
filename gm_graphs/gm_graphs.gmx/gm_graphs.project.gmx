@@ -32,11 +32,16 @@
   <scripts name="scripts">
     <script>scripts\init.gml</script>
     <scripts name="batch">
-      <script>scripts\run_batch_msi_1.gml</script>
+      <script>scripts\run_batch_msi_1_old.gml</script>
+      <script>scripts\run_batch_thinkpad_1.gml</script>
+      <script>scripts\run_batch_job.gml</script>
+      <script>scripts\run_batch_thinkpad_1_debug_only.gml</script>
       <script>scripts\run_batch_msi_1_old_code.gml</script>
       <script>scripts\load_draw_save_graph.gml</script>
       <script>scripts\batch_add_graph.gml</script>
+      <script>scripts\batch_add_graph_v1.gml</script>
       <script>scripts\batch_add_file.gml</script>
+      <script>scripts\batch_add_file_v1.gml</script>
     </scripts>
     <script>scripts\s_info.gml</script>
     <scripts name="load">
@@ -97,21 +102,24 @@
       <script>scripts\dFileExists.gml</script>
       <script>scripts\error_add.gml</script>
       <script>scripts\number_to_letter.gml</script>
+      <script>scripts\fill_front.gml</script>
     </scripts>
     <scripts name="tests">
       <script>scripts\check_load_data.gml</script>
+      <script>scripts\test_var_independance.gml</script>
     </scripts>
   </scripts>
   <fonts name="fonts">
     <font>fonts\ft_base</font>
+    <font>fonts\ft_big_error</font>
     <font>fonts\ft_point_label</font>
     <font>fonts\ft_small_number</font>
     <font>fonts\ft_small_number_ylabel</font>
     <font>fonts\ft_very_small_number</font>
   </fonts>
   <objects name="objects">
-    <object>objects\ctrl_prompt</object>
     <object>objects\ctrl_batch</object>
+    <object>objects\ctrl_prompt</object>
     <object>objects\jobs_fixed</object>
     <object>objects\dataset_fixed</object>
     <object>objects\iteration_only_parallel</object>
@@ -126,10 +134,12 @@
     <object>objects\median_xgroup</object>
     <object>objects\o_input_file</object>
     <object>objects\o_graph</object>
+    <object>objects\ctrl_test_var</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_batch</room>
     <room>rooms\rm_prompt</room>
+    <room>rooms\rm_test_var_independance</room>
   </rooms>
   <help>
     <rtf>help.rtf</rtf>

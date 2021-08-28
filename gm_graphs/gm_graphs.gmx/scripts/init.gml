@@ -22,6 +22,7 @@ g_surface_height = g_graph_height + g_graph_yoffset + 70;
 // Distance minimale entre deux labels dessinés
 g_same_xgroup_min_label_distance = 12;
 
+g_citer = 0; // debug only
 
 // true if each xgroup should have its own x axis
 // false if only one x axis on global xorig

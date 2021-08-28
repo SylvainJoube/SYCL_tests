@@ -29,6 +29,19 @@
 ctrl = self;
 
 init();
+
+//citer_step = 1;
+
+step = 0;
+draw_every_x_frames = 30; // draw every x frames
+done_images = 0;
+
+tests_per_run = 6; // 5 tests + LM classic vs optim
+run_number = 2;
+total_iterations = tests_per_run * run_number;
+
+//current_computer_name = "thinkpad_AT";//"msiNvidia_ST";
+current_computer_name = "msiNvidia_AT";
 </string>
           </argument>
         </arguments>
@@ -54,8 +67,40 @@ init();
             <string>/// Execute everything
 
 if ( wait ) {
-    run_batch_msi_1();
-    wait = false;
+    
+    var real_step  = step / draw_every_x_frames;
+    
+    //if (step == 30 || step == 60)
+    //    show_message("real_step(" + string(real_step) + ")");
+    
+    if (real_step != floor(real_step)) {
+        ++step;
+        exit;
+    }
+    //show_message("should run execute");
+    
+    var res = run_batch_job(real_step, current_computer_name);
+    ++done_images;
+    if (res == -1) { // finished drawing
+        if (current_computer_name == "msiNvidia_ST") {
+            current_computer_name = "msiNvidia_AT";
+            step = -1; // will be ++
+        } else {
+            wait = false;
+        } 
+    }
+    
+    ++step;
+
+    /*if ( (citer_step / 10) == floor(citer_step / 10) ) {
+        
+        
+        var res = run_batch_thinkpad_1(floor(citer_step / 10));
+        if (res == -1) { // finished drawing
+           wait = false; 
+        }
+    }*/
+    //++citer_step;
 }
 </string>
           </argument>
@@ -103,14 +148,21 @@ if ( wait ) {
           <argument>
             <kind>1</kind>
             <string>
-if ( wait ) exit;
-
-var errcount = ds_list_size(g_display_error_list);
-
-draw_set_font(ft_base);
+draw_set_font(ft_big_error);
 draw_set_color(c_black);
 draw_set_alpha(1);
 draw_set_halign(fa_left);
+
+if ( wait ) {
+    draw_clear(merge_colour(c_white, c_gray, 0.2));
+    draw_text(30, 30,
+              "step(" + string(step) + ") done_images(" + string(done_images)
+              + ") errors(" + string(ds_list_size(g_display_error_list)) + ")");
+    exit;
+}
+
+var errcount = ds_list_size(g_display_error_list);
+
     
 if (errcount != 0) {
     draw_clear(merge_colour(c_white, c_red, 0.2));

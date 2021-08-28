@@ -34,7 +34,7 @@ for (var i = 0; i < ds_list_size(graph_list); ++i) {
     }
 }
 
-var strange_value_factor = 6; // normal : 1.5, inclusive : 6
+var strange_value_factor = 1.5;//1.5; // normal : 1.5, inclusive : 6
 
 var delete_strange_values = true;
 

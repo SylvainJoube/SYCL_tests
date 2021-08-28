@@ -13,7 +13,7 @@ Paramètre supplémentaire : memcpy de SYCL vs de la glibc.
 
 var echelle_log = false;
 
-g_graph_title = "Allocation glibc vs SYCL - SANDOR - 6 GiB - O2";
+// deprecated g_graph_title = "Allocation glibc vs SYCL - SANDOR - 6 GiB - O2";
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
@@ -103,7 +103,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var iter = ds_list_find_value(used_iteration_list, i_iteration);
                 
                 var gxoffset = 0;
-                gxoffset = j.MEMORY_LOCATION * 2 + j.MEMCOPY_IS_SYCL * 0.5;
+                //gxoffset = j.MEMORY_LOCATION * 2 + j.MEMCOPY_IS_SYCL * 0.5;
                 
                 /*if (j.MEMCOPY_IS_SYCL == 1 || j.MEMORY_LOCATION == 1) {
                     gxoffset = j.MEMORY_LOCATION * 3;

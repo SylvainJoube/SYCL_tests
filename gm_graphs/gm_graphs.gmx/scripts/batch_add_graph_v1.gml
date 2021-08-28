@@ -1,15 +1,14 @@
-/// batch_add_graph( output_base_path, output_file_name, use_script, display_name );
+/// batch_add_graph( output_path, use_script, display_name );
 
-var output_base_path = argument0;
-var output_file_name = argument1;
-var use_script = argument2;
-var display_name = argument3;
+var output_path = argument0;
+var use_script = argument1;
+var display_name = argument2;
 
 var graph = instance_create(0, 0, o_graph);
 graph.valid = true;
 /* ! global variable ->*/ g_graph_object = graph;
 graph.files_list = ds_list_create();
-graph.output_path = output_base_path + output_file_name;
+graph.output_path = output_path;
 graph.use_script = use_script;
 graph.display_name = display_name;
 
