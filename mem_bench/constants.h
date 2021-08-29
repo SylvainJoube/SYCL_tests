@@ -49,6 +49,10 @@ int REPEAT_COUNT_ONLY_PARALLEL = 0;
 bool FORCE_EXECUTION_ON_NAMED_DEVICE = true;
 std::string MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]"; //std::string("s");
 
+// How many times the sum should be repeated
+// (to test caches and data access speed)
+uint REPEAT_COUNT_SUM = 1;
+
 //#define OUTPUT_FILE_NAME "sh_output_bench_h53.shared_txt"
 //#define OUTPUT_FILE_NAME "msi_h60_L_M_128MiB_O0.t"
 
@@ -70,7 +74,9 @@ std::string DEVICE_NAME_ON_MSI_INTEL  = "???";
 std::string DEVICE_NAME_ON_MSI_NVIDIA = "NVIDIA GeForce GTX 960M";
 std::string DEVICE_NAME_ON_SANDOR     = "Quadro RTX 5000";
 
-std::string BENCHMARK_VERSION = "v05";
+//std::string BENCHMARK_VERSION = "v06D";
+std::string BENCHMARK_VERSION = "v05"; // Sandor compatible
+std::string DISPLAY_VERSION   = "006D-d";
 
 uint currently_running_on_computer_id = 0; // 1 thinkpad, 2 msi Intel (dpcpp), 3 msi Nvidia (syclcc), 4 sandor
 // les valeurs 2 et 3 sont équivalentes ici.
@@ -115,7 +121,7 @@ std::string ver_indicator = std::string("13d");
 std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); // "X42"
 
 
-#define DATA_VERSION 6
+#define DATA_VERSION 7
 
 // number of diffrent datasets
 #define DATASET_NUMBER 1

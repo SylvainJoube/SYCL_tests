@@ -3,6 +3,11 @@
 #include <fstream>
 #include <chrono>
 
+// file
+#include <sys/stat.h>
+#include <unistd.h>
+#include <string>
+
 // SyCL specific includes
 #include <CL/sycl.hpp>
 #include <array>
@@ -27,8 +32,10 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
     //data_type* ddata_output_verif = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
 
+    // SYCL kernel needs const variables
     const unsigned int local_VECTOR_SIZE_PER_ITERATION = VECTOR_SIZE_PER_ITERATION;
     const unsigned int local_PARALLEL_FOR_SIZE = PARALLEL_FOR_SIZE;
+    const unsigned int local_REPEAT_COUNT_SUM = REPEAT_COUNT_SUM;
 
     // Sandor does not support anonymous kernels.
 
@@ -44,8 +51,16 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
             int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
             data_type sum = 0;
 
-            for (int i = start_index; i < stop_index; ++i) {
-                sum += ddata_input[i];
+            /*if (REPEAT_COUNT_SUM == 1) { // Repeat 
+                for (int i = start_index; i < stop_index; ++i) {
+                    sum += ddata_input[i];
+                }
+            } else {*/
+            // Repeat data access REPEAT_COUNT_SUM times
+            for (int rp = 0; rp < local_REPEAT_COUNT_SUM; ++rp) {
+                for (int i = start_index; i < stop_index; ++i) {
+                    sum += ddata_input[i];
+                }
             }
 
             ddata_output[cindex] = sum;
@@ -59,9 +74,12 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
             int cindex = chunk_index[0];
             data_type sum = 0;
 
-            for (int it = 0; it < local_VECTOR_SIZE_PER_ITERATION; ++it) {
-                int iindex = cindex + it * local_PARALLEL_FOR_SIZE;
-                sum += ddata_input[iindex];
+            // Repeat data access REPEAT_COUNT_SUM times
+            for (int rp = 0; rp < local_REPEAT_COUNT_SUM; ++rp) {
+                for (int it = 0; it < local_VECTOR_SIZE_PER_ITERATION; ++it) {
+                    int iindex = cindex + it * local_PARALLEL_FOR_SIZE;
+                    sum += ddata_input[iindex];
+                }
             }
 
             ddata_output[cindex] = sum;
@@ -108,10 +126,11 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     //cl::sycl::free(ddata_output_verif, sycl_q);
     timer.t_read_from_device = chrono.reset();
 
-    if (total_sum == dataset->final_result_verif) {
+    if ( total_sum == (dataset->final_result_verif * REPEAT_COUNT_SUM) ) {
         //log("VALID - Right data size ! (" + std::to_string(total_sum) + ")", 1);
     } else {
-        log("ERROR on compute - expected size " + std::to_string(dataset->final_result_verif) + " but found " + std::to_string(total_sum) + ".", 1);
+        log("ERROR on compute - expected size " + std::to_string(dataset->final_result_verif * REPEAT_COUNT_SUM)
+            + " but found " + std::to_string(total_sum) + ". (REPEAT_COUNT_SUM(" + std::to_string(REPEAT_COUNT_SUM) + ")", 1);
     }
 }
 
@@ -313,7 +332,9 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
                     << SIMD_FOR_LOOP << " " // flag to indicate wether a traditional for loop was used, or a SIMD GPU-specific loop
                     << USE_NAMED_KERNEL << " " // flag to indicate if the named kernel was used or traditional lambda kernel
                     // wether there is a copy from SYCL host to device, or normal (allocated by new) copy to device, to test DMA access
-                    << USE_HOST_SYCL_BUFFER_DMA 
+                    << USE_HOST_SYCL_BUFFER_DMA << " "
+                    // How many times the sum should be repeated
+                    << REPEAT_COUNT_SUM
                     << "\n";
 
         log("\n######## ALLOCATION, COPY AND FREE FOR EACH ITERATION ########", 2);
@@ -534,13 +555,128 @@ void bench_host_copy_buffer(std::ofstream& myfile) {
     }
 }
 
+// Optimisé pour Sandor et MSI seulement
+/*
+1. Faire varier REPEAT_COUNT_SUM à L fixé (grand).
+   Le temps pris par le parallel_for devrait augmenter de manière linéaire,
+   avec un coefficient plus grand en host et plus faible en device.
+2. Faire varier L à REPEAT_COUNT_SUM (grand) fixé.
+   Pour évaluer la mise en cache s'il y a mise en cache, et le comportement
+   des caches en explicite, shared et host. A L petit on devrait avoir les données
+   dans les caches, donc être avec une pente très faible, plus la pente devrait
+   augmenter peu à peu (ou par palier), en fonction de la taille des caches des
+   unités faisant exécuter les workitems.
+*/
+void bench_data_access_time_with_repeat(std::ofstream& myfile) {
+
+    VECTOR_SIZE_PER_ITERATION = 16384; // 128 un gros nombre pour dissimuler la mise en cache si elle advient
+    PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
+
+
+    int imode;
+    //MEMCOPY_IS_SYCL = 1;
+    //SIMD_FOR_LOOP = 0;
+    //USE_NAMED_KERNEL = 0;
+
+    log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+    log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
+    
+    //percent_div_factor = 2 * 2;
+
+    // Lorsque je vais modifier L :
+    // Se mettre en échelle log en x (comme dans le plot classique L M)
+    // et en y. Devrait augmenter en affine plus en exponentielle
+
+    // Modification de REPEAT_COUNT_SUM :
+    // Probable doublement des temps de parallel_for pour avec REPEAT_COUNT_SUM = 2.
+    // Mais comme les accès device sont beaucoup plus rapides on a amorti le temps de copie initiale
+    // alors qu'en host on se tape à nouveau une copie des données, ce qui est super
+    // couteux.
+    // Bilan supposé :
+    // Host c'est super pour des données côté hôte qui bougent beaucoup et peu
+    // d'accès côté device.
+    // Device c'est super pour des données qui sont accédées très souvent.
+
+    uint max_repeat_sum = 30; // changer le nom du fichier d'ouput
+
+    // how many times main_sequence will be run
+    total_main_seq_runs = max_repeat_sum * 3;
+
+    for (REPEAT_COUNT_SUM = 1; REPEAT_COUNT_SUM <= max_repeat_sum; ++REPEAT_COUNT_SUM) {
+        //REPEAT_COUNT_SUM = imcp;
+
+        for (int imode = 0; imode <= 2; ++imode) {
+            
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            default : break;
+            }
+            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  REPEAT_COUNT_SUM(" + std::to_string(REPEAT_COUNT_SUM) + " on "
+                + std::to_string(max_repeat_sum) + ")");
+            //log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+            
+            main_sequence(myfile, CURRENT_MODE);
+            log("");
+        }
+    }
+}
+
+// TODO : ne refaire les benchmarks que si les fichiers n'existent pas,
+// ne pas remplacer les fichiers existants.
+
+void bench_cache_size(std::ofstream& myfile) {
+
+    REPEAT_COUNT_SUM = 10;
+
+    long long start_L_size = 1;
+
+    long long stop_M_size = 256; // inclusive
+    long long stop_L_size = total_elements / stop_M_size;
+
+    // how many times main_sequence will be run
+    total_main_seq_runs = 0;
+    for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
+        for (int imode = 1; imode <= 1; ++imode) {
+            total_main_seq_runs += 1;
+        }
+    }
+    //current_main_seq_runs = 0;
+
+    for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
+        PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
+
+        for (int imode = 1; imode <= 1; ++imode) { // only device to make it go faster
+            
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            default : break;
+            }
+            
+            log("========================================="); // + ver_prefix); ver_prefix is now obsolete
+            log(" - MEMORY = " + mode_to_string(CURRENT_MODE));
+            log(" - L = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
+            log(" - M = " + std::to_string(PARALLEL_FOR_SIZE));
+            main_sequence(myfile, CURRENT_MODE);
+            log("");
+            //++current_main_seq_runs;
+        }
+    }
+
+
+
+
+}
 
 
 void bench_choose_L_M(std::ofstream& myfile) {
 
     //long long total_elements = 1024L * 1024L * 256L * 1L; // 256 * bytes = 1 GiB.
 
-    int imode;
+    //int imode;
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
@@ -584,6 +720,10 @@ void bench_choose_L_M(std::ofstream& myfile) {
     }
 }
 
+inline bool file_exists_test0 (const std::string& name) {
+    std::ifstream f(name.c_str());
+    return f.good();
+}
 
 int main_of_program(std::function<void(std::ofstream &)> bench_function)
 {
@@ -591,6 +731,13 @@ int main_of_program(std::function<void(std::ofstream &)> bench_function)
     std::string wdir_tmp = std::filesystem::current_path();
     std::string wdir = wdir_tmp + "/output_bench/";
     std::string output_file_name = wdir + std::string(OUTPUT_FILE_NAME);
+
+    if ( file_exists_test0(output_file_name) ) {
+        log("\n\n\n\n\nFILE ALREADY EXISTS, SKIPPING TEST");
+        log("NAME = " + OUTPUT_FILE_NAME + "\n");
+        log("FULL PATH = " + output_file_name + "\n\n\n\n\n");
+        return 4;
+    }
 
     myfile.open(output_file_name);
     log("");
@@ -741,6 +888,20 @@ void run_single_test_generic(std::string size_prefix, std::string computer_name,
         SIMD_FOR_LOOP = 0;
         main_of_program(bench_choose_L_M);
         break;
+
+    // Data access time, making REPEAT_COUNT_SUM vary.
+    case 6:
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_sumReadSpeed" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_data_access_time_with_repeat);
+        break;
+
+    // Cache size evaluation, fixed REPEAT_COUNT_SUM (should be big), making L (and M) vary.
+    case 7:
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_cacheSize" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(bench_cache_size);
+        break;
     
     default : break;
     }
@@ -753,7 +914,7 @@ void run_all_test_generic(std::string size_prefix, std::string computer_name, in
     // Tests to compare against, to check graphs validity
     //int test_runs_count = runs_count;
     for (uint irun = 1; irun <= runs_count; ++irun) {
-        for (uint itest = 1; itest <= 5; ++itest) {
+        for (uint itest = 1; itest <= 7; ++itest) {
             run_single_test_generic(size_prefix, computer_name, itest, irun);
         }
     }
@@ -838,7 +999,7 @@ void run_all_test_on_msiNvidia() {
 int main(int argc, char *argv[])
 {
 
-    log("========~~~~~~~ VERSION 004C ~~~~~~~========");
+    log("========~~~~~~~ VERSION " + DISPLAY_VERSION + " ~~~~~~~========");
     log("argc = " + std::to_string(argc));
     list_devices(exception_handler); // print the list of avaliable devices
     log("\n=== Currently running on " + get_computer_name(currently_running_on_computer_id) + " ===\n");
@@ -851,7 +1012,7 @@ int main(int argc, char *argv[])
 
     FORCE_EXECUTION_ON_NAMED_DEVICE = true;
     //MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]";
-    REPEAT_COUNT_REALLOC = 120;
+    REPEAT_COUNT_REALLOC = 12;
     REPEAT_COUNT_ONLY_PARALLEL = 0;
 
     //total_elements = 1024L * 1024L * 256L;   // 256 milions elements * 4 bytes => 1 GiB

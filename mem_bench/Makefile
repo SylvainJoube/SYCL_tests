@@ -37,12 +37,18 @@ run_all_tests:
 # 
 run_each_test:
 	for runCount in 1 2 3 4 ; do \
-		for testID in 1 2 3 4 5 ; do \
+		for testID in 1 2 3 4 5 6 7 ; do \
         	echo run $$runCount testid $$testID ; \
 			./$(RUN_EXE_NAME) $$testID $$runCount ; \
     	done \
     done
 
+run_sum_count_access_time:
+	./$(RUN_EXE_NAME) 6 1
+# test number 6, run 1
+
+run_cache_size:
+	./$(RUN_EXE_NAME) 7 1
 
 clean: 
 	rm -f $(RUN_EXE_NAME)
