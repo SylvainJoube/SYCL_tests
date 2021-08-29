@@ -638,7 +638,7 @@ void bench_cache_size(std::ofstream& myfile) {
     // how many times main_sequence will be run
     total_main_seq_runs = 0;
     for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
-        for (int imode = 1; imode <= 1; ++imode) {
+        for (int imode = 0; imode <= 2; ++imode) {
             total_main_seq_runs += 1;
         }
     }
@@ -647,7 +647,7 @@ void bench_cache_size(std::ofstream& myfile) {
     for (VECTOR_SIZE_PER_ITERATION = start_L_size; VECTOR_SIZE_PER_ITERATION <= stop_L_size; VECTOR_SIZE_PER_ITERATION *= 2) {
         PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
 
-        for (int imode = 1; imode <= 1; ++imode) { // only device to make it go faster
+        for (int imode = 0; imode <= 2; ++imode) { // only device to make it go faster
             
             switch (imode) {
             case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
