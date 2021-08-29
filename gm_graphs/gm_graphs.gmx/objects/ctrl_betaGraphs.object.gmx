@@ -36,13 +36,13 @@ step = 0;
 draw_every_x_frames = 4; // draw every x frames
 done_images = 0;
 
-tests_per_run = 8; // 5 tests + LM classic vs optim + LM bandwidth classique + optimisé
-run_number = 2;
+tests_per_run = 1; // 5 tests + LM classic vs optim + LM bandwidth classique + optimisé
+run_number = 1;
 total_iterations = tests_per_run * run_number;
 
 //current_computer_name = "thinkpad_AT";//"msiNvidia_ST";
-//current_computer_name = "msiNvidia_AT";
-current_computer_name = "thinkpad_AT";
+current_computer_name = "msiNvidia_ST";
+//current_computer_name = "thinkpad_AT";
 //current_computer_name = "sandor_AT";
 
 </string>
@@ -82,28 +82,13 @@ if ( wait ) {
     }
     //show_message("should run execute");
     
-    var res = run_batch_job(real_step, current_computer_name);
+    var res = run_batch_job_betaGraphs(real_step, current_computer_name);
     ++done_images;
     if (res == -1) { // finished drawing
-        if (current_computer_name == "msiNvidia_ST") {
-            current_computer_name = "msiNvidia_AT";
-            step = -1; // will be ++
-        } else {
-            wait = false;
-        } 
+        wait = false;
     }
     
     ++step;
-
-    /*if ( (citer_step / 10) == floor(citer_step / 10) ) {
-        
-        
-        var res = run_batch_thinkpad_1(floor(citer_step / 10));
-        if (res == -1) { // finished drawing
-           wait = false; 
-        }
-    }*/
-    //++citer_step;
 }
 </string>
           </argument>

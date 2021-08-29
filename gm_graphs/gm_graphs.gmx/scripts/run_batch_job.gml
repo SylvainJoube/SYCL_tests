@@ -179,11 +179,53 @@ case 6: // ...
     /*curve_name*/  "boucle for optimisée", // nom de la courbe associée
     /*computer_id*/ 3 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
     );
-    
     g_multiple_xaxis = false;
     load_draw_save_graph(graph);
     ++g_citer;
     break;
+
+// Courbe du débit en fonction des valeurs de L et M - cas non optimisé
+case 7:
+    // == LM classic ==
+    var graph = batch_add_graph(
+    /*output_path*/   common_path,
+    /*output_fname*/  fname_prefix_output + "LMclassicBandwidth" + fname_suffix_output,
+    /*use_script*/    draw_some_graph_11bandwidth,
+    /*display_name*/  computer_name + " - LM classique, débit - " + size_str + " - run " + string(current_run)
+    );
+    batch_add_file(
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    fname_prefix_input + "LMclassic" + fname_suffix_input,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 3 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    g_multiple_xaxis = false;
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
+
+// Courbe du débit en fonction des valeurs de L et M - cas optimisé
+case 8:
+    // == LM optimized ==
+    var graph = batch_add_graph(
+    /*output_path*/   common_path,
+    /*output_fname*/  fname_prefix_output + "LMoptimBandwidth" + fname_suffix_output,
+    /*use_script*/    draw_some_graph_11bandwidth,
+    /*display_name*/  computer_name + " - LM optim, débit - " + size_str + " - run " + string(current_run)
+    );
+    batch_add_file(
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    fname_prefix_input + "LMoptim" + fname_suffix_input,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 3 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    g_multiple_xaxis = false;
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
+
     
 default :
     show_message("ERROR @ run_batch_all : current_test(" + string(current_test) + ") not in [1..4]");

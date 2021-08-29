@@ -35,6 +35,7 @@
       <script>scripts\run_batch_msi_1_old.gml</script>
       <script>scripts\run_batch_thinkpad_1.gml</script>
       <script>scripts\run_batch_job.gml</script>
+      <script>scripts\run_batch_job_betaGraphs.gml</script>
       <script>scripts\run_batch_thinkpad_1_debug_only.gml</script>
       <script>scripts\run_batch_msi_1_old_code.gml</script>
       <script>scripts\load_draw_save_graph.gml</script>
@@ -50,6 +51,7 @@
       <script>scripts\load_data_v4.gml</script>
       <script>scripts\load_data_v5.gml</script>
       <script>scripts\load_data_v6.gml</script>
+      <script>scripts\load_data_v7.gml</script>
       <script>scripts\load_data_v0_deprecated.gml</script>
       <script>scripts\load_data_common.gml</script>
       <script>scripts\load_data_common_old.gml</script>
@@ -75,6 +77,11 @@
       <script>scripts\draw_some_graph_13.gml</script>
       <script>scripts\draw_some_graph_13dbg.gml</script>
       <script>scripts\draw_some_graph_8_bis.gml</script>
+      <script>scripts\draw_some_graph_11bandwidth.gml</script>
+      <script>scripts\draw_some_graph_14throughput.gml</script>
+      <script>scripts\draw_some_graph_14throughputBandwidth.gml</script>
+      <script>scripts\draw_some_graph_15cacheSize.gml</script>
+      <script>scripts\draw_some_graph_15cacheSizeBandwidth.gml</script>
       <script>scripts\draw_test_qualtiles.gml</script>
       <script>scripts\mem_location_to_str.gml</script>
       <script>scripts\mem_location_to_str_prefix.gml</script>
@@ -118,6 +125,7 @@
     <font>fonts\ft_very_small_number</font>
   </fonts>
   <objects name="objects">
+    <object>objects\ctrl_betaGraphs</object>
     <object>objects\ctrl_batch</object>
     <object>objects\ctrl_prompt</object>
     <object>objects\jobs_fixed</object>
@@ -137,6 +145,7 @@
     <object>objects\ctrl_test_var</object>
   </objects>
   <rooms name="rooms">
+    <room>rooms\rm_betaGraphs</room>
     <room>rooms\rm_batch</room>
     <room>rooms\rm_prompt</room>
     <room>rooms\rm_test_var_independance</room>

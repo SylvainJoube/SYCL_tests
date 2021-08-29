@@ -4,16 +4,14 @@
 v11 : évaluation du temps pris en fonction 
 de la locatisation de la mémoire et des valeurs de L et M.
 
+Affichage du débit supposé.
+
 Affichage du temps pris par le parallel_for uniquement.
 
 */
 
 var echelle_log = false;
 
-//g_graph_title = "Tempr pris par parallel_for en fonction de L et M - SANDOR - 1 GiO";
-//g_graph_title = "Tempr pris par parallel_for en fonction de L et M - MSI - 128 MiB - O0";
-//g_graph_title = "Temps pris par parallel_for en fonction de L et M - SANDOR - 4 GiB - O2";
-//g_graph_title = "Temps pris par parallel_for en fonction de L et M - SANDOR - 6 GiB - O2 - SIMD";
 // g_graph_title n'est plus une variable utilisée
 
 /*if (echelle_log) g_graph_title += "(échelle log2)";
@@ -127,7 +125,21 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 
                 // L and M values
                 var as_x = log2(j.VECTOR_SIZE_PER_ITERATION);
-                var as_y = iter.t_parallel_for;
+                // j.VECTOR_SIZE_PER_ITERATION lectures
+                // et 1 écriture
+                // nb opérations mémoire
+                
+                // débit = nombre d'octets lus et écrits / temps pris
+                //       = ( L*M*4 (lecture) + L*M*4/L (écriture) ) / temps pris en secondes
+                //       = ( L*M*4 (lecture) + M*4     (écriture) ) / temps pris en secondes
+                //       = ( (L + 1) * M * 4 ) / temps pris en secondes
+                // en octets par seconde, donc divisé par 1024*1024 = 1048576 pour avoir en MiB/s
+                // DATA_ITEM_SIZE déclaré dans init()
+                var bandwidth =
+                    ( (j.VECTOR_SIZE_PER_ITERATION * j.PARALLEL_FOR_SIZE + j.PARALLEL_FOR_SIZE) * DATA_ITEM_SIZE / 1048576 )
+                    / (iter.t_parallel_for / 1000000);
+                    
+                var as_y = round(bandwidth);
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
@@ -143,106 +155,6 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
     }
 }
 
-
-/*
-// For each graph_points instance, group points with the same x
-for (var i = 0; i < ds_list_size(graph_list); ++i) {
-    var gp = ds_list_find_value(graph_list, i);
-    gp.xgroups = ds_list_create(); //instance_create(0, 0, graph_single_point_xgroup);
-    var lptlen = ds_list_size(gp.points);
-    
-    for (var ipt = 0; ipt < lptlen; ++ipt) {
-        var pt = ds_list_find_value(gp.points, ipt);
-        var xglen = ds_list_size(gp.xgroups);
-        var found_xgroup = false;
-        
-        for (var ixg = 0; ixg < xglen; ++ixg) {
-            var xgroup = ds_list_find_value(gp.xgroups, ixg);
-            if (xgroup.xx == pt.xx) {
-                ds_list_add(xgroup.points, pt);
-                found_xgroup = true;
-                break;
-            }
-        }
-        
-        if ( ! found_xgroup ) {
-            var xgroup = instance_create(0, 0, graph_single_point_xgroup);
-            ds_list_add(gp.xgroups, xgroup);
-            xgroup.xx = pt.xx;
-            xgroup.xlabel = pt.xlabel;
-            xgroup.points = ds_list_create();
-            ds_list_add(xgroup.points, pt);
-        }
-    }
-}
-
-var strange_value_factor = 6; // normal : 1.5, inclusive : 6
-
-var delete_strange_values = true;
-
-var deleted_points_count = 0;
-
-if (delete_strange_values) {
-    // Delete strange values
-    // TODO : finir la suppression des valeurs aberrantes
-    for (var i = 0; i < ds_list_size(graph_list); ++i) {
-        var gp = ds_list_find_value(graph_list, i);
-        var xgroups_len = ds_list_size(gp.xgroups);
-        
-        for (var ig = 0; ig < xgroups_len; ++ig) {
-            var xgroup = ds_list_find_value(gp.xgroups, ig);
-            var ptlen = ds_list_size(xgroup.points);
-            xgroup.deleted_strange_points = 0;
-            
-            if (ptlen <= 4) continue; // no median etc.
-            
-            // sort and delete strange values
-            var ysort = ds_list_create();
-            
-            for (var ipt = 0; ipt < ptlen; ++ipt) {
-                var pt = ds_list_find_value(xgroup.points, ipt);
-                ds_list_add(ysort, pt.yy);
-            }
-            
-            var quartils = compute_quartiles(ysort);
-            var q1 = lfind(quartils, 0);
-            var q2 = lfind(quartils, 1);
-            var q3 = lfind(quartils, 2);
-            
-            var strange_threshold = strange_value_factor * (q3 - q1);
-            
-            
-            var ipt = 0;
-            for (var iuseless = 0; iuseless < ptlen; ++iuseless) {
-                var pt = ds_list_find_value(xgroup.points, ipt);
-                if ( abs(pt.yy - q2)  > strange_threshold ) {
-                    // delete the point in gp list
-                    for (var i2pt = 0; i2pt < ds_list_size(gp.points); ++i2pt) {
-                        if (pt == ds_list_find_value(gp.points, i2pt)) {
-                            ds_list_delete(gp.points, i2pt);
-                            ++deleted_points_count;
-                            //show_message("deleted item");
-                            break; // only one instance in this list
-                        }
-                    }
-                    with (pt) instance_destroy();
-                    ds_list_delete(xgroup.points, ipt);
-                    ++xgroup.deleted_strange_points;
-                } else {
-                    ++ipt;
-                }
-            }
-        }
-        
-    }
-}
-
-var total_point_count = 0;
-for (var i = 0; i < ds_list_size(graph_list); ++i) {
-    var gp = ds_list_find_value(graph_list, i);
-    total_point_count += ds_list_size(gp.points);
-}
-*/
 draw_some_graph_shared_code(graph_list);
 
 //show_message("total pts = " + string(total_point_count) + "  deleted = " + string(deleted_points_count) + "  : "
@@ -260,34 +172,13 @@ graph_list (list) -> graph_points (instance) : .points (list) -> graph_single_po
 
 */
 
-
-/* Check if grouping is correct
-for (var i = 0; i < ds_list_size(graph_list); ++i) {
-    var gp = ds_list_find_value(graph_list, i);
-    var xglen = ds_list_size(gp.xgroups);
-    var vstr = "";
-    for (var ixg = 0; ixg < xglen; ++ixg) {
-        var xgroup = ds_list_find_value(gp.xgroups, ixg);
-        vstr += chr(10) + "[i" + string(ixg) + "] - " + xgroup.xlabel + " - size " + string(ds_list_size(xgroup.points));
-    }
-    show_message("Points " + gp.name + " - size of xgroups " + string(ds_list_size(gp.xgroups)) + vstr);
-}*/
-
-
-//g_graph_title += chr(10) + "il y a " + string(ds_list_size(gp.points)) + " gp points à dessiner. et ds len = "+ string(ds_list_size(ds.iterations_only_parallel));
-
-// Afficher les labels pour identifier les différents points
-// Merge des labels entre eux s'ils correspondent (afficher le ds et les autrre sinfos)
-
-//show_message("(should be 6) graph_list size = " + string(ds_list_size(graph_list)));
-
 var sorted_glist = ds_list_create();
 for (var i = 0; i <= 2; ++i) {
     ds_list_add(sorted_glist, ds_list_find_value(graph_list, 0 + i));
     ds_list_add(sorted_glist, ds_list_find_value(graph_list, 3 + i));
 }
 
-draw_graph_objs(graph_list, 20, 20, "Grandeur mesurée", "Temps pris en microsecondes", 0, -1, -1, -1);
+draw_graph_objs(graph_list, 20, 20, "Valeurs de L et M à (L*M) fixé", "Débit en mébioctet par seconde (MiO/s)", 0, -1, -1, -1);
 
 ds_list_destroy(graph_list);
 ds_list_destroy(sorted_glist);

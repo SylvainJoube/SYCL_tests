@@ -59,9 +59,7 @@ show_message("main code, step = " + string(step)); // 6
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>
-
-</string>
+            <string></string>
           </argument>
         </arguments>
       </action>

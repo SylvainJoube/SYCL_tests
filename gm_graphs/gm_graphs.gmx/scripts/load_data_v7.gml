@@ -1,4 +1,4 @@
-/// load_data_v6(text_file);
+/// load_data_v7(text_file);
 
 var file = argument0;
 
@@ -41,6 +41,9 @@ while ( ! file_text_eof(file) ) {
     // NEW with load data V6 :
     j.USE_HOST_SYCL_BUFFER = ds_list_find_value(header_vars, 13);
     
+    // NEW with load data V7 : nombre de fois que les accès aux données d'entrée doivent être répétés (test caches et vitesse d'accès aux données)
+    j.REPEAT_COUNT_SUM = ds_list_find_value(header_vars, 14);
+    
     j.datasets = ds_list_create();
     //show_message("j.REPEAT_COUNT_ONLY_PARALLEL = " + string(j.REPEAT_COUNT_ONLY_PARALLEL));
     
@@ -56,6 +59,25 @@ while ( ! file_text_eof(file) ) {
             or   (g_PARALLEL_FOR_SIZE_common != j.PARALLEL_FOR_SIZE) ) {
                 g_display_LM = false;
             }
+        }
+    }
+    
+    // Only updated from v7, so no display on earlier versions
+    // and only display if j.REPEAT_COUNT_SUM != 1
+    if (g_display_REPEAT_COUNT_SUM) {
+    
+        if ( (g_REPEAT_COUNT_SUM_common == -1) ) {
+            g_REPEAT_COUNT_SUM_common = j.REPEAT_COUNT_SUM;
+        } else {
+            if ( g_REPEAT_COUNT_SUM_common != j.REPEAT_COUNT_SUM ) {
+                g_REPEAT_COUNT_SUM_common = -1;
+                g_display_REPEAT_COUNT_SUM = false;
+            }
+        }
+        
+        if (g_REPEAT_COUNT_SUM_common == 1) {
+            g_REPEAT_COUNT_SUM_common = -1;
+            g_display_REPEAT_COUNT_SUM = false;
         }
     }
     

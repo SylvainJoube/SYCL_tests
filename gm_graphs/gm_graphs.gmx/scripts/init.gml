@@ -58,6 +58,16 @@ g_debug_fast_load = true;
 g_load_path = base_dir_load + "fichier"; //"sandor_h60_L_M_4GiB_O2.t";
 
 DEFAULT_COMPUTER_ID = 0; // unknown
+DEFAULT_MEMORY_BANDWIDTH = 1; // GiB/s, unknown
+
+// Bande passante en GiB/s
+COMPUTER_GPU_BANDWIDTH[0] = 1; // on connu
+COMPUTER_GPU_BANDWIDTH[1] = 37.5; // thinkpad CPU bandwidth
+COMPUTER_GPU_BANDWIDTH[2] = 1;    // msi intel : non connu
+COMPUTER_GPU_BANDWIDTH[3] = 80;   // msi nvidia GeForce GTX 960M
+COMPUTER_GPU_BANDWIDTH[4] = 448;  // sandor Quadro RTX 5000
+
+DATA_ITEM_SIZE = 4; // a float or an int, accounting for 4 bytes in each case
 
 ///g_save_path_default = base_dir_load + "mem_benck\sh_save_surf_h" + h_version + ".png";
 

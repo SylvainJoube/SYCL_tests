@@ -13,7 +13,7 @@ graph.use_script = use_script;
 graph.display_name = display_name;
 
 if ( dFileExists(graph.output_path) ) {
-    error_add("Fichier de sortie déjà présent : " + graph.output_path);
+    error_add("Fichier de sortie déjà présent : " + graph.output_path, 0);
     graph.valid = false;
 }
 

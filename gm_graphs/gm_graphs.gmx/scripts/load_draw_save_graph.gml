@@ -10,7 +10,7 @@
 var graph = argument0;
 
 if ( ! graph.valid ) {
-    error_add("Graphe invalide, non dessiné.");
+    error_add("Graphe invalide, non dessiné.", 10);
     return -1;
 }
 
@@ -38,7 +38,7 @@ for (var ifile = 0; ifile < nbfiles; ++ifile) {
     g_multiple_load_file_current_count = ifile;
     
     if ( ! dFileExists(fpath) ) {
-        error_add("Fichier d'entrée introuvable : " + fpath);
+        error_add("Fichier d'entrée introuvable : " + fpath, 0);
         return 2;
     }
     
@@ -67,12 +67,14 @@ for (var ifile = 0; ifile < nbfiles; ++ifile) {
     var version = real(version_str);
     
     DEFAULT_COMPUTER_ID = ofile.computer_id;
+    DEFAULT_MEMORY_BANDWIDTH = COMPUTER_GPU_BANDWIDTH[DEFAULT_COMPUTER_ID];// GPU ou PCIe 3.0 en fonction de la localisation de la mémoire
     
     if (version == 2) load_data_v2(file);
     if (version == 3) load_data_v3(file);
     if (version == 4) load_data_v4(file);
     if (version == 5) load_data_v5(file);
     if (version == 6) load_data_v6(file);
+    if (version == 7) load_data_v7(file);
     
     file_text_close(file);
     //++g_multiple_load_file_current_count;
@@ -115,7 +117,7 @@ script_execute(graph.use_script); // no argument //draw_some_graph_common();
 surface_reset_target();
 
 if ( dFileExists(graph.output_path) ) {
-    error_add("Fichier de sortie déjà présent : " + graph.output_path);
+    error_add("Fichier de sortie déjà présent : " + graph.output_path, 0);
     return 2;
 }
 

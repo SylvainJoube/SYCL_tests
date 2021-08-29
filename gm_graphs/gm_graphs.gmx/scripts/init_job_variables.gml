@@ -11,10 +11,12 @@ j.USE_NAMED_KERNEL = 0;
 // do a SYCL copy from buffer to malloc_host, and then
 // copy from this malloc_host to malloc_device or shared.
 j.USE_HOST_SYCL_BUFFER = 0;
+j.REPEAT_COUNT_SUM = 1;
 j.FILE_NAME = g_file_name; // in case multiple files were loaded
 j.FILE_COUNT = g_multiple_load_file_current_count;
 
 j.COMPUTER_ID = DEFAULT_COMPUTER_ID;
 // DEFAULT_COMPUTER_ID initialisé dans Init()
+j.memory_bandwidth = DEFAULT_MEMORY_BANDWIDTH; // GiB/s
 
 return 0;

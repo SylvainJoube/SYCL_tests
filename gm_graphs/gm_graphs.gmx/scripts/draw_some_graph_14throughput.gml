@@ -1,10 +1,15 @@
 
 /*
 
-v11 : évaluation du temps pris en fonction 
-de la locatisation de la mémoire et des valeurs de L et M.
+v 14throughput :
+Evolution du temps pris par le parallel_for en fonction
+du nombre de fois que les données sont accédées dans la boucle
+et de localisation de la mémoire.
 
 Affichage du temps pris par le parallel_for uniquement.
+
+en y : temps
+en x : valeur de REPEAT_COUNT_SUM
 
 */
 
@@ -85,25 +90,21 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
         //"dataset " + split_thousands(ids)
             var total_item_count = j.PARALLEL_FOR_SIZE * j.VECTOR_SIZE_PER_ITERATION;
             //gp = find_or_create_graph_points_ext(graph_list, "Nb. élems = " + string(total_item_count), ids); /// "nb. workitems = " + split_thousands(j.PARALLEL_FOR_SIZE)
-            /*var memcopy_name = "non connue";
-            var memcopy_short_name = "nc";
-            if (j.USE_NAMED_KERNEL == 1) { // named kernel vs anonymous kernel
-                memcopy_name = "nommé";
-                memcopy_short_name = "n";
-            } else {
-                memcopy_name = "anonyme";
-                memcopy_short_name = "a";
-            }*/
+            
             var gpname;
             var gpshort_name;
-            if (g_multiple_load_file_number == 1) {
+            
+            gpname = "Mem " + mem_location_to_str(j.MEMORY_LOCATION); // shared, host, device
+            gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION);
+            
+            /*if (g_multiple_load_file_number == 1) {
                 gpname = "Kernel " + mem_location_to_str(j.MEMORY_LOCATION);// + " (" + memcopy_name + ")";
                 gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION);// + "" + memcopy_short_name;
             } else {
                 
                 gpshort_name = number_to_letter(j.FILE_COUNT);
                 gpname = j.FILE_NAME + " (" + gpshort_name + ")";
-            }
+            }*/
             
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
             if (gp.newly_created) {
@@ -126,13 +127,14 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 
                 
                 // L and M values
-                var as_x = log2(j.VECTOR_SIZE_PER_ITERATION);
+                var as_x = j.REPEAT_COUNT_SUM; //log2(j.VECTOR_SIZE_PER_ITERATION);
                 var as_y = iter.t_parallel_for;
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "L(" + split_thousands(j.VECTOR_SIZE_PER_ITERATION) + ")" + chr(10)
-                          + "M(" + split_thousands(j.PARALLEL_FOR_SIZE) + ")";
+                pt.xlabel = split_thousands(j.REPEAT_COUNT_SUM);
+                /*pt.xlabel = "L(" + split_thousands(j.VECTOR_SIZE_PER_ITERATION) + ")" + chr(10)
+                          + "M(" + split_thousands(j.PARALLEL_FOR_SIZE) + ")";*/
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -144,105 +146,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
 }
 
 
-/*
-// For each graph_points instance, group points with the same x
-for (var i = 0; i < ds_list_size(graph_list); ++i) {
-    var gp = ds_list_find_value(graph_list, i);
-    gp.xgroups = ds_list_create(); //instance_create(0, 0, graph_single_point_xgroup);
-    var lptlen = ds_list_size(gp.points);
-    
-    for (var ipt = 0; ipt < lptlen; ++ipt) {
-        var pt = ds_list_find_value(gp.points, ipt);
-        var xglen = ds_list_size(gp.xgroups);
-        var found_xgroup = false;
-        
-        for (var ixg = 0; ixg < xglen; ++ixg) {
-            var xgroup = ds_list_find_value(gp.xgroups, ixg);
-            if (xgroup.xx == pt.xx) {
-                ds_list_add(xgroup.points, pt);
-                found_xgroup = true;
-                break;
-            }
-        }
-        
-        if ( ! found_xgroup ) {
-            var xgroup = instance_create(0, 0, graph_single_point_xgroup);
-            ds_list_add(gp.xgroups, xgroup);
-            xgroup.xx = pt.xx;
-            xgroup.xlabel = pt.xlabel;
-            xgroup.points = ds_list_create();
-            ds_list_add(xgroup.points, pt);
-        }
-    }
-}
 
-var strange_value_factor = 6; // normal : 1.5, inclusive : 6
-
-var delete_strange_values = true;
-
-var deleted_points_count = 0;
-
-if (delete_strange_values) {
-    // Delete strange values
-    // TODO : finir la suppression des valeurs aberrantes
-    for (var i = 0; i < ds_list_size(graph_list); ++i) {
-        var gp = ds_list_find_value(graph_list, i);
-        var xgroups_len = ds_list_size(gp.xgroups);
-        
-        for (var ig = 0; ig < xgroups_len; ++ig) {
-            var xgroup = ds_list_find_value(gp.xgroups, ig);
-            var ptlen = ds_list_size(xgroup.points);
-            xgroup.deleted_strange_points = 0;
-            
-            if (ptlen <= 4) continue; // no median etc.
-            
-            // sort and delete strange values
-            var ysort = ds_list_create();
-            
-            for (var ipt = 0; ipt < ptlen; ++ipt) {
-                var pt = ds_list_find_value(xgroup.points, ipt);
-                ds_list_add(ysort, pt.yy);
-            }
-            
-            var quartils = compute_quartiles(ysort);
-            var q1 = lfind(quartils, 0);
-            var q2 = lfind(quartils, 1);
-            var q3 = lfind(quartils, 2);
-            
-            var strange_threshold = strange_value_factor * (q3 - q1);
-            
-            
-            var ipt = 0;
-            for (var iuseless = 0; iuseless < ptlen; ++iuseless) {
-                var pt = ds_list_find_value(xgroup.points, ipt);
-                if ( abs(pt.yy - q2)  > strange_threshold ) {
-                    // delete the point in gp list
-                    for (var i2pt = 0; i2pt < ds_list_size(gp.points); ++i2pt) {
-                        if (pt == ds_list_find_value(gp.points, i2pt)) {
-                            ds_list_delete(gp.points, i2pt);
-                            ++deleted_points_count;
-                            //show_message("deleted item");
-                            break; // only one instance in this list
-                        }
-                    }
-                    with (pt) instance_destroy();
-                    ds_list_delete(xgroup.points, ipt);
-                    ++xgroup.deleted_strange_points;
-                } else {
-                    ++ipt;
-                }
-            }
-        }
-        
-    }
-}
-
-var total_point_count = 0;
-for (var i = 0; i < ds_list_size(graph_list); ++i) {
-    var gp = ds_list_find_value(graph_list, i);
-    total_point_count += ds_list_size(gp.points);
-}
-*/
 draw_some_graph_shared_code(graph_list);
 
 //show_message("total pts = " + string(total_point_count) + "  deleted = " + string(deleted_points_count) + "  : "
@@ -260,21 +164,6 @@ graph_list (list) -> graph_points (instance) : .points (list) -> graph_single_po
 
 */
 
-
-/* Check if grouping is correct
-for (var i = 0; i < ds_list_size(graph_list); ++i) {
-    var gp = ds_list_find_value(graph_list, i);
-    var xglen = ds_list_size(gp.xgroups);
-    var vstr = "";
-    for (var ixg = 0; ixg < xglen; ++ixg) {
-        var xgroup = ds_list_find_value(gp.xgroups, ixg);
-        vstr += chr(10) + "[i" + string(ixg) + "] - " + xgroup.xlabel + " - size " + string(ds_list_size(xgroup.points));
-    }
-    show_message("Points " + gp.name + " - size of xgroups " + string(ds_list_size(gp.xgroups)) + vstr);
-}*/
-
-
-//g_graph_title += chr(10) + "il y a " + string(ds_list_size(gp.points)) + " gp points à dessiner. et ds len = "+ string(ds_list_size(ds.iterations_only_parallel));
 
 // Afficher les labels pour identifier les différents points
 // Merge des labels entre eux s'ils correspondent (afficher le ds et les autrre sinfos)

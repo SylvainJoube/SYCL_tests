@@ -8,7 +8,7 @@ var curve_name = argument3; // nom de la courbe associée
 var computer_id = argument4; 
 
 if ( ! graph.valid ) {
-    error_add("Graphe invalide, fichier non ajouté. (" + base_path + file_name + ")");
+    error_add("Graphe invalide, fichier non ajouté. (" + base_path + file_name + ")", 10);
     return -1;
 }
 
