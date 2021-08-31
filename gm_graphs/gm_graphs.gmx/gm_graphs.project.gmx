@@ -35,6 +35,7 @@
       <script>scripts\run_batch_msi_1_old.gml</script>
       <script>scripts\run_batch_thinkpad_1.gml</script>
       <script>scripts\run_batch_job.gml</script>
+      <script>scripts\run_batch_job_save_will_be_deleted.gml</script>
       <script>scripts\run_batch_job_betaGraphs.gml</script>
       <script>scripts\run_batch_thinkpad_1_debug_only.gml</script>
       <script>scripts\run_batch_msi_1_old_code.gml</script>
@@ -145,8 +146,8 @@
     <object>objects\ctrl_test_var</object>
   </objects>
   <rooms name="rooms">
-    <room>rooms\rm_betaGraphs</room>
     <room>rooms\rm_batch</room>
+    <room>rooms\rm_betaGraphs</room>
     <room>rooms\rm_prompt</room>
     <room>rooms\rm_test_var_independance</room>
   </rooms>

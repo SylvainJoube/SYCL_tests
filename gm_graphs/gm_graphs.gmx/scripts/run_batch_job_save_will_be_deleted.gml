@@ -25,11 +25,7 @@ var current_test = step - current_run * tests_per_run; // 0..3
 // Dessin des graphes et sauvegardes en png, pour plusieurs graphiques.
 // Comparaison (à l'oeil) entre les différents runs
 
-// ON MSI var common_path = "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
-// ON ordi fixe blanc
-common_path = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
-
-
+var common_path = "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
 //var common_path = "C:\Users\sylvain\Desktop\plot_thinkpad_512MiB\";
 //var computer_name = "thinkpad";
 //var size_str = "1GiB";
@@ -224,91 +220,6 @@ case 8:
     /*in_fname*/    fname_prefix_input + "LMoptim" + fname_suffix_input,
     /*curve_name*/  "aucun nom", // nom de la courbe associée
     /*computer_id*/ 3 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = false;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-
-case 9:
-    // == sumReadSpeed ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output + "sumReadSpeed" + fname_suffix_output,
-    /*use_script*/    draw_some_graph_14throughput,
-    /*display_name*/  computer_name + " - L fixé, repeat variable - " + size_str + " - run " + string(current_run)
-    );
-    batch_add_file(
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    fname_prefix_input + "sumReadSpeed" + fname_suffix_input,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = false;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-case 10:
-    // == sumReadSpeed ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output + "sumReadSpeedBandwidth" + fname_suffix_output,
-    /*use_script*/    draw_some_graph_14throughputBandwidth,
-    /*display_name*/  computer_name + " - L fixé, repeat variable - " + size_str + " - run " + string(current_run)
-    );
-    batch_add_file(
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    fname_prefix_input + "sumReadSpeed" + fname_suffix_input,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = false;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-case 11:
-    // == cacheSize ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output + "cacheSize" + fname_suffix_output,
-    /*use_script*/    draw_some_graph_15cacheSize,
-    /*display_name*/  computer_name + " - L variable, repeat fixé - " + size_str + " - run " + string(current_run)
-    );
-    batch_add_file(
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    fname_prefix_input + "cacheSize" + fname_suffix_input,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = false;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-case 12:
-    // == cacheSizeBandwidth ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output + "cacheSizeBandwidth" + fname_suffix_output,
-    /*use_script*/    draw_some_graph_15cacheSizeBandwidth,
-    /*display_name*/  computer_name + " - L variable, repeat fixé - " + size_str + " - run " + string(current_run)
-    );
-    batch_add_file(
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    fname_prefix_input + "cacheSize" + fname_suffix_input,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
     );
     g_multiple_xaxis = false;
     load_draw_save_graph(graph);
