@@ -23,6 +23,12 @@ each_test: build run_each_test
 #terminalout_build:
 #	$(CXX) $(CXXFLAGS) -o bin/memory_benchmark memory_benchmark.cpp
 
+mem: build run_mem
+
+run_mem:
+	./$(RUN_EXE_NAME) mem
+
+
 build:
 	$(CXX) $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
 
