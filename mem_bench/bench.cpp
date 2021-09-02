@@ -16,6 +16,7 @@
 
 #include "utils.h"
 #include "constants.h"
+#include "traccc_fcts.h"
 
 
 // Comparison of various USM flavours
@@ -924,13 +925,11 @@ void bench_sycl_glibc_mem_speed() { // std::ofstream& myfile
 
     bench_sycl_glibc_mem_speed_main c;
     c.main();
-
 }
 
-inline bool file_exists_test0 (const std::string& name) {
-    std::ifstream f(name.c_str());
-    return f.good();
-}
+
+
+
 
 int main_of_program(std::function<void(std::ofstream &)> bench_function)
 {
@@ -1219,7 +1218,9 @@ int main(int argc, char *argv[])
 
     FORCE_EXECUTION_ON_NAMED_DEVICE = true;
     //MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]";
+    //REPEAT_COUNT_REALLOC = 12;
     REPEAT_COUNT_REALLOC = 12;
+
     REPEAT_COUNT_ONLY_PARALLEL = 0;
 
     //total_elements = 1024L * 1024L * 256L;   // 256 milions elements * 4 bytes => 1 GiB
@@ -1234,10 +1235,25 @@ int main(int argc, char *argv[])
         std::string arg = argv[1];
 
         if (arg.compare("mem") == 0) {
-
             bench_sycl_glibc_mem_speed();
             return 0;
         }
+
+        
+        
+        if (arg.compare("traccc") == 0) {
+            std::string runCount = "1";
+            log("=> Run all  TRACCC  tests at once, runCount(" + runCount + ") <=");
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //log("Will now sleep.");
+            //unsigned int microseconds = 10000000;
+            //usleep(microseconds);
+            traccc::run_all_traccc_benchs(computerName + "_AT", std::stoi(runCount));
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
+            return 0;
+        }
+
 
         std::string runCount = argv[1];
         if ( ! is_number(runCount) ) {
@@ -1245,7 +1261,7 @@ int main(int argc, char *argv[])
             return 3;
         }
 
-        log("=> Run all tests at once, runCount(" + runCount + ") <=");
+        log("=> Run all  SYCL_MEM  tests at once, runCount(" + runCount + ") <=");
 
         // AT stands for All Tests
         run_all_test_generic(size_str, computerName + "_AT", std::stoi(runCount));
@@ -1299,37 +1315,18 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+
+// 
+
+
 /*
 To run with syclcc, set those variables :
 export HIPSYCL_TARGETS="cuda:sm_35" && \
 export HIPSYCL_GPU_ARCH="sm_35" && \
 export HIPSYCL_CUDA_PATH="/usr/local/cuda-10.1"
 
-
 On Sandor :
 export HIPSYCL_TARGETS="cuda:sm_75" && \
 export HIPSYCL_GPU_ARCH="sm_75" && \
 export HIPSYCL_CUDA_PATH="/usr/local/cuda-10.1"
-
-ERROR :
-
-memory_benchmark_file_output_cmp.cpp:177:73: error: Optional kernel lambda naming requires clang >= 10
-    auto e = sycl_q.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
-                                                                        ^
-2 warnings and 1 error generated when compiling for sm_75.
-
-clangs :
-
-clang                        clang-cl-11                  clang-offload-bundler-11
-clang++                      clang-cpp                    clang-offload-wrapper-11
-clang++-11                   clang-cpp-11                 clang-query
-clang-11                     clang-doc-11                 clang-query-11
-clang-9                      clang-extdef-mapping         clang-refactor
-clang-apply-replacements     clang-extdef-mapping-11      clang-refactor-11
-clang-apply-replacements-11  clang-format                 clang-rename
-clang-change-namespace-11    clang-import-test            clang-rename-11
-clang-check                  clang-include-fixer-11       clang-reorder-fields-11
-clang-check-11               clang-move-11                clang-scan-deps
-clang-cl                     clang-offload-bundler        clang-scan-deps-11
-
 */

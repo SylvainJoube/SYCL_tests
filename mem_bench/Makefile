@@ -25,8 +25,13 @@ each_test: build run_each_test
 
 mem: build run_mem
 
+traccc : build run_traccc
+
 run_mem:
 	./$(RUN_EXE_NAME) mem
+
+run_traccc:
+	./$(RUN_EXE_NAME) traccc
 
 
 build:

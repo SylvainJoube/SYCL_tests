@@ -13,7 +13,7 @@
 #define DATA_TYPE unsigned int // TODO : try with unsigned int
 using data_type = DATA_TYPE;
 //using data_type_sum = unsigned long long;
-enum sycl_mode {shared_USM, device_USM, host_USM, accessors};
+enum sycl_mode {shared_USM, device_USM, host_USM, accessors, glibc};
 //enum dataset_type {implicit_USM, device_USM, host_USM, accessors};
 
 unsigned long long PARALLEL_FOR_SIZE;// = 1024 * 32 * 8;// = M ; work items number
@@ -43,8 +43,8 @@ int USE_HOST_SYCL_BUFFER_DMA = 0;
 
 
 // number of iterations - no realloc to make it go faster
-int REPEAT_COUNT_REALLOC = 3;
-int REPEAT_COUNT_ONLY_PARALLEL = 0;
+int REPEAT_COUNT_REALLOC;// défini dans le main (3)
+int REPEAT_COUNT_ONLY_PARALLEL; // défini dans le main (0)
 
 bool FORCE_EXECUTION_ON_NAMED_DEVICE = true;
 std::string MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]"; //std::string("s");
@@ -75,8 +75,8 @@ std::string DEVICE_NAME_ON_MSI_NVIDIA = "NVIDIA GeForce GTX 960M";
 std::string DEVICE_NAME_ON_SANDOR     = "Quadro RTX 5000";
 
 //std::string BENCHMARK_VERSION = "v06D";
-std::string BENCHMARK_VERSION = "v05"; // Sandor compatible
-std::string DISPLAY_VERSION   = "006D-d";
+std::string BENCHMARK_VERSION = "v05_TEMP"; // Sandor compatible
+std::string DISPLAY_VERSION   = "v05_TEMP - TRACCC-001";
 
 uint currently_running_on_computer_id = 0; // 1 thinkpad, 2 msi Intel (dpcpp), 3 msi Nvidia (syclcc), 4 sandor
 // les valeurs 2 et 3 sont équivalentes ici.
@@ -122,6 +122,7 @@ std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); 
 
 
 #define DATA_VERSION 7
+#define DATA_VERSION_TRACCC 100
 
 // number of diffrent datasets
 #define DATASET_NUMBER 1

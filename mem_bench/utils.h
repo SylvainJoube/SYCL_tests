@@ -24,6 +24,7 @@ int mode_to_int(sycl_mode m) {
     case device_USM : return 1;
     case host_USM : return 2;
     case accessors : return 3;
+    case glibc : return 20;
     }
     return -1;
 }
@@ -34,6 +35,7 @@ std::string mode_to_string(sycl_mode m) {
     case device_USM : return "device_USM";
     case host_USM : return "host_USM";
     case accessors : return "accessors";
+    case glibc : return "glibc";
     }
     return "unknown";
 }
@@ -284,6 +286,8 @@ void print_total_progress() {
     logs( std::to_string(progress) + "% ");
 }
 
+// Only show once
+static bool only_show_once_right_device_found_has_been_found = false;
 
 /* Classes can inherit from the device_selector class to allow users
  * to dictate the criteria for choosing a device from those that might be
@@ -312,7 +316,10 @@ public:
             std::string devName =  device.get_info<cl::sycl::info::device::name>();
             if (devName.compare(MUST_RUN_ON_DEVICE_NAME) == 0) {
                 int devScore = def_selector(device);
-                log("Right device found, score(" + std::to_string(devScore) + ") - " + devName);
+                if ( ! only_show_once_right_device_found_has_been_found) {
+                    log("Right device found, score(" + std::to_string(devScore) + ") - " + devName);
+                    only_show_once_right_device_found_has_been_found = true;
+                }
                 return devScore;
             }
             return -1;
@@ -488,4 +495,16 @@ bool is_number(const std::string& s)
     std::string::const_iterator it = s.begin();
     while (it != s.end() && std::isdigit(*it)) ++it;
     return !s.empty() && it == s.end();
+}
+
+long GetFileSize(std::string filename)
+{
+    struct stat stat_buf;
+    int rc = stat(filename.c_str(), &stat_buf);
+    return rc == 0 ? stat_buf.st_size : -1;
+}
+
+inline bool file_exists_test0 (const std::string& name) {
+    std::ifstream f(name.c_str());
+    return f.good();
 }
