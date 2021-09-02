@@ -31,7 +31,7 @@ for (var col = 0; col < max_color; col += color_step) {
 
 // Dessiner ou non les temps d'allocation et de copie
 // depuis le buffer temporaire
-var DISPLAY_TEMP_COPY_BUFF_TIMES = false;
+//var DISPLAY_TEMP_COPY_BUFF_TIMES = false;
 
 var merge_cfactor = 0.3;
 

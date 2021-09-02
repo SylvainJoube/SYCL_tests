@@ -40,15 +40,21 @@ var fname_prefix_output_short = "b" + bench_test_nb + "_";// + bench_version + "
 //var fname_prefix_input  = bench_version + "_";
 
 var fname_suffix_common = "_" + computer_name + "_" + size_str + "_O2_RUN" + string(current_run);
+var fname_suffix_common_traccc = "_" + computer_name + "_O2_RUN" + string(current_run);
 
 var fname_suffix_output = fname_suffix_common + "_q1.5" + ".png";
 var fname_suffix_input  = fname_suffix_common + ".t";
+
+var fname_suffix_output_traccc = fname_suffix_common_traccc + "_q1.5" + ".png";
+var fname_suffix_input_traccc  = fname_suffix_common_traccc + ".t";
 
 //var file_name_const_part = common_file_name + "_RUN" + string(current_run);// + ".t";
 //var local_common_path = common_path + bench_version;
 //var file_name_const_part_ouptut_png = file_name_const_part + "_" + bench_test_nb + ".png";
 
-var current_test = 4;
+var current_test = 5;
+
+
 
 switch (current_test) {
 
@@ -137,6 +143,34 @@ case 4:
     ++g_citer;
     break;
 
+/*iter.t_alloc_fill = ds_list_find_value(values, 8);
+            iter.t_copy_kernel = ds_list_find_value(values, 9);
+            iter.t_read = ds_list_find_value(values, 10);
+            iter.t_free_mem = ds_list_find_value(values, 11);*/
+// TRACCC land
+case 5:
+    //show_message("run_batch_job_betaGraphs - TEST 5 - current_test = " + string(current_test));
+    // == cacheSizeBandwidth ==
+    // Compare read speeds with USM host, device and shared
+    var graph = batch_add_graph(
+    /*output_path*/   common_path,
+    /*output_fname*/  fname_prefix_output_short + "vTRACCC-05_tracccMemLocStrat" + fname_suffix_output_traccc,
+    /*use_script*/    draw_some_graph_traccc_16,
+    /*display_name*/  computer_name + " - ACTS: type mémoire & stratégie - run " + string(current_run)
+    );
+    batch_add_file(
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    "v05_TEMP_tracccMemLocStrat" + fname_suffix_input_traccc,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    g_multiple_xaxis = false;
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
+    
+    
     
 default :
     show_message("ERROR @ run_batch_job_betaGraphs : current_test(" + string(current_test) + ") not handled.");

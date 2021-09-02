@@ -70,7 +70,7 @@ if (g_display_LM) {
       + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio";
 }
 
-if (g_display_REPEAT_COUNT_SUM) {
+if (g_display_REPEAT_COUNT_SUM && (g_REPEAT_COUNT_SUM_common != -1)) {
     dstr += chr(10) + string(g_REPEAT_COUNT_SUM_common) + " = repeat access";
 }        
 

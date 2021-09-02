@@ -53,6 +53,7 @@
       <script>scripts\load_data_v5.gml</script>
       <script>scripts\load_data_v6.gml</script>
       <script>scripts\load_data_v7.gml</script>
+      <script>scripts\load_data_v100.gml</script>
       <script>scripts\load_data_v0_deprecated.gml</script>
       <script>scripts\load_data_common.gml</script>
       <script>scripts\load_data_common_old.gml</script>
@@ -83,11 +84,14 @@
       <script>scripts\draw_some_graph_14throughputBandwidth.gml</script>
       <script>scripts\draw_some_graph_15cacheSize.gml</script>
       <script>scripts\draw_some_graph_15cacheSizeBandwidth.gml</script>
+      <script>scripts\draw_some_graph_traccc_16.gml</script>
       <script>scripts\draw_test_qualtiles.gml</script>
       <script>scripts\mem_location_to_str.gml</script>
       <script>scripts\mem_location_to_str_prefix.gml</script>
       <script>scripts\computer_id_to_name.gml</script>
       <script>scripts\computer_id_to_name_prefix.gml</script>
+      <script>scripts\mem_strategy_to_name.gml</script>
+      <script>scripts\mem_strategy_to_name_prefix.gml</script>
       <script>scripts\draw_some_graph_shared_code.gml</script>
     </scripts>
     <scripts name="draw_graph_base">
@@ -146,8 +150,8 @@
     <object>objects\ctrl_test_var</object>
   </objects>
   <rooms name="rooms">
-    <room>rooms\rm_batch</room>
     <room>rooms\rm_betaGraphs</room>
+    <room>rooms\rm_batch</room>
     <room>rooms\rm_prompt</room>
     <room>rooms\rm_test_var_independance</room>
   </rooms>

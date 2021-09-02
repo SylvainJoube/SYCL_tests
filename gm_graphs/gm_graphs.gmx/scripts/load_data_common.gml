@@ -57,6 +57,7 @@ for (var ifile = 0; ifile < nbfiles; ++ifile) {
     if (version == 5) load_data_v5(file);
     if (version == 6) load_data_v6(file);
     if (version == 7) load_data_v7(file);
+    if (version == 100) load_data_v100(file);
     
     file_text_close(file);
     ++g_multiple_load_file_current_count;

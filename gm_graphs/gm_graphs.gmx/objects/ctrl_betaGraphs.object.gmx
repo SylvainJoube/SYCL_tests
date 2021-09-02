@@ -41,7 +41,7 @@ run_number = 1;
 total_iterations = tests_per_run * run_number;
 
 //current_computer_name = "thinkpad_AT";//"msiNvidia_ST";
-current_computer_name = "msiNvidia_ST";
+current_computer_name = "msiNvidia_AT";
 //current_computer_name = "thinkpad_AT";
 //current_computer_name = "sandor_AT";
 

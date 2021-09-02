@@ -96,6 +96,7 @@ case 2:
     /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
     );
     g_multiple_xaxis = true;
+    DISPLAY_TEMP_COPY_BUFF_TIMES = false;
     load_draw_save_graph(graph);
     ++g_citer;
     break;
@@ -315,6 +316,26 @@ case 12:
     ++g_citer;
     break;
 
+case 13:
+    // == DMA full infos ==
+    var graph = batch_add_graph(
+    /*output_path*/   common_path,
+    /*output_fname*/  fname_prefix_output + "dmaFull" + fname_suffix_output,
+    /*use_script*/    draw_some_graph_13dbg,
+    /*display_name*/  computer_name + " - DMA (full) - " + size_str + " - run " + string(current_run)
+    );
+    batch_add_file(
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    fname_prefix_input + "dma" + fname_suffix_input,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    g_multiple_xaxis = true;
+    DISPLAY_TEMP_COPY_BUFF_TIMES = true; // aussi pour avoir le temps copie host -> host
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
     
 default :
     show_message("ERROR @ run_batch_all : current_test(" + string(current_test) + ") not in [1..4]");

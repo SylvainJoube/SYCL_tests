@@ -39,6 +39,11 @@ g_graph_display_name = "Nom inconnu";
 g_multiple_load_file_number = 1;
 g_multiple_load_file_current_count = 0;
 
+// Dessiner ou non les temps d'allocation et de copie
+// depuis le buffer temporaire
+DISPLAY_TEMP_COPY_BUFF_TIMES = false;
+
+
 // une même échelle pour un x donné (true)
 // ou une échelle commune pour tous les points du graphe (false)
 g_xgroup_has_own_scale = false;
