@@ -51,13 +51,7 @@ for (var ifile = 0; ifile < nbfiles; ++ifile) {
         DEFAULT_COMPUTER_ID = get_integer("DEFAULT_COMPUTER_ID ? (1 T, 2 M, 3 S)", DEFAULT_COMPUTER_ID);
     }
     
-    if (version == 2) load_data_v2(file);
-    if (version == 3) load_data_v3(file);
-    if (version == 4) load_data_v4(file);
-    if (version == 5) load_data_v5(file);
-    if (version == 6) load_data_v6(file);
-    if (version == 7) load_data_v7(file);
-    if (version == 100) load_data_v100(file);
+    load_data_execute_right_version(version, file);
     
     file_text_close(file);
     ++g_multiple_load_file_current_count;

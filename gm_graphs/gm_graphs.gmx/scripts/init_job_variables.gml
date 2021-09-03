@@ -19,4 +19,6 @@ j.COMPUTER_ID = DEFAULT_COMPUTER_ID;
 // DEFAULT_COMPUTER_ID initialisé dans Init()
 j.memory_bandwidth = DEFAULT_MEMORY_BANDWIDTH; // GiB/s
 
+j.IGNORE_ALLOC_TIME = 0; // temps d'allocation pris en compte
+
 return 0;

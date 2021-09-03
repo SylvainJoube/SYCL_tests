@@ -27,13 +27,23 @@ var colors = ds_list_create();
 
 var merge_cfactor = 0.3;
 
-ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared flat
-ds_list_add(colors, merge_colour(c_green, c_black, 0)); // glibc flat
-ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host   flat
+var draw_graph_ptr = g_traccc_draw_graph_ptr;
+var draw_flatten = g_traccc_draw_flatten;
 
-ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared graph pointer
-ds_list_add(colors, merge_colour(c_green, c_black, merge_cfactor)); // glibc graph pointer
-ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host    graph pointer
+if (draw_graph_ptr && draw_flatten) {
+    ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared flat
+    ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared graph pointer
+    ds_list_add(colors, merge_colour(c_green, c_black, 0)); // glibc flat
+    ds_list_add(colors, merge_colour(c_green, c_black, merge_cfactor)); // glibc graph pointer
+    ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host   flat
+    ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host    graph pointer
+    ds_list_add(colors, merge_colour(c_maroon, c_black, 0));  // device   flat
+} else {
+    ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
+    ds_list_add(colors, merge_colour(c_green, c_black, 0)); // glibc
+    ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
+    ds_list_add(colors, merge_colour(c_maroon, c_black, 0));  // device (if flatten, else not used)
+}
 
 
 ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
@@ -41,13 +51,29 @@ var current_color_index = 0;
 
 g_iteration_count = 0;
 
-for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
+for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
+
+    var ij = loop_ij;
+    /*switch (loop_ij) {
+    case 0: ij = 0; break;
+    case 1: ij = 3; break;
+    case 2: ij = 2; break;
+    case 3: ij = 5; break;
+    case 4: ij = 1; break;
+    case 5: ij = 4; break;
+    }*/
 
     var j = ds_list_find_value(ctrl.jobs_fixed_list, ij);
 
     // ingore when copy strategy is glibc and on device (no glibc on device)
-    //if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 1 ) continue;
-    //if ( j.MEMORY_LOCATION == 2 ) continue; // located on host
+    
+    // Si ne pas dessiner graphe ptr et que la mémoire est graphe ptr, continuer
+    if ( (! draw_graph_ptr) && (j.MEMORY_STRATEGY == 1) ) continue;
+    
+    // Si ne pas dessiner flatten et que la mémoire est flatten, continuer
+    if ( (! draw_flatten) && (j.MEMORY_STRATEGY == 2) ) continue;
+    
+    if ( (j.MEMORY_LOCATION == 2) ) continue; // afficher sans host
     
     
     for (var ids = 0; ids < ds_list_size(j.datasets); ++ids) {
@@ -55,7 +81,6 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
         var ds = ds_list_find_value(j.datasets, ids);
 
         var total_items_count = j.VECTOR_SIZE_PER_ITERATION * j.PARALLEL_FOR_SIZE;
-        
         
         // I don't care about ds.iterations for now
         
@@ -65,8 +90,10 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
         if (lsize > g_iteration_count) g_iteration_count = lsize;
         if (lsize != 0) {
             
-            var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + mem_strategy_to_name_prefix(j.MEMORY_STRATEGY);
-            var gpname = "" + mem_location_to_str(j.MEMORY_LOCATION) + ", " + mem_strategy_to_name(j.MEMORY_STRATEGY) + " (" + gpshort_name + ")";
+            var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + mem_strategy_to_name_prefix(j.MEMORY_STRATEGY)
+                               + ignore_alloc_time_to_name_prefix(j.IGNORE_ALLOC_TIME);
+            var gpname = "" + mem_location_to_str(j.MEMORY_LOCATION) + ", " + mem_strategy_to_name(j.MEMORY_STRATEGY) + ", "
+                         + "" + ignore_alloc_time_to_name(j.IGNORE_ALLOC_TIME) +  " (" + gpshort_name + ")";
             
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
             if (gp.newly_created) {
@@ -87,7 +114,9 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "alloc & fill"; //split_thousands(j.PARALLEL_FOR_SIZE);
+                if (j.IGNORE_ALLOC_TIME) pt.xlabel = "fill";
+                else                     pt.xlabel = "alloc & fill";
+                
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -114,17 +143,18 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
                 
-                // t_read_from_device
-                var as_x = 30 + gxoffset;
-                var as_y = iter.t_free_mem;
-                var pt = instance_create(0, 0, graph_single_point);
-                pt.xx = as_x;
-                pt.yy = as_y;
-                pt.xlabel = "free mem";
-                pt.ylabel = split_thousands(as_y);
-                pt.color = gp.color; // <- debug only
-                ds_list_add(gp.points, pt);
                 
+                if ( ! j.IGNORE_ALLOC_TIME ) {
+                    var as_x = 30 + gxoffset;
+                    var as_y = iter.t_free_mem;
+                    var pt = instance_create(0, 0, graph_single_point);
+                    pt.xx = as_x;
+                    pt.yy = as_y;
+                    pt.xlabel = "free mem";
+                    pt.ylabel = split_thousands(as_y);
+                    pt.color = gp.color; // <- debug only
+                    ds_list_add(gp.points, pt);
+                }
                 //show_message("ij index = " + string(ij) + " ds index = " + string(ids) + "  pt index = " + string(i_iteration) + "  pt size = " + string(ds_list_size(gp.points)));
             }
         }

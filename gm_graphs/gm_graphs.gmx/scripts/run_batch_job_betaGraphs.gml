@@ -13,7 +13,7 @@ var computer_name = argument1; // e.g. "msiNvidia_ST" or "thinkpad"
 
 if ( step >= total_iterations) return -1;
 
-var current_run = step + 1;
+var current_run = 1; //step + 1;
 
 // ON MSI var common_path = "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
 // ON ordi fixe blanc
@@ -52,7 +52,7 @@ var fname_suffix_input_traccc  = fname_suffix_common_traccc + ".t";
 //var local_common_path = common_path + bench_version;
 //var file_name_const_part_ouptut_png = file_name_const_part + "_" + bench_test_nb + ".png";
 
-var current_test = 5;
+var current_test = 5 + step;
 
 
 
@@ -154,18 +154,71 @@ case 5:
     // Compare read speeds with USM host, device and shared
     var graph = batch_add_graph(
     /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "vTRACCC-05_tracccMemLocStrat" + fname_suffix_output_traccc,
+    /*output_fname*/  fname_prefix_output_short + "TR05_memLocStrat6_flat" + fname_suffix_output_traccc,
     /*use_script*/    draw_some_graph_traccc_16,
-    /*display_name*/  computer_name + " - ACTS: type mémoire & stratégie - run " + string(current_run)
+    /*display_name*/  computer_name + " - ACTS: type mémoire & stratégie - données aplaties - run " + string(current_run)
     );
-    batch_add_file(
+    batch_add_file( // gr.ptr.
     /*graph*/       graph,
     /*in_path*/     common_path,
-    /*in_fname*/    "v05_TEMP_tracccMemLocStrat" + fname_suffix_input_traccc,
+    /*in_fname*/    "v05_TEMP_tracccMemLocStrat6" + fname_suffix_input_traccc,
     /*curve_name*/  "aucun nom", // nom de la courbe associée
     /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
     );
-    g_multiple_xaxis = false;
+    g_multiple_xaxis = true;
+    g_xgroup_has_own_scale = false;
+    g_traccc_draw_graph_ptr = false;
+    g_traccc_draw_flatten = true;
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
+
+case 6:
+    //show_message("run_batch_job_betaGraphs - TEST 5 - current_test = " + string(current_test));
+    // == cacheSizeBandwidth ==
+    // Compare read speeds with USM host, device and shared
+    var graph = batch_add_graph(
+    /*output_path*/   common_path,
+    /*output_fname*/  fname_prefix_output_short + "TR05_memLocStrat6_graphPtr" + fname_suffix_output_traccc,
+    /*use_script*/    draw_some_graph_traccc_16,
+    /*display_name*/  computer_name + " - ACTS: type mémoire & stratégie - graphe de pointeurs - run " + string(current_run)
+    );
+    batch_add_file( // gr.ptr.
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    "v05_TEMP_tracccMemLocStrat6" + fname_suffix_input_traccc,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    g_multiple_xaxis = true;
+    g_xgroup_has_own_scale = false;
+    g_traccc_draw_graph_ptr = true;
+    g_traccc_draw_flatten = false;
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
+
+case 7:
+    //show_message("run_batch_job_betaGraphs - TEST 5 - current_test = " + string(current_test));
+    // == cacheSizeBandwidth ==
+    // Compare read speeds with USM host, device and shared
+    var graph = batch_add_graph(
+    /*output_path*/   common_path,
+    /*output_fname*/  fname_prefix_output_short + "TR05_memLocStrat6_tout" + fname_suffix_output_traccc,
+    /*use_script*/    draw_some_graph_traccc_16,
+    /*display_name*/  computer_name + " - ACTS: type mémoire & stratégie - tout affiché - run " + string(current_run)
+    );
+    batch_add_file( // gr.ptr.
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    "v05_TEMP_tracccMemLocStrat6" + fname_suffix_input_traccc,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    g_multiple_xaxis = true;
+    g_xgroup_has_own_scale = false;
+    g_traccc_draw_graph_ptr = true;
+    g_traccc_draw_flatten = true;
     load_draw_save_graph(graph);
     ++g_citer;
     break;

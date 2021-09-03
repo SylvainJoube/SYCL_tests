@@ -7,6 +7,7 @@ case 0 : return "s";
 case 1 : return "d";
 case 2 : return "h";
 case 3 : return "b";
+case 20 : return "g";
 default : return "ukn";
 }
 

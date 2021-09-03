@@ -3,8 +3,8 @@
 var smem = argument0;
 
 switch (smem) {
-case 1 : return "a";
-case 2 : return "g";
+case 1 : return "g";
+case 2 : return "a";
 }
 
 return "-nc-";

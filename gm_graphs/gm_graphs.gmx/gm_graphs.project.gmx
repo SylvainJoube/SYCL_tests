@@ -47,6 +47,7 @@
     </scripts>
     <script>scripts\s_info.gml</script>
     <scripts name="load">
+      <script>scripts\load_data_execute_right_version.gml</script>
       <script>scripts\load_data_v2.gml</script>
       <script>scripts\load_data_v3.gml</script>
       <script>scripts\load_data_v4.gml</script>
@@ -54,6 +55,7 @@
       <script>scripts\load_data_v6.gml</script>
       <script>scripts\load_data_v7.gml</script>
       <script>scripts\load_data_v100.gml</script>
+      <script>scripts\load_data_v103.gml</script>
       <script>scripts\load_data_v0_deprecated.gml</script>
       <script>scripts\load_data_common.gml</script>
       <script>scripts\load_data_common_old.gml</script>
@@ -92,6 +94,8 @@
       <script>scripts\computer_id_to_name_prefix.gml</script>
       <script>scripts\mem_strategy_to_name.gml</script>
       <script>scripts\mem_strategy_to_name_prefix.gml</script>
+      <script>scripts\ignore_alloc_time_to_name.gml</script>
+      <script>scripts\ignore_alloc_time_to_name_prefix.gml</script>
       <script>scripts\draw_some_graph_shared_code.gml</script>
     </scripts>
     <scripts name="draw_graph_base">

@@ -67,7 +67,8 @@ if (g_display_LM) {
       + "out " + split_thousands(round(g_output_data_size / 1024)) + " kio";
 } else {
     dstr = split_thousands(g_iteration_count) + " pts" + chr(10)
-      + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio";
+      + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio" + chr(10)
+      + "out " + split_thousands(round(g_output_data_size / 1024)) + " kio";
 }
 
 if (g_display_REPEAT_COUNT_SUM && (g_REPEAT_COUNT_SUM_common != -1)) {
