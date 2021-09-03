@@ -76,9 +76,11 @@ std::string DEVICE_NAME_ON_SANDOR     = "Quadro RTX 5000";
 
 //std::string BENCHMARK_VERSION = "v06D";
 std::string BENCHMARK_VERSION = "v05_TEMP"; // Sandor compatible
-std::string DISPLAY_VERSION   = "v05_TEMP - TRACCC-009";
+std::string BENCHMARK_VERSION_TRACCC = "acts05";
+std::string DISPLAY_VERSION = BENCHMARK_VERSION_TRACCC + " - TRACCC-011";
 
-std::string TRACCC_OUT_FNAME = "tracccMemLocStrat7_sansGraphPtr";
+// Not used anymore
+//std::string TRACCC_OUT_FNAME = "tracccMemLocStrat7_sansGraphPtr";
 
 // nombre de fois qu'il faut répéter le chargement des données
 unsigned int traccc_repeat_load_count = 10;
@@ -127,7 +129,7 @@ std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); 
 
 
 #define DATA_VERSION 7
-#define DATA_VERSION_TRACCC 103
+#define DATA_VERSION_TRACCC 104
 
 // number of diffrent datasets
 #define DATASET_NUMBER 1

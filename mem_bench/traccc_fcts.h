@@ -26,8 +26,9 @@ namespace traccc {
 
     const uint TRACCC_LOG_LEVEL = 0; // Seulement afficher les infos du log 0
 
-    bool ignore_allocation_times;// = false;
+    //bool ignore_allocation_times;// = false;
     bool ignore_pointer_graph_benchmark;
+    bool ignore_flatten_benchmark;
 
 
     using tdtype = unsigned int;
@@ -347,7 +348,10 @@ namespace traccc {
     }
 
     struct traccc_chrono_results {
-        uint t_alloc_fill, t_copy_kernel, t_read, t_free_mem;
+        // alloc et fill sont utiles en flatten uniquement, 
+        // ça n'a pas grand sens en graphe de ponteur
+        // (vu que la structure change)
+        uint t_alloc_fill, t_flatten_alloc, t_flatten_fill, t_copy_kernel, t_read, t_free_mem;
     };
 
     class bench_variables {
@@ -370,8 +374,9 @@ namespace traccc {
 
     void alloc_and_fill(bench_variables & b) {
         if (TRACCC_LOG_LEVEL >= 2) log("Alloc & fill...");
-        stime_utils chrono;
+        stime_utils chrono, chrono_flatten;
 
+        
         //sycl_mode mode = bench.mode;
         //traccc::implicit_input_module  * implicit_modules_in  = bench.implicit_modules_in;
         //traccc::implicit_output_module * implicit_modules_out = bench.implicit_modules_out;
@@ -386,6 +391,10 @@ namespace traccc {
         chrono.reset();
 
         if (b.mstrat == pointer_graph) {
+
+            
+            b.chres.t_flatten_alloc = 0;
+            b.chres.t_flatten_fill = 0;
 
             // Graphe de pointeurs
             // Lecture + fill
@@ -456,6 +465,7 @@ namespace traccc {
                 }
             }
         } else { // flatten
+            chrono_flatten.reset();
 
             // Alloc
             if (b.mode == sycl_mode::glibc) {
@@ -488,7 +498,8 @@ namespace traccc {
                 b.flat_output.modules = static_cast<flat_output_module *> (cl::sycl::malloc_shared(total_module_count * sizeof(flat_output_module), b.sycl_q));
             }
 
-            if (ignore_allocation_times) chrono.reset();
+            //if (ignore_allocation_times) chrono.reset();
+            b.chres.t_flatten_alloc = chrono_flatten.reset();
 
             // Fill
             unsigned int global_cell_index = 0;
@@ -511,6 +522,7 @@ namespace traccc {
                 }
                 //if (im < 10) log("");
             }
+            b.chres.t_flatten_fill = chrono_flatten.reset();
         }
 
         b.sycl_q.wait_and_throw();
@@ -989,8 +1001,8 @@ namespace traccc {
                 cl::sycl::free(b.flat_output.modules_device, b.sycl_q);
             }
         }
-        if (ignore_allocation_times) b.chres.t_free_mem = 0;
-        else                         b.chres.t_free_mem = chrono.reset();
+        
+        b.chres.t_free_mem = chrono.reset();
 
         if (TRACCC_LOG_LEVEL >= 2) log("Free memory ok.");
         if (microseconds != 0) usleep(microseconds);
@@ -1124,7 +1136,7 @@ namespace traccc {
         << mem_strategy_to_int(mstrat) << " " // 1 0 - 1 20 - 1 2 ; 2 0 - 2 20 - 2 2 ; 
         // mem strategy  mem location
         // output : 2 0 ; 2 2 ; 1 20
-        << (ignore_allocation_times ? 1 : 0) << " "
+        // fait en GM -> << (ignore_allocation_times ? 1 : 0) << " "
         //<< out_total_size
 
         // plus tard : intervalles de valeurs pour la sparcité
@@ -1155,7 +1167,9 @@ namespace traccc {
             << cres.t_alloc_fill << " "
             << cres.t_copy_kernel << " "
             << cres.t_read << " " // TODO : faire la somme des labels trouvés, pour avoir une lecture complète
-            << cres.t_free_mem
+            << cres.t_free_mem << " "
+            << cres.t_flatten_alloc << " "
+            << cres.t_flatten_fill << " "
 
             << "\n";
 
@@ -1167,7 +1181,9 @@ namespace traccc {
                 "\n       allocFill(" + std::to_string(cres.t_alloc_fill / fdiv) + ") "
                 + "copyKernel(" + std::to_string(cres.t_copy_kernel / fdiv) + ") "
                 + "read(" + std::to_string(cres.t_read / fdiv) + ") "
-                + "free(" + std::to_string(cres.t_free_mem / fdiv) + ") ");
+                + "free(" + std::to_string(cres.t_free_mem / fdiv) + ") "
+                + "flatAlloc(" + std::to_string(cres.t_flatten_alloc / fdiv) + ") "
+                + "fillAlloc(" + std::to_string(cres.t_flatten_fill / fdiv) + ") ");
 
             //log("");
         }
@@ -1187,8 +1203,9 @@ namespace traccc {
         traccc_chrono_results cres;
 
         for (int imode = 0; imode <= 3; ++imode) 
-        for (int ignore_at = 0; ignore_at <= 1; ++ignore_at)
-        for (int imcp = 0; imcp <= 1; ++imcp) {
+        //for (int ignore_at = 0; ignore_at <= 1; ++ignore_at)
+        for (int imcp = 0; imcp <= 1; ++imcp)
+        {
 
             switch (imcp) {
             case 0: memory_strategy = mem_strategy::flatten; break;
@@ -1197,6 +1214,10 @@ namespace traccc {
             }
 
             if ( (memory_strategy == pointer_graph) && ignore_pointer_graph_benchmark ) {
+                continue;
+            }
+            
+            if ( (memory_strategy == flatten) && ignore_flatten_benchmark ) {
                 continue;
             }
 
@@ -1212,7 +1233,7 @@ namespace traccc {
                 continue; // pas de graphe de pointeurs en explicite
             }
 
-            ignore_allocation_times = (ignore_at == 1);
+            //ignore_allocation_times = (ignore_at == 1);
             
             log("");
             log("Mode(" + mode_to_string(CURRENT_MODE) + ")  memory_strategy(" + mem_strategy_to_str(memory_strategy) + ")");
@@ -1260,6 +1281,11 @@ namespace traccc {
         log("-------------- " + ver_indicator + " --------------");
         log("");
 
+        if ( ! ignore_pointer_graph_benchmark ) log("-----> Do graph pointer.");
+        if ( ! ignore_flatten_benchmark ) log("-----> Do flatten.");
+        //if ( ignore_allocation_times ) log("-----> Ignore allocation times.");
+        //else                           log("-----> Count allocation times.");
+
         list_devices(exception_handler);
 
         init_progress();
@@ -1281,19 +1307,61 @@ namespace traccc {
 
     void run_single_test_generic_traccc(std::string computer_name,
                              uint test_id, uint run_count) {
-        std::string file_name_prefix = "_" + computer_name + "_O2";
+        std::string file_name_prefix = "_" + computer_name + "_ld" + std::to_string(traccc_repeat_load_count); // 02
         std::string file_name_const_part = file_name_prefix + "_RUN" + std::to_string(run_count) + ".t";
 
         switch (test_id) {
-        
+        //reset_bench_variables();
+
         // bench_mem_location_and_strategy
+
+        // Tout est dans le nom de fichiers
+
         case 1:
-            OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_" + TRACCC_OUT_FNAME + file_name_const_part;
-            //reset_bench_variables();
-            //SIMD_FOR_LOOP = 1;
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalFlatten" + file_name_const_part; // TRACCC_OUT_FNAME
             ignore_pointer_graph_benchmark = true;
+            ignore_flatten_benchmark = false;
             main_of_traccc(bench_mem_location_and_strategy);
             break;
+
+        case 2:
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalGraphPtr" + file_name_const_part; // TRACCC_OUT_FNAME
+            ignore_pointer_graph_benchmark = false;
+            ignore_flatten_benchmark = true;
+            main_of_traccc(bench_mem_location_and_strategy);
+            break;
+
+        /*case 1:
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalFlatten_ignoreAlloc" + file_name_const_part; // TRACCC_OUT_FNAME
+            ignore_pointer_graph_benchmark = true;
+            ignore_flatten_benchmark = false;
+            //ignore_allocation_times = true;
+            main_of_traccc(bench_mem_location_and_strategy);
+            break;
+        
+        case 2:
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalFlatten_withAlloc" + file_name_const_part; // TRACCC_OUT_FNAME
+            ignore_pointer_graph_benchmark = true;
+            ignore_flatten_benchmark = false;
+            ignore_allocation_times = false;
+            main_of_traccc(bench_mem_location_and_strategy);
+            break;
+
+        case 3:
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "__generalGraphPtr_withAlloc" + file_name_const_part;
+            ignore_pointer_graph_benchmark = false;
+            ignore_flatten_benchmark = true;
+            ignore_allocation_times = false;
+            main_of_traccc(bench_mem_location_and_strategy);
+            break;
+
+        case 4:
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "__generalGraphPtr_ignoreAlloc" + file_name_const_part;
+            ignore_pointer_graph_benchmark = false;
+            ignore_flatten_benchmark = true;
+            ignore_allocation_times = true;
+            main_of_traccc(bench_mem_location_and_strategy);
+            break;*/
         
         default: break;
         }
@@ -1308,7 +1376,7 @@ namespace traccc {
         // Tests to compare against, to check graphs validity
         //int test_runs_count = runs_count;
         for (uint irun = 1; irun <= runs_count; ++irun) {
-            for (uint itest = 1; itest <= 1; ++itest) {
+            for (uint itest = 1; itest <= 2; ++itest) {
                 run_single_test_generic_traccc(computer_name, itest, irun);
             }
         }
