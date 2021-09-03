@@ -76,9 +76,12 @@ std::string DEVICE_NAME_ON_SANDOR     = "Quadro RTX 5000";
 
 //std::string BENCHMARK_VERSION = "v06D";
 std::string BENCHMARK_VERSION = "v05_TEMP"; // Sandor compatible
-std::string DISPLAY_VERSION   = "v05_TEMP - TRACCC-007";
+std::string DISPLAY_VERSION   = "v05_TEMP - TRACCC-009";
 
-std::string TRACCC_OUT_FNAME = "tracccMemLocStrat6_sansGraphPtr";
+std::string TRACCC_OUT_FNAME = "tracccMemLocStrat7_sansGraphPtr";
+
+// nombre de fois qu'il faut répéter le chargement des données
+unsigned int traccc_repeat_load_count = 10;
 
 uint currently_running_on_computer_id = 0; // 1 thinkpad, 2 msi Intel (dpcpp), 3 msi Nvidia (syclcc), 4 sandor
 // les valeurs 2 et 3 sont équivalentes ici.

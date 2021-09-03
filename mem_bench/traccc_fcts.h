@@ -195,8 +195,7 @@ namespace traccc {
     unsigned int in_total_size;
     unsigned int out_total_size;
 
-    // nombre de fois qu'il faut répéter le chargement des données
-    unsigned int repeat_load_count = 10;
+    // traccc_repeat_load_count dans constants.h
 
     // Valeurs que doivent avoir cluster_count et label_count
     // lorsque tout est exécuté (i.e. prendre en compte toutes les sparcités)
@@ -271,22 +270,22 @@ namespace traccc {
             //return nullptr;
         }
 
-        log("alloc repeat_load_count = " + std::to_string(repeat_load_count));
-        all_data = new unsigned int[total_int_written * repeat_load_count];
+        log("alloc traccc_repeat_load_count = " + std::to_string(traccc_repeat_load_count));
+        all_data = new unsigned int[total_int_written * traccc_repeat_load_count];
 
         
-        for (uint ir = 0; ir < repeat_load_count; ++ir) {
+        for (uint ir = 0; ir < traccc_repeat_load_count; ++ir) {
             log("copy ir = " + std::to_string(ir) + "...");
             memcpy(&all_data[ir * total_int_written], read_data, total_int_written * sizeof(unsigned int));
         }
 
         log("copy ok");
 
-        total_module_count = total_module_count * repeat_load_count;
-        total_cell_count = total_cell_count * repeat_load_count;
+        total_module_count = total_module_count * traccc_repeat_load_count;
+        total_cell_count = total_cell_count * traccc_repeat_load_count;
 
-        expected_cluster_count = expected_cluster_count * repeat_load_count;
-        expected_label_sum = expected_label_sum * repeat_load_count;
+        expected_cluster_count = expected_cluster_count * traccc_repeat_load_count;
+        expected_label_sum = expected_label_sum * traccc_repeat_load_count;
 
         in_total_size = total_module_count * sizeof(implicit_input_module) + total_cell_count * sizeof(input_cell);
         out_total_size = total_module_count * sizeof(implicit_output_module) + total_cell_count * sizeof(output_cell);
@@ -1191,14 +1190,14 @@ namespace traccc {
         for (int ignore_at = 0; ignore_at <= 1; ++ignore_at)
         for (int imcp = 0; imcp <= 1; ++imcp) {
 
-            if ( (memory_strategy == pointer_graph) && ignore_pointer_graph_benchmark ) {
-                continue;
-            }
-
             switch (imcp) {
             case 0: memory_strategy = mem_strategy::flatten; break;
             case 1: memory_strategy = mem_strategy::pointer_graph; break;
             default : break;
+            }
+
+            if ( (memory_strategy == pointer_graph) && ignore_pointer_graph_benchmark ) {
+                continue;
             }
 
             switch (imode) {
