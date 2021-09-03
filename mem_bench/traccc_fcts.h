@@ -26,6 +26,9 @@ namespace traccc {
 
     const uint TRACCC_LOG_LEVEL = 0; // Seulement afficher les infos du log 0
 
+    bool ignore_allocation_times;// = false;
+    bool ignore_pointer_graph_benchmark;
+
 
     using tdtype = unsigned int;
     /*
@@ -90,11 +93,17 @@ namespace traccc {
     struct flat_input_data {
         input_cell* cells;
         flat_input_module* modules;
+        // En device, il y a les tableaux malloc_host et une allocation explicite device
+        input_cell* cells_device;
+        flat_input_module* modules_device;
     };
 
     struct flat_output_data {
         output_cell* cells;
         flat_output_module* modules;
+        // Device uniquement :
+        output_cell* cells_device;
+        flat_output_module* modules_device;
     };
 
 
@@ -183,6 +192,17 @@ namespace traccc {
     unsigned int total_int_written;
     bool data_already_loaded_from_disk = false;
 
+    unsigned int in_total_size;
+    unsigned int out_total_size;
+
+    // nombre de fois qu'il faut répéter le chargement des données
+    unsigned int repeat_load_count = 10;
+
+    // Valeurs que doivent avoir cluster_count et label_count
+    // lorsque tout est exécuté (i.e. prendre en compte toutes les sparcités)
+    unsigned int expected_cluster_count = 380554;
+    unsigned int expected_label_sum = 23681637;
+
     unsigned int* all_data; // allocated with read_cells_lite
     unsigned int i_all_data;
 
@@ -232,10 +252,10 @@ namespace traccc {
         }
 
         // fdata = flat data
-        unsigned int* fdata = new unsigned int[total_int_written];
+        unsigned int* read_data = new unsigned int[total_int_written];
 
         // read the whole remaining file at once
-        rf.read((char *)(fdata), total_int_written * sizeof(unsigned int));
+        rf.read((char *)(read_data), total_int_written * sizeof(unsigned int));
 
         //log("read_cells closing...");
         rf.close();
@@ -244,14 +264,37 @@ namespace traccc {
 
         //log("read_cells closed !");
         if(!rf.good()) {
-            delete[] fdata;
+            delete[] read_data;
+            in_total_size = 0;
+            out_total_size = 0;
             return;
             //return nullptr;
         }
 
-        all_data = fdata;
+        log("alloc repeat_load_count = " + std::to_string(repeat_load_count));
+        all_data = new unsigned int[total_int_written * repeat_load_count];
 
-        //return fdata;
+        
+        for (uint ir = 0; ir < repeat_load_count; ++ir) {
+            log("copy ir = " + std::to_string(ir) + "...");
+            memcpy(&all_data[ir * total_int_written], read_data, total_int_written * sizeof(unsigned int));
+        }
+
+        log("copy ok");
+
+        total_module_count = total_module_count * repeat_load_count;
+        total_cell_count = total_cell_count * repeat_load_count;
+
+        expected_cluster_count = expected_cluster_count * repeat_load_count;
+        expected_label_sum = expected_label_sum * repeat_load_count;
+
+        in_total_size = total_module_count * sizeof(implicit_input_module) + total_cell_count * sizeof(input_cell);
+        out_total_size = total_module_count * sizeof(implicit_output_module) + total_cell_count * sizeof(output_cell);
+
+        log("IN SIZE  = " + std::to_string(in_total_size / 1024) + " KiB");
+        log("OUT SIZE = " + std::to_string(out_total_size / 1024) + " KiB");
+
+        return;
     }
 
 
@@ -347,7 +390,7 @@ namespace traccc {
 
             // Graphe de pointeurs
             // Lecture + fill
-            if ( (b.mode == sycl_mode::host_USM)
+            if ( (b.mode == sycl_mode::host_USM) // aucun support pour device
             ||   (b.mode == sycl_mode::shared_USM)
             ||   (b.mode == sycl_mode::glibc) ) {
 
@@ -423,11 +466,20 @@ namespace traccc {
                 b.flat_output.modules = new flat_output_module[total_module_count];
             }
 
-            if (b.mode == sycl_mode::host_USM) {
+            // Host ou device, le device fera ensuite une allocation explicite
+            if ( (b.mode == sycl_mode::host_USM) || b.mode == sycl_mode::device_USM ) {
                 b.flat_input.cells  = static_cast<input_cell *>  (cl::sycl::malloc_host(total_cell_count * sizeof(input_cell),  b.sycl_q));
                 b.flat_output.cells = static_cast<output_cell *> (cl::sycl::malloc_host(total_cell_count * sizeof(output_cell), b.sycl_q));
                 b.flat_input.modules  = static_cast<flat_input_module *>  (cl::sycl::malloc_host(total_module_count * sizeof(flat_input_module),  b.sycl_q));
                 b.flat_output.modules = static_cast<flat_output_module *> (cl::sycl::malloc_host(total_module_count * sizeof(flat_output_module), b.sycl_q));
+            }
+
+            // Donc allocation host + allocation device
+            if ( b.mode == sycl_mode::device_USM ) {
+                b.flat_input.cells_device  = cl::sycl::malloc_device<input_cell>(total_cell_count,  b.sycl_q);
+                b.flat_output.cells_device = cl::sycl::malloc_device<output_cell>(total_cell_count, b.sycl_q);
+                b.flat_input.modules_device  = cl::sycl::malloc_host<flat_input_module>(total_module_count,  b.sycl_q);
+                b.flat_output.modules_device = cl::sycl::malloc_host<flat_output_module>(total_module_count, b.sycl_q);
             }
 
             if (b.mode == sycl_mode::shared_USM) {
@@ -436,6 +488,8 @@ namespace traccc {
                 b.flat_input.modules  = static_cast<flat_input_module *>  (cl::sycl::malloc_shared(total_module_count * sizeof(flat_input_module),  b.sycl_q));
                 b.flat_output.modules = static_cast<flat_output_module *> (cl::sycl::malloc_shared(total_module_count * sizeof(flat_output_module), b.sycl_q));
             }
+
+            if (ignore_allocation_times) chrono.reset();
 
             // Fill
             unsigned int global_cell_index = 0;
@@ -632,7 +686,8 @@ namespace traccc {
 
             // Exécution du kernel
             if ( (b.mode == sycl_mode::host_USM)
-            ||   (b.mode == sycl_mode::shared_USM) ) {
+            ||   (b.mode == sycl_mode::shared_USM)
+            ||   (b.mode == sycl_mode::device_USM) ) {
                 // ==== parallel for ====
                 class MyKernel_flat;
 
@@ -641,14 +696,35 @@ namespace traccc {
 
                 //const traccc::implicit_input_module  * implicit_modules_in_kern  = implicit_modules_in;
                 //traccc::implicit_output_module * implicit_modules_out_kern = implicit_modules_out;
-
+                
                 // Input data
-                traccc::flat_input_module * flat_modules_in_kern  = b.flat_input.modules;
-                traccc::input_cell * flat_cells_in_kern  = b.flat_input.cells;
+                traccc::flat_input_module * flat_modules_in_kern;
+                traccc::input_cell * flat_cells_in_kern;
 
                 // Output data
-                traccc::flat_output_module * flat_modules_out_kern  = b.flat_output.modules;
-                traccc::output_cell * flat_cells_out_kern  = b.flat_output.cells;
+                traccc::flat_output_module * flat_modules_out_kern;
+                traccc::output_cell * flat_cells_out_kern;
+
+                // Device : transfert explicite
+                if (b.mode == sycl_mode::device_USM) {
+                    b.sycl_q.memcpy(b.flat_input.modules_device, b.flat_input.modules, total_module_count * sizeof(flat_input_module));
+                    b.sycl_q.memcpy(b.flat_input.cells_device, b.flat_input.cells, total_cell_count * sizeof(input_cell));
+                    b.sycl_q.wait_and_throw();
+
+                    flat_modules_in_kern = b.flat_input.modules_device;
+                    flat_cells_in_kern = b.flat_input.cells_device;
+                    flat_modules_out_kern  = b.flat_output.modules_device;
+                    flat_cells_out_kern  = b.flat_output.cells_device;
+
+                } else {
+                    // Mémoire host ou shared
+                    flat_modules_in_kern = b.flat_input.modules;
+                    flat_cells_in_kern = b.flat_input.cells;
+                    flat_modules_out_kern  = b.flat_output.modules;
+                    flat_cells_out_kern  = b.flat_output.cells;
+                }
+
+                
 
                 //uint rep = module_count;
                 b.sycl_q.parallel_for<MyKernel_flat>(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
@@ -714,6 +790,15 @@ namespace traccc {
                 });
 
                 b.sycl_q.wait_and_throw();
+
+                // Device : transfert explicite
+                if (b.mode == sycl_mode::device_USM) {
+                    b.sycl_q.memcpy(b.flat_output.modules, b.flat_output.modules_device, total_module_count * sizeof(flat_output_module));
+                    b.sycl_q.memcpy(b.flat_output.cells, b.flat_output.cells_device, total_cell_count * sizeof(output_cell));
+                    b.sycl_q.wait_and_throw();
+                }
+
+
             }
             // Exécution du kernel
             if ( b.mode == sycl_mode::glibc ) {
@@ -796,7 +881,7 @@ namespace traccc {
         if (microseconds != 0) usleep(microseconds);
     }
 
-    void read_memory(bench_variables b) {
+    void read_memory(bench_variables & b) {
         if (TRACCC_LOG_LEVEL >= 2) log("Read memory...");
 
         stime_utils chrono;
@@ -818,6 +903,7 @@ namespace traccc {
                 }
             }
         } else {
+            // Valable pour tout : glibc, device, host et shared.
             for (int module_index = 0; module_index < total_module_count; ++module_index) {
                 total_cluster_count += b.flat_output.modules[module_index].cluster_count;
             }
@@ -827,14 +913,23 @@ namespace traccc {
             }
 
         }
+
+        if ( (total_cluster_count != expected_cluster_count) || (labels_sum != expected_label_sum) ) {
+            logs("\n    ERROR [[[ clusters(" + std::to_string(total_cluster_count)
+                + " != expected " + std::to_string(expected_cluster_count) + ")"
+                + " labels(" + std::to_string(labels_sum) + " != expected " + std::to_string(expected_label_sum) + ") ]]]   ");
+        } else {
+            logs("\n    OK [[[ clusters(" + std::to_string(total_cluster_count) + ")  labels(" + std::to_string(labels_sum) + ") ]]]   ");
+        }
         
-        logs("\n    [[[ clusters(" + std::to_string(total_cluster_count) + ")  labels(" + std::to_string(labels_sum) + ") ]]]   ");
+        
 
         b.chres.t_read = chrono.reset();
+        //log("Read - time value = " + std::to_string(b.chres.t_read));
         if (TRACCC_LOG_LEVEL >= 2) log("Read memory ok.");
     }
 
-    void free_memory(bench_variables b) {
+    void free_memory(bench_variables & b) {
 
         if (TRACCC_LOG_LEVEL >= 2) log("Free memory...");
 
@@ -852,7 +947,7 @@ namespace traccc {
                     traccc::implicit_input_module  * module_in  = &b.implicit_modules_in[im];
                     traccc::implicit_output_module * module_out = &b.implicit_modules_out[im];
 
-                    if (b.mode == sycl_mode::host_USM || sycl_mode::shared_USM) {
+                    if ( (b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::shared_USM) ) {
                         cl::sycl::free(module_in->cells, b.sycl_q);
                         cl::sycl::free(module_out->cells, b.sycl_q);
                     }
@@ -881,14 +976,22 @@ namespace traccc {
                 delete[] b.flat_input.modules;
                 delete[] b.flat_output.modules;
             }
-            if (b.mode == sycl_mode::host_USM || b.mode == sycl_mode::shared_USM) {
+            if ((b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::shared_USM) || (b.mode == sycl_mode::device_USM)) {
                 cl::sycl::free(b.flat_input.cells, b.sycl_q);
                 cl::sycl::free(b.flat_output.cells, b.sycl_q);
                 cl::sycl::free(b.flat_input.modules, b.sycl_q);
                 cl::sycl::free(b.flat_output.modules, b.sycl_q);
             }
+            // En plus pour le device, libération de la mémoire device
+            if (b.mode == sycl_mode::device_USM) {
+                cl::sycl::free(b.flat_input.cells_device, b.sycl_q);
+                cl::sycl::free(b.flat_output.cells_device, b.sycl_q);
+                cl::sycl::free(b.flat_input.modules_device, b.sycl_q);
+                cl::sycl::free(b.flat_output.modules_device, b.sycl_q);
+            }
         }
-        b.chres.t_free_mem = chrono.reset();
+        if (ignore_allocation_times) b.chres.t_free_mem = 0;
+        else                         b.chres.t_free_mem = chrono.reset();
 
         if (TRACCC_LOG_LEVEL >= 2) log("Free memory ok.");
         if (microseconds != 0) usleep(microseconds);
@@ -987,14 +1090,15 @@ namespace traccc {
         // Aucun n'est réellement utile ici.
         gpu_timer gtimer;
 
-
         // Je laisse tous les champs pour que ça reste compatible avec ce qui existe déjà
         write_file 
         
-        // vv inutile ici vv
+        
         << DATASET_NUMBER << " "
-        << INPUT_DATA_SIZE << " "
-        << OUTPUT_DATA_SIZE << " "
+        << in_total_size << " " // INPUT_DATA_SIZE
+        << out_total_size << " " // OUTPUT_DATA_SIZE
+        
+        // vv inutile ici vv
         << PARALLEL_FOR_SIZE << " "
         << VECTOR_SIZE_PER_ITERATION << " "
         // ^^ inutile ici ^^
@@ -1018,9 +1122,12 @@ namespace traccc {
         << REPEAT_COUNT_SUM << " "
         // ^^ inutile ici ^^
 
-        << mem_strategy_to_int(mstrat) // 1 0 - 1 20 - 1 2 ; 2 0 - 2 20 - 2 2 ; 
+        << mem_strategy_to_int(mstrat) << " " // 1 0 - 1 20 - 1 2 ; 2 0 - 2 20 - 2 2 ; 
         // mem strategy  mem location
         // output : 2 0 ; 2 2 ; 1 20
+        << (ignore_allocation_times ? 1 : 0) << " "
+        //<< out_total_size
+
         // plus tard : intervalles de valeurs pour la sparcité
         << "\n";
 
@@ -1068,19 +1175,25 @@ namespace traccc {
 
     }
 
+
     void bench_mem_location_and_strategy(std::ofstream& myfile) {
 
         //log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
         //log("============    - M = PARALLEL_FOR_SIZE = " + std::to_string(PARALLEL_FOR_SIZE));
         
-        total_main_seq_runs = 2 * 3;
+        total_main_seq_runs = 2 * 4;
 
         mem_strategy memory_strategy;
         
-        //percent_div_factor = 2 * 3;
         traccc_chrono_results cres;
 
+        for (int imode = 0; imode <= 3; ++imode) 
+        for (int ignore_at = 0; ignore_at <= 1; ++ignore_at)
         for (int imcp = 0; imcp <= 1; ++imcp) {
+
+            if ( (memory_strategy == pointer_graph) && ignore_pointer_graph_benchmark ) {
+                continue;
+            }
 
             switch (imcp) {
             case 0: memory_strategy = mem_strategy::flatten; break;
@@ -1088,21 +1201,26 @@ namespace traccc {
             default : break;
             }
 
-            for (int imode = 0; imode <= 2; ++imode) {
-                
-                switch (imode) {
-                case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
-                case 1: CURRENT_MODE = sycl_mode::glibc; break;
-                case 2: CURRENT_MODE = sycl_mode::host_USM; break;
-                default : break;
-                }
-                
-                log("");
-                log("Mode(" + mode_to_string(CURRENT_MODE) + ")  memory_strategy(" + mem_strategy_to_str(memory_strategy) + ")");
-                traccc_main_sequence(myfile, CURRENT_MODE, memory_strategy);
-                log("");
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::glibc; break;
+            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            case 3: CURRENT_MODE = sycl_mode::device_USM; break;
+            default : break;
             }
+
+            if ( (CURRENT_MODE == device_USM) && (memory_strategy == pointer_graph) ) {
+                continue; // pas de graphe de pointeurs en explicite
+            }
+
+            ignore_allocation_times = (ignore_at == 1);
+            
+            log("");
+            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  memory_strategy(" + mem_strategy_to_str(memory_strategy) + ")");
+            traccc_main_sequence(myfile, CURRENT_MODE, memory_strategy);
+            log("");
         }
+    
     }
 
     int main_of_traccc(std::function<void(std::ofstream &)> bench_function) {
@@ -1171,9 +1289,10 @@ namespace traccc {
         
         // bench_mem_location_and_strategy
         case 1:
-            OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_tracccMemLocStrat2" + file_name_const_part;
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_" + TRACCC_OUT_FNAME + file_name_const_part;
             //reset_bench_variables();
             //SIMD_FOR_LOOP = 1;
+            ignore_pointer_graph_benchmark = true;
             main_of_traccc(bench_mem_location_and_strategy);
             break;
         
