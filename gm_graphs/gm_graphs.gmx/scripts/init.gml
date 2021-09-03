@@ -12,8 +12,8 @@ g_display_error_list = ds_list_create();
 g_graph_yoffset = 160;
 g_graph_label_ystart = 70;
 g_origin_arrow_size = 15;
-g_graph_height = 700 - 300;
-g_graph_width = 800 - 300;
+g_graph_height = 700;
+g_graph_width = 800;
 g_xorig = 136;
 g_yorig = g_graph_height + g_graph_yoffset;
 g_surface_width = g_graph_width + g_xorig + 100;
@@ -51,6 +51,7 @@ DISPLAY_TEMP_COPY_BUFF_TIMES = false;
 // Variables modifiées lors du lancement des benchmarks
 g_traccc_draw_graph_ptr = true;
 g_traccc_draw_flatten = true;
+g_traccc_ignore_allocation_time = false; // ne prendre que le temps de fill
 
 
 // Pour le chargement rapide d'un fichier sans toutes les étapes intermédiaires

@@ -36,7 +36,7 @@ step = 0;
 draw_every_x_frames = 4; // draw every x frames
 done_images = 0;
 
-tests_per_run = 3;
+tests_per_run = 6;
 run_number = 1;
 total_iterations = tests_per_run * run_number;
 

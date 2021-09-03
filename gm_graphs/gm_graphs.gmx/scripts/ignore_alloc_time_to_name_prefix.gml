@@ -4,7 +4,7 @@ var ignore_alloc_time = argument0;
 
 switch (ignore_alloc_time) {
 case 1 : return "";
-case 0 : return "-sa-";
+case 0 : return "-al";
 }
 
 return "alloc inconnu";

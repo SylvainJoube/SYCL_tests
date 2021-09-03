@@ -20,6 +20,7 @@ if ( (version == 100) || (version == 102) ) {
 }
 
 if (version == 103) { load_data_v103(file); konwn_version = true; }
+if (version == 104) { load_data_v104(file); konwn_version = true; }
 
 
 if ( ! konwn_version ) {

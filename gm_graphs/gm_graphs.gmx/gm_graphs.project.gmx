@@ -56,6 +56,7 @@
       <script>scripts\load_data_v7.gml</script>
       <script>scripts\load_data_v100.gml</script>
       <script>scripts\load_data_v103.gml</script>
+      <script>scripts\load_data_v104.gml</script>
       <script>scripts\load_data_v0_deprecated.gml</script>
       <script>scripts\load_data_common.gml</script>
       <script>scripts\load_data_common_old.gml</script>
