@@ -30,17 +30,12 @@ ctrl = self;
 
 init();
 
-//citer_step = 1;
-
 step = 0;
 draw_every_x_frames = 4; // draw every x frames
 done_images = 0;
 
-tests_per_run = 2;
-run_number = 1;
-total_iterations = tests_per_run * run_number;
 
-traccc_tests_per_run = 2;
+traccc_tests_per_run = 7;
 traccc_run_number = 1;
 traccc_total_iterations = traccc_tests_per_run * traccc_run_number;
 // Et répété deux fois : pour repeat_count = 1 et 10.
@@ -79,20 +74,14 @@ if ( wait ) {
     
     var real_step  = step / draw_every_x_frames;
     
-    //if (step == 30 || step == 60)
-    //    show_message("real_step(" + string(real_step) + ")");
-    
     if (real_step != floor(real_step)) {
         ++step;
         exit;
     }
     //show_message("should run execute");
     
-    var res = run_batch_job_betaGraphs(real_step, current_computer_name);
+    var res = run_batch_job_traccc(real_step, current_computer_name);
     ++done_images;
-    if (res == -1) { // finished drawing
-        wait = false;
-    }
     
     ++step;
 }

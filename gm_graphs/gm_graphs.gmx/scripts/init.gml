@@ -48,10 +48,19 @@ g_multiple_load_file_current_count = 0;
 // depuis le buffer temporaire
 DISPLAY_TEMP_COPY_BUFF_TIMES = false;
 
+
+
+// ======== TRACCC ========
+
 // Variables modifiées lors du lancement des benchmarks
 g_traccc_draw_graph_ptr = true;
 g_traccc_draw_flatten = true;
 g_traccc_ignore_allocation_time = false; // ne prendre que le temps de fill
+g_traccc_ptrVsFlat_memLocation = -1;
+traccc_repeat_load_count = 1; // nombre de fois que les fichiers sont chargés (pour simuler + de données)
+traccc_hide_host = false;
+
+
 
 
 // Pour le chargement rapide d'un fichier sans toutes les étapes intermédiaires

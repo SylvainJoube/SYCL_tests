@@ -1,9 +1,8 @@
-/// mem_location_to_str(mode : int) : string
+/// mem_location_to_str(IMPLICIT_USE_UNIQUE_MODULE) : string
 
-var mode = argument0;
+var mode = argument0; // IMPLICIT_USE_UNIQUE_MODULE
 
 switch (mode) {
-case -1 : return "tout";
 case 0 : return "shared";
 case 1 : return "device";
 case 2 : return "host";

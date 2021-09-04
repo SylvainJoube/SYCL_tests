@@ -21,4 +21,6 @@ j.memory_bandwidth = DEFAULT_MEMORY_BANDWIDTH; // GiB/s
 
 j.IGNORE_ALLOC_TIME = 0; // temps d'allocation pris en compte
 
+// IMPLICIT_USE_UNIQUE_MODULE je veux que ça plante si j'ai pas initialisé ça !
+
 return 0;

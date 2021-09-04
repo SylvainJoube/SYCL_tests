@@ -11,21 +11,32 @@ var computer_name = argument1; // e.g. "msiNvidia_ST" or "thinkpad"
 
 // daclared in create var total_iterations = tests_per_run * run_number;
 
-if ( step >= total_iterations) return -1;
+if ( step >= traccc_total_iterations * 2) return -1;
+
+
+// nombre de fois que les fichiers sont chargés (pour simuler + de données)
+// traccc_repeat_load_count dans le init()
+
+// premières exécutions avec repeat_count = 1 puis 10 pour les dernières
+if ( step >= traccc_total_iterations ) {
+    step -= traccc_total_iterations;
+    traccc_repeat_load_count = 10;
+} else {
+    traccc_repeat_load_count = 1;
+}
+
 
 var current_run = 1; //step + 1;
 
 // ON MSI var common_path = "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
 // ON ordi fixe blanc
-common_path = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
+common_path = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\traccc\";
 
-var size_str = "512MiB";
-// nombre de fois que les fichiers sont chargés (pour simuler + de données)
-// traccc_repeat_load_count dans le create de l'objet actuel
+//var size_str = "512MiB";
 
 
 //var bench_version = "v06";
-var bench_test_nb = "011";
+var bench_test_nb = "A";
 var debug_run_prefix = "";
 var debug_verid = "g";
 
@@ -37,11 +48,11 @@ var fname_prefix_output_short = "b" + bench_test_nb + "_";// + bench_version + "
 //var fname_prefix_output = "b" + bench_test_nb + "_" + bench_version + "_";
 //var fname_prefix_input  = bench_version + "_";
 
-var fname_suffix_common = "_" + computer_name + "_" + size_str + "_O2_RUN" + string(current_run);
+//var fname_suffix_common = "_" + computer_name + "_" + size_str + "_O2_RUN" + string(current_run);
 var fname_suffix_common_traccc = "_" + computer_name + "_ld" + string(traccc_repeat_load_count) + "_RUN" + string(current_run);
 
-var fname_suffix_output = fname_suffix_common + "_q1.5" + ".png";
-var fname_suffix_input  = fname_suffix_common + ".t";
+//var fname_suffix_output = fname_suffix_common + "_q1.5" + ".png";
+//var fname_suffix_input  = fname_suffix_common + ".t";
 
 var fname_suffix_output_traccc = fname_suffix_common_traccc + "_q1.5" + ".png";
 var fname_suffix_input_traccc  = fname_suffix_common_traccc + ".t";
@@ -56,205 +67,17 @@ if (traccc_hide_host) {
 //var local_common_path = common_path + bench_version;
 //var file_name_const_part_ouptut_png = file_name_const_part + "_" + bench_test_nb + ".png";
 
-var current_test = 15 + step; //5 + step;
+var current_test = step + 9; //5 + step;
 
 
 
 switch (current_test) {
 
-case 1:
-    // == sumReadSpeed ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "v06B_sumReadSpeed" + fname_suffix_output,
-    /*use_script*/    draw_some_graph_14throughput,
-    /*display_name*/  computer_name + " - L fixé, repeat variable - " + size_str + " - run " + string(current_run)
-    );
-    batch_add_file(
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "v06B_sumReadSpeed" + fname_suffix_input,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = false;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-
-case 2:
-    // == sumReadSpeed ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "v06B_sumReadSpeedBandwidth" + fname_suffix_output,
-    /*use_script*/    draw_some_graph_14throughputBandwidth,
-    /*display_name*/  computer_name + " - L fixé, repeat variable - " + size_str + " - run " + string(current_run)
-    );
-    batch_add_file(
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "v06B_sumReadSpeed" + fname_suffix_input,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = false;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-case 3:
-    // == cacheSize ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "v06C_cacheSize" + fname_suffix_output,
-    /*use_script*/    draw_some_graph_15cacheSize,
-    /*display_name*/  computer_name + " - L variable, repeat fixé - " + size_str + " - run " + string(current_run)
-    );
-    batch_add_file(
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "v06C_cacheSize" + fname_suffix_input,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = false;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-case 4:
-    // == cacheSizeBandwidth ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "v06D_cacheSizeBandwidth" + fname_suffix_output,
-    /*use_script*/    draw_some_graph_15cacheSizeBandwidth,
-    /*display_name*/  computer_name + " - L variable, repeat fixé - " + size_str + " - run " + string(current_run)
-    );
-    batch_add_file(
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "v06D_cacheSize" + fname_suffix_input,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = false;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-/*iter.t_alloc_fill = ds_list_find_value(values, 8);
-            iter.t_copy_kernel = ds_list_find_value(values, 9);
-            iter.t_read = ds_list_find_value(values, 10);
-            iter.t_free_mem = ds_list_find_value(values, 11);*/
 // TRACCC land
-case 5:
-    //show_message("run_batch_job_betaGraphs - TEST 5 - current_test = " + string(current_test));
-    // == cacheSizeBandwidth ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "TR05_memLocStrat6_flat" + fname_suffix_output_traccc,
-    /*use_script*/    draw_some_graph_traccc_16,
-    /*display_name*/  computer_name + " - ACTS: type mémoire & stratégie - données aplaties - run " + string(current_run)
-    );
-    batch_add_file( // gr.ptr.
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "v05_TEMP_tracccMemLocStrat6" + fname_suffix_input_traccc,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = true;
-    g_xgroup_has_own_scale = false;
-    g_traccc_draw_graph_ptr = false;
-    g_traccc_draw_flatten = true;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-case 6:
-    //show_message("run_batch_job_betaGraphs - TEST 5 - current_test = " + string(current_test));
-    // == cacheSizeBandwidth ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "TR05_memLocStrat6_graphPtr" + fname_suffix_output_traccc,
-    /*use_script*/    draw_some_graph_traccc_16,
-    /*display_name*/  computer_name + " - ACTS: type mémoire & stratégie - graphe de pointeurs - run " + string(current_run)
-    );
-    batch_add_file( // gr.ptr.
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "v05_TEMP_tracccMemLocStrat6" + fname_suffix_input_traccc,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = true;
-    g_xgroup_has_own_scale = false;
-    g_traccc_draw_graph_ptr = true;
-    g_traccc_draw_flatten = false;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-case 7:
-    //show_message("run_batch_job_betaGraphs - TEST 5 - current_test = " + string(current_test));
-    // == cacheSizeBandwidth ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "TR05_memLocStrat6_tout" + fname_suffix_output_traccc,
-    /*use_script*/    draw_some_graph_traccc_16,
-    /*display_name*/  computer_name + " - ACTS: type mémoire & stratégie - tout affiché - run " + string(current_run)
-    );
-    batch_add_file( // gr.ptr.
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "v05_TEMP_tracccMemLocStrat6" + fname_suffix_input_traccc,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = true;
-    g_xgroup_has_own_scale = false;
-    g_traccc_draw_graph_ptr = true;
-    g_traccc_draw_flatten = true;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-case 8:
-    //show_message("run_batch_job_betaGraphs - TEST 5 - current_test = " + string(current_test));
-    // == cacheSizeBandwidth ==
-    // Compare read speeds with USM host, device and shared
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "TR05_memLocStrat7_flattenAll" + fname_suffix_output_traccc,
-    /*use_script*/    draw_some_graph_traccc_16,
-    /*display_name*/  computer_name + " - ACTS: type mémoire & stratégie - flat - run " + string(current_run)
-    );
-    batch_add_file( // gr.ptr.
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "v05_TEMP_tracccMemLocStrat7_sansGraphPtr" + fname_suffix_input_traccc,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = true;
-    g_xgroup_has_own_scale = false;
-    g_traccc_draw_graph_ptr = false;
-    g_traccc_draw_flatten = true;
-    g_traccc_ignore_allocation_time = true;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
 
 // ===================================================
-    
+
+// ===== Comparaison des USM en graphe de pointeur =====
 case 9:
     var graph = batch_add_graph(
     /*output_path*/   common_path,
@@ -278,6 +101,7 @@ case 9:
     ++g_citer;
     break;
 
+// ===== Comparaison des USM en flatten =====
 case 10:
     var graph = batch_add_graph(
     /*output_path*/   common_path,
@@ -301,6 +125,8 @@ case 10:
     ++g_citer;
     break;
 
+// ===== Comparaison des USM en graphe de pointeur =====
+// -> Sans temps d'allocation
 case 11:
     var graph = batch_add_graph(
     /*output_path*/   common_path,
@@ -324,6 +150,8 @@ case 11:
     ++g_citer;
     break;
 
+// ===== Comparaison des USM en flatten =====
+// -> Sans temps d'allocation
 case 12:
     var graph = batch_add_graph(
     /*output_path*/   common_path,
@@ -349,6 +177,7 @@ case 12:
 
 
 
+// ===== Tout supperposé, sans alloc =====
 case 13:
     var graph = batch_add_graph(
     /*output_path*/   common_path,
@@ -379,6 +208,7 @@ case 13:
     ++g_citer;
     break;
 
+// ===== Tout supperposé, avec alloc =====
 case 14:
     var graph = batch_add_graph(
     /*output_path*/   common_path,
@@ -417,6 +247,7 @@ case 2 : return "host";
 case 3 : return "buffers";
 case 20 : return "glibc";
 */
+// ===== Comparaison de chaque type USM : graphe ptr vs flatten =====
 case 15:
     for (var im = 0; im < 3; ++im) {
         var mem_location;
@@ -458,6 +289,7 @@ case 15:
     }
     break;
 
+// ===== Comparaison de chaque type USM : inout vs unique tableau implicite =====
 case 16:
     for (var im = 0; im < 3; ++im) {
         var mem_location;
