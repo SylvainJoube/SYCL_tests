@@ -11,6 +11,7 @@ DIRS = bin
 RUN_EXE_NAME = bin/$(FILE_NAME)
 #IMPLICIT_SOURCES = memory_benchmark.cpp
 
+# Affiche uniquement la liste des devices dispo
 all: build run
 
 # Build and run all tests in a single program
@@ -41,10 +42,9 @@ run:
 	./$(RUN_EXE_NAME)
 
 run_all_tests:
-	./$(RUN_EXE_NAME) 2
+	./$(RUN_EXE_NAME) 1
 # 4 runs for every tests
 
-# for testID in 1 2 3 4 ; do 
 # 
 run_each_test:
 	for runCount in 1 2 3 4 ; do \

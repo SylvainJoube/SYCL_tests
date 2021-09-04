@@ -30,6 +30,11 @@ namespace traccc {
     bool ignore_pointer_graph_benchmark;
     bool ignore_flatten_benchmark;
 
+    // True pour utiliser la structure implicit_module
+    // False pour utiliser les structures implicit_input_module et implicit_output_module.
+    // (et les cellules qui vont avec)
+    bool implicit_use_unique_module;
+
 
     using tdtype = unsigned int;
     /*
@@ -49,6 +54,27 @@ namespace traccc {
     // A simple output cell (contains a label)
     struct output_cell {
         unsigned int label = 0;
+    };
+
+
+    // TODO : un seul tableau en implicite avec les cellules en entrée et en sortie
+    // Voir si ça foire pas la cohérence du bordel, mais comme on est en full implicite
+    // autant vrailent jouer le jeu du graphe de pointeurs.
+
+
+    // Test de la lecture + écriture dans la même structure
+    struct implicit_cell {
+        unsigned int channel0 = 0;
+        unsigned int channel1 = 0;
+        unsigned int label = 0;
+        //float activation = 0.;
+        //float time = 0.;
+        // label
+    };
+    struct implicit_module {
+        unsigned int cell_count;
+        unsigned int cluster_count;
+        implicit_cell* cells;
     };
 
 
@@ -150,7 +176,7 @@ namespace traccc {
         return e;
     }
 
-    unsigned int make_union(output_cell * L, unsigned int e1, unsigned int e2){
+    /*unsigned int make_union(output_cell * L, unsigned int e1, unsigned int e2){
         int e;
         if (e1 < e2){
             e = e1;
@@ -162,6 +188,18 @@ namespace traccc {
         return e;
     }
 
+    unsigned int make_union(implicit_cell * L, unsigned int e1, unsigned int e2){
+        int e;
+        if (e1 < e2){
+            e = e1;
+            L[e2].label = e;
+        } else {
+            e = e2;
+            L[e1].label = e;
+        }
+        return e;
+    }*/
+
     /// Helper method to find adjacent cells
     ///
     /// @param a the first cell
@@ -169,6 +207,11 @@ namespace traccc {
     ///
     /// @return boolan to indicate 8-cell connectivity
     bool is_adjacent(input_cell a, input_cell b) {
+        return (a.channel0 - b.channel0)*(a.channel0 - b.channel0) <= 1
+            and (a.channel1 - b.channel1)*(a.channel1 - b.channel1) <= 1;
+    }
+
+    bool is_adjacent(implicit_cell a, implicit_cell b) {
         return (a.channel0 - b.channel0)*(a.channel0 - b.channel0) <= 1
             and (a.channel1 - b.channel1)*(a.channel1 - b.channel1) <= 1;
     }
@@ -185,6 +228,9 @@ namespace traccc {
         return (a.channel1 - b.channel1) > 1;
     }
 
+    bool is_far_enough(implicit_cell a, implicit_cell b){
+        return (a.channel1 - b.channel1) > 1;
+    }
 
 
 
@@ -358,10 +404,14 @@ namespace traccc {
     public:
         implicit_input_module*  implicit_modules_in;
         implicit_output_module* implicit_modules_out;
+        implicit_module* implicit_modules;
+
         sycl_mode mode;
         cl::sycl::queue sycl_q;
         //mem_strategy mstrat = pointer_graph;
         mem_strategy mstrat;// = flatten;
+
+        
 
         flat_input_data  flat_input;
         flat_output_data flat_output;
@@ -391,7 +441,6 @@ namespace traccc {
         chrono.reset();
 
         if (b.mstrat == pointer_graph) {
-
             
             b.chres.t_flatten_alloc = 0;
             b.chres.t_flatten_fill = 0;
@@ -402,66 +451,117 @@ namespace traccc {
             ||   (b.mode == sycl_mode::shared_USM)
             ||   (b.mode == sycl_mode::glibc) ) {
 
-                if (b.mode == sycl_mode::host_USM) {
-                    b.implicit_modules_in  = static_cast<implicit_input_module *>  (cl::sycl::malloc_host(total_module_count * sizeof(implicit_input_module),  b.sycl_q));
-                    b.implicit_modules_out = static_cast<implicit_output_module *> (cl::sycl::malloc_host(total_module_count * sizeof(implicit_output_module), b.sycl_q));
-                    b.sycl_q.wait_and_throw();
-                    //implicit_modules_in  = static_cast<implicit_input_module *>  (cl::sycl::malloc_host(total_module_count,  sycl_q));
-                    //implicit_modules_out = static_cast<implicit_output_module *> (cl::sycl::malloc_host(total_module_count, sycl_q));
-                }
-                if (b.mode == sycl_mode::glibc) {
-                    b.implicit_modules_in  = new implicit_input_module[total_module_count];
-                    b.implicit_modules_out = new implicit_output_module[total_module_count];
-                }
-                if (b.mode == sycl_mode::shared_USM) {
-                    b.implicit_modules_in =  static_cast<implicit_input_module *>  (cl::sycl::malloc_shared(total_module_count * sizeof(implicit_input_module),  b.sycl_q));
-                    b.implicit_modules_out = static_cast<implicit_output_module *> (cl::sycl::malloc_shared(total_module_count * sizeof(implicit_output_module), b.sycl_q));
-                    b.sycl_q.wait_and_throw();
-                }
+                if (implicit_use_unique_module) {
+                    // Utilisation d'un unique module pour les in/out
 
-                // Allocation des modules, les uns après les autres
-                for (uint im = 0; im < total_module_count; ++im) {
-                    traccc::implicit_input_module  * module_in  = &b.implicit_modules_in[im];
-                    traccc::implicit_output_module * module_out = &b.implicit_modules_out[im];
-                    // lecture du nombre de cellules du module
-                    unsigned int cell_count = read_source();
-                    module_in->cell_count = cell_count;
-                    // allocation des cellules
                     if (b.mode == sycl_mode::host_USM) {
-                        module_in->cells  = static_cast<input_cell *>  (cl::sycl::malloc_host(cell_count * sizeof(input_cell),  b.sycl_q));
-                        module_out->cells = static_cast<output_cell *> (cl::sycl::malloc_host(cell_count * sizeof(output_cell), b.sycl_q));
+                        b.implicit_modules  = cl::sycl::malloc_host<implicit_module>(total_module_count,  b.sycl_q);
                         b.sycl_q.wait_and_throw();
-                        module_out->cluster_count = 0;
                     }
                     if (b.mode == sycl_mode::glibc) {
-                        module_in->cells  = new input_cell[cell_count];
-                        module_out->cells = new output_cell[cell_count];
-                        module_out->cluster_count = 0;
+                        b.implicit_modules  = new implicit_module[total_module_count];
                     }
                     if (b.mode == sycl_mode::shared_USM) {
-                        module_in->cells  = static_cast<input_cell *>  (cl::sycl::malloc_shared(cell_count * sizeof(input_cell),  b.sycl_q));
-                        module_out->cells = static_cast<output_cell *> (cl::sycl::malloc_shared(cell_count * sizeof(output_cell), b.sycl_q));
+                        b.implicit_modules  = cl::sycl::malloc_shared<implicit_module>(total_module_count,  b.sycl_q);;
                         b.sycl_q.wait_and_throw();
-                        module_out->cluster_count = 0;
                     }
-                    
-                    /*if (im < 10) {
-                        log("Module " + std::to_string(im)
-                            + " cell_count(" + std::to_string(cell_count) + ")"
-                        );
 
-                        logs("cells : ");
-                    }*/
+                    // Allocation des modules, les uns après les autres
+                    for (uint im = 0; im < total_module_count; ++im) {
+                        traccc::implicit_module  * module  = &b.implicit_modules[im];
+                        // lecture du nombre de cellules du module
+                        unsigned int cell_count = read_source();
+                        module->cell_count = cell_count;
+                        module->cluster_count = 0;
 
-                    // Remplissage des cellules
-                    for (uint ic = 0; ic < cell_count; ++ic) {
-                        unsigned int c0 = read_source();
-                        unsigned int c1 = read_source();
-                        module_in->cells[ic].channel0 = c0;
-                        module_in->cells[ic].channel1 = c1;
-                        //if (im < 10) logs( "(" + std::to_string(c0) + ", " + std::to_string(c1) + ") ");
+                        // allocation des cellules
+                        if (b.mode == sycl_mode::host_USM) {
+                            module->cells  = cl::sycl::malloc_host<implicit_cell>(cell_count,  b.sycl_q);
+                            b.sycl_q.wait_and_throw();
+                        }
+                        if (b.mode == sycl_mode::glibc) {
+                            module->cells  = new implicit_cell[cell_count];
+                        }
+                        if (b.mode == sycl_mode::shared_USM) {
+                            module->cells  = cl::sycl::malloc_shared<implicit_cell>(cell_count,  b.sycl_q);
+                            b.sycl_q.wait_and_throw();
+                        }
+                        
+                        // Remplissage des cellules
+                        for (uint ic = 0; ic < cell_count; ++ic) {
+                            implicit_cell * cell = &module->cells[ic];
+                            unsigned int c0 = read_source();
+                            unsigned int c1 = read_source();
+                            cell->channel0 = c0;
+                            cell->channel1 = c1;
+                            //if (im < 10) logs( "(" + std::to_string(c0) + ", " + std::to_string(c1) + ") ");
+                        }
+                        //if (im < 10) log("");
                     }
-                    //if (im < 10) log("");
+                } else {
+                    // Utilisation des modules in/out
+
+                    if (b.mode == sycl_mode::host_USM) {
+                        b.implicit_modules_in  = static_cast<implicit_input_module *>  (cl::sycl::malloc_host(total_module_count * sizeof(implicit_input_module),  b.sycl_q));
+                        b.implicit_modules_out = static_cast<implicit_output_module *> (cl::sycl::malloc_host(total_module_count * sizeof(implicit_output_module), b.sycl_q));
+                        b.sycl_q.wait_and_throw();
+                        //implicit_modules_in  = static_cast<implicit_input_module *>  (cl::sycl::malloc_host(total_module_count,  sycl_q));
+                        //implicit_modules_out = static_cast<implicit_output_module *> (cl::sycl::malloc_host(total_module_count, sycl_q));
+                    }
+                    if (b.mode == sycl_mode::glibc) {
+                        b.implicit_modules_in  = new implicit_input_module[total_module_count];
+                        b.implicit_modules_out = new implicit_output_module[total_module_count];
+                    }
+                    if (b.mode == sycl_mode::shared_USM) {
+                        b.implicit_modules_in =  static_cast<implicit_input_module *>  (cl::sycl::malloc_shared(total_module_count * sizeof(implicit_input_module),  b.sycl_q));
+                        b.implicit_modules_out = static_cast<implicit_output_module *> (cl::sycl::malloc_shared(total_module_count * sizeof(implicit_output_module), b.sycl_q));
+                        b.sycl_q.wait_and_throw();
+                    }
+
+                    // Allocation des modules, les uns après les autres
+                    for (uint im = 0; im < total_module_count; ++im) {
+                        traccc::implicit_input_module  * module_in  = &b.implicit_modules_in[im];
+                        traccc::implicit_output_module * module_out = &b.implicit_modules_out[im];
+                        // lecture du nombre de cellules du module
+                        unsigned int cell_count = read_source();
+                        module_in->cell_count = cell_count;
+                        // allocation des cellules
+                        if (b.mode == sycl_mode::host_USM) {
+                            module_in->cells  = static_cast<input_cell *>  (cl::sycl::malloc_host(cell_count * sizeof(input_cell),  b.sycl_q));
+                            module_out->cells = static_cast<output_cell *> (cl::sycl::malloc_host(cell_count * sizeof(output_cell), b.sycl_q));
+                            b.sycl_q.wait_and_throw();
+                            module_out->cluster_count = 0;
+                        }
+                        if (b.mode == sycl_mode::glibc) {
+                            module_in->cells  = new input_cell[cell_count];
+                            module_out->cells = new output_cell[cell_count];
+                            module_out->cluster_count = 0;
+                        }
+                        if (b.mode == sycl_mode::shared_USM) {
+                            module_in->cells  = static_cast<input_cell *>  (cl::sycl::malloc_shared(cell_count * sizeof(input_cell),  b.sycl_q));
+                            module_out->cells = static_cast<output_cell *> (cl::sycl::malloc_shared(cell_count * sizeof(output_cell), b.sycl_q));
+                            b.sycl_q.wait_and_throw();
+                            module_out->cluster_count = 0;
+                        }
+                        
+                        /*if (im < 10) {
+                            log("Module " + std::to_string(im)
+                                + " cell_count(" + std::to_string(cell_count) + ")"
+                            );
+
+                            logs("cells : ");
+                        }*/
+
+                        // Remplissage des cellules
+                        for (uint ic = 0; ic < cell_count; ++ic) {
+                            unsigned int c0 = read_source();
+                            unsigned int c1 = read_source();
+                            module_in->cells[ic].channel0 = c0;
+                            module_in->cells[ic].channel1 = c1;
+                            //if (im < 10) logs( "(" + std::to_string(c0) + ", " + std::to_string(c1) + ") ");
+                        }
+                        //if (im < 10) log("");
+                    }
                 }
             }
         } else { // flatten
@@ -550,148 +650,286 @@ namespace traccc {
             if ( (b.mode == sycl_mode::host_USM)
             ||   (b.mode == sycl_mode::shared_USM) ) {
 
-                // ==== parallel for ====
-                class MyKernel_a;
+                if (implicit_use_unique_module) {
+                    // Utiliser un seul module
 
-                const unsigned int total_module_count_const = total_module_count;
-                const unsigned int max_cell_count_per_module = 1000;
+                    // ==== parallel for ====
+                    class MyKernel_ab;
 
-                //const traccc::implicit_input_module  * implicit_modules_in_kern  = implicit_modules_in;
-                //traccc::implicit_output_module * implicit_modules_out_kern = implicit_modules_out;
+                    const unsigned int total_module_count_const = total_module_count;
+                    const unsigned int max_cell_count_per_module = 1000;
 
-                traccc::implicit_input_module  * implicit_modules_in_kern  = b.implicit_modules_in;
-                traccc::implicit_output_module * implicit_modules_out_kern = b.implicit_modules_out;
+                    traccc::implicit_module  * implicit_modules_kern  = b.implicit_modules;
 
-                //uint rep = module_count;
-                b.sycl_q.parallel_for<MyKernel_a>(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
+                    //uint rep = module_count;
+                    b.sycl_q.parallel_for<MyKernel_ab>(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
 
-                    uint module_index = module_indexx[0] % total_module_count_const;
-                    // ---- SparseCCL part ----
+                        uint module_index = module_indexx[0] % total_module_count_const;
+                        // ---- SparseCCL part ----
 
-                    traccc::implicit_input_module  * module_in =  &implicit_modules_in_kern[module_index];
-                    traccc::implicit_output_module * module_out = &implicit_modules_out_kern[module_index];
+                        traccc::implicit_module  * module =  &implicit_modules_kern[module_index];
 
-                    uint cell_count = module_in->cell_count;
+                        uint cell_count = module->cell_count;
 
-                    // The very dirty part : statically allocate a buffer of the maximum pixel density per module...
-                    uint L[max_cell_count_per_module];
+                        // The very dirty part : statically allocate a buffer of the maximum pixel density per module...
+                        uint L[max_cell_count_per_module];
 
-                    for (uint ic = 0; ic < cell_count; ++ic) {
-                        module_out->cells[ic].label = 0;
-                        // init oublié ?
-                        L[ic] = 0; /// max_cell_count_per_module
-                    }
+                        for (uint ic = 0; ic < cell_count; ++ic) {
+                            module->cells[ic].label = 0;
+                            // init oublié ?
+                            L[ic] = 0; /// max_cell_count_per_module
+                        }
 
-                    unsigned int start_j = 0;
-                    for (unsigned int i=0; i < cell_count; ++i){
-                        L[i] = i;
-                        int ai = i;
-                        if (i > 0){
+                        unsigned int start_j = 0;
+                        for (unsigned int i=0; i < cell_count; ++i){
+                            L[i] = i;
+                            int ai = i;
+                            if (i > 0){
 
-                            const input_cell &ci = module_in->cells[i];
+                                const implicit_cell &ci = module->cells[i];
 
-                            for (unsigned int j = start_j; j < i; ++j){
-                                const input_cell &cj = module_in->cells[j];
-                                if (is_adjacent(ci, cj)){
-                                    ai = make_union(L, ai, find_root(L, j));
-                                } else if (is_far_enough(ci, cj)){
-                                    ++start_j;
+                                for (unsigned int j = start_j; j < i; ++j){
+                                    const implicit_cell &cj = module->cells[j];
+                                    if (is_adjacent(ci, cj)){
+                                        ai = make_union(L, ai, find_root(L, j));
+                                    } else if (is_far_enough(ci, cj)){
+                                        ++start_j;
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // second scan: transitive closure
-                    uint labels = 0;
-                    for (unsigned int i = 0; i < cell_count; ++i){
-                        unsigned int l = 0;
-                        if (L[i] == i){
-                            ++labels;
-                            l = labels; 
-                        } else {
-                            l = L[L[i]];
+                        // second scan: transitive closure
+                        uint labels = 0;
+                        for (unsigned int i = 0; i < cell_count; ++i){
+                            unsigned int l = 0;
+                            if (L[i] == i){
+                                ++labels;
+                                l = labels; 
+                            } else {
+                                l = L[L[i]];
+                            }
+                            L[i] = l;
                         }
-                        L[i] = l;
-                    }
 
-                    // Update the output values
-                    for (unsigned int i = 0; i < cell_count; ++i){
-                        module_out->cells[i].label = L[i];
-                    }
-                    module_out->cluster_count = labels;
-                });
+                        // Update the output values
+                        for (unsigned int i = 0; i < cell_count; ++i){
+                            module->cells[i].label = L[i];
+                        }
+                        module->cluster_count = labels;
+                    });
 
-                b.sycl_q.wait_and_throw();
+                    b.sycl_q.wait_and_throw();
 
+                } else {
+                    // utiliser les modules in.out
+
+                    // ==== parallel for ====
+                    class MyKernel_aa;
+
+                    const unsigned int total_module_count_const = total_module_count;
+                    const unsigned int max_cell_count_per_module = 1000;
+
+                    //const traccc::implicit_input_module  * implicit_modules_in_kern  = implicit_modules_in;
+                    //traccc::implicit_output_module * implicit_modules_out_kern = implicit_modules_out;
+
+                    traccc::implicit_input_module  * implicit_modules_in_kern  = b.implicit_modules_in;
+                    traccc::implicit_output_module * implicit_modules_out_kern = b.implicit_modules_out;
+
+                    //uint rep = module_count;
+                    b.sycl_q.parallel_for<MyKernel_aa>(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
+
+                        uint module_index = module_indexx[0] % total_module_count_const;
+                        // ---- SparseCCL part ----
+
+                        traccc::implicit_input_module  * module_in =  &implicit_modules_in_kern[module_index];
+                        traccc::implicit_output_module * module_out = &implicit_modules_out_kern[module_index];
+
+                        uint cell_count = module_in->cell_count;
+
+                        // The very dirty part : statically allocate a buffer of the maximum pixel density per module...
+                        uint L[max_cell_count_per_module];
+
+                        for (uint ic = 0; ic < cell_count; ++ic) {
+                            module_out->cells[ic].label = 0;
+                            // init oublié ?
+                            L[ic] = 0; /// max_cell_count_per_module
+                        }
+
+                        unsigned int start_j = 0;
+                        for (unsigned int i=0; i < cell_count; ++i){
+                            L[i] = i;
+                            int ai = i;
+                            if (i > 0){
+
+                                const input_cell &ci = module_in->cells[i];
+
+                                for (unsigned int j = start_j; j < i; ++j){
+                                    const input_cell &cj = module_in->cells[j];
+                                    if (is_adjacent(ci, cj)){
+                                        ai = make_union(L, ai, find_root(L, j));
+                                    } else if (is_far_enough(ci, cj)){
+                                        ++start_j;
+                                    }
+                                }
+                            }
+                        }
+
+                        // second scan: transitive closure
+                        uint labels = 0;
+                        for (unsigned int i = 0; i < cell_count; ++i){
+                            unsigned int l = 0;
+                            if (L[i] == i){
+                                ++labels;
+                                l = labels; 
+                            } else {
+                                l = L[L[i]];
+                            }
+                            L[i] = l;
+                        }
+
+                        // Update the output values
+                        for (unsigned int i = 0; i < cell_count; ++i){
+                            module_out->cells[i].label = L[i];
+                        }
+                        module_out->cluster_count = labels;
+                    });
+
+                    b.sycl_q.wait_and_throw();
+                }
             }
 
 
             // Exécution du kernel
             if ( b.mode == sycl_mode::glibc ) {
 
-                // ==== parallel for ====
-                class MyKernel_a;
+                if (implicit_use_unique_module) {
+                    // ==== parallel for ====
 
-                const unsigned int total_module_count_const = total_module_count;
-                const unsigned int max_cell_count_per_module = 1000;
+                    const unsigned int total_module_count_const = total_module_count;
+                    const unsigned int max_cell_count_per_module = 1000;
 
-                //uint rep = module_count;
-                for (uint module_index = 0; module_index < total_module_count_const; ++module_index) {
-                    // ---- SparseCCL part ----
-                    //log("module_index " + std::to_string(module_index));
+                    //uint rep = module_count;
+                    for (uint module_index = 0; module_index < total_module_count_const; ++module_index) {
+                        // ---- SparseCCL part ----
+                        //log("module_index " + std::to_string(module_index));
 
-                    traccc::implicit_input_module  * module_in =  &b.implicit_modules_in[module_index];
-                    traccc::implicit_output_module * module_out = &b.implicit_modules_out[module_index];
+                        traccc::implicit_module  * module =  &b.implicit_modules[module_index];
 
-                    uint cell_count = module_in->cell_count;
+                        uint cell_count = module->cell_count;
 
-                    // The very dirty part : statically allocate a buffer of the maximum pixel density per module...
-                    uint L[max_cell_count_per_module];
+                        // The very dirty part : statically allocate a buffer of the maximum pixel density per module...
+                        uint L[max_cell_count_per_module];
 
-                    for (uint ic = 0; ic < cell_count; ++ic) {
-                        module_out->cells[ic].label = 0;
-                        L[ic] = 0;
-                    }
-                    
+                        for (uint ic = 0; ic < cell_count; ++ic) {
+                            module->cells[ic].label = 0;
+                            L[ic] = 0;
+                        }
+                        
 
-                    unsigned int start_j = 0;
-                    for (unsigned int i=0; i < cell_count; ++i){
-                        L[i] = i;
-                        int ai = i;
-                        if (i > 0){
+                        unsigned int start_j = 0;
+                        for (unsigned int i=0; i < cell_count; ++i){
+                            L[i] = i;
+                            int ai = i;
+                            if (i > 0){
 
-                            const input_cell &ci = module_in->cells[i];
-                            for (unsigned int j = start_j; j < i; ++j){
-                                const input_cell &cj = module_in->cells[j];
-                                if (is_adjacent(ci, cj)){
-                                    ai = make_union(L, ai, find_root(L, j));
-                                } else if (is_far_enough(ci, cj)){
-                                    ++start_j;
+                                const implicit_cell &ci = module->cells[i];
+                                for (unsigned int j = start_j; j < i; ++j){
+                                    const implicit_cell &cj = module->cells[j];
+                                    if (is_adjacent(ci, cj)){
+                                        ai = make_union(L, ai, find_root(L, j));
+                                    } else if (is_far_enough(ci, cj)){
+                                        ++start_j;
+                                    }
                                 }
                             }
                         }
-                    }
-                    
-                    // second scan: transitive closure
-                    uint labels = 0;
-                    for (unsigned int i = 0; i < cell_count; ++i){
-                        unsigned int l = 0;
-                        if (L[i] == i){
-                            ++labels;
-                            l = labels; 
-                        } else {
-                            l = L[L[i]];
+                        
+                        // second scan: transitive closure
+                        uint labels = 0;
+                        for (unsigned int i = 0; i < cell_count; ++i){
+                            unsigned int l = 0;
+                            if (L[i] == i){
+                                ++labels;
+                                l = labels; 
+                            } else {
+                                l = L[L[i]];
+                            }
+                            L[i] = l;
                         }
-                        L[i] = l;
+
+                        // Update the output values
+                        for (unsigned int i = 0; i < cell_count; ++i){
+                            module->cells[i].label = L[i];
+                        }
+                        module->cluster_count = labels;
+                        // erreur de marde -> module_out[module_index].cluster_count = labels;
                     }
 
-                    // Update the output values
-                    for (unsigned int i = 0; i < cell_count; ++i){
-                        module_out->cells[i].label = L[i];
+                } else {
+                    // ==== parallel for ====
+
+                    const unsigned int total_module_count_const = total_module_count;
+                    const unsigned int max_cell_count_per_module = 1000;
+
+                    //uint rep = module_count;
+                    for (uint module_index = 0; module_index < total_module_count_const; ++module_index) {
+                        // ---- SparseCCL part ----
+                        //log("module_index " + std::to_string(module_index));
+
+                        traccc::implicit_input_module  * module_in =  &b.implicit_modules_in[module_index];
+                        traccc::implicit_output_module * module_out = &b.implicit_modules_out[module_index];
+
+                        uint cell_count = module_in->cell_count;
+
+                        // The very dirty part : statically allocate a buffer of the maximum pixel density per module...
+                        uint L[max_cell_count_per_module];
+
+                        for (uint ic = 0; ic < cell_count; ++ic) {
+                            module_out->cells[ic].label = 0;
+                            L[ic] = 0;
+                        }
+                        
+
+                        unsigned int start_j = 0;
+                        for (unsigned int i=0; i < cell_count; ++i){
+                            L[i] = i;
+                            int ai = i;
+                            if (i > 0){
+
+                                const input_cell &ci = module_in->cells[i];
+                                for (unsigned int j = start_j; j < i; ++j){
+                                    const input_cell &cj = module_in->cells[j];
+                                    if (is_adjacent(ci, cj)){
+                                        ai = make_union(L, ai, find_root(L, j));
+                                    } else if (is_far_enough(ci, cj)){
+                                        ++start_j;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // second scan: transitive closure
+                        uint labels = 0;
+                        for (unsigned int i = 0; i < cell_count; ++i){
+                            unsigned int l = 0;
+                            if (L[i] == i){
+                                ++labels;
+                                l = labels; 
+                            } else {
+                                l = L[L[i]];
+                            }
+                            L[i] = l;
+                        }
+
+                        // Update the output values
+                        for (unsigned int i = 0; i < cell_count; ++i){
+                            module_out->cells[i].label = L[i];
+                        }
+                        module_out->cluster_count = labels;
+                        // erreur de marde -> module_out[module_index].cluster_count = labels;
                     }
-                    module_out->cluster_count = labels;
-                    // erreur de marde -> module_out[module_index].cluster_count = labels;
-                };
+                }
             }
         } else { // flat structure
 
@@ -903,14 +1141,32 @@ namespace traccc {
         uint labels_sum = 0;
 
         if (b.mstrat == pointer_graph) {
-            for (int module_index = 0; module_index < total_module_count; ++module_index) {
-                total_cluster_count += b.implicit_modules_out[module_index].cluster_count;
 
-                // Somme de tous les labels des cellules
-                uint cell_count = b.implicit_modules_in[module_index].cell_count;
-                implicit_output_module * module_out = &b.implicit_modules_out[module_index];
-                for (uint ic = 0; ic < cell_count; ++ic) {
-                    labels_sum += module_out->cells[ic].label;
+            if (implicit_use_unique_module) {
+                // un seul module pour les in/out
+
+                for (int module_index = 0; module_index < total_module_count; ++module_index) {
+                    total_cluster_count += b.implicit_modules[module_index].cluster_count;
+
+                    // Somme de tous les labels des cellules
+                    uint cell_count = b.implicit_modules[module_index].cell_count;
+                    implicit_module * module = &b.implicit_modules[module_index];
+                    for (uint ic = 0; ic < cell_count; ++ic) {
+                        labels_sum += module->cells[ic].label;
+                    }
+                }
+
+            } else { // utilisation des modules in/out
+
+                for (int module_index = 0; module_index < total_module_count; ++module_index) {
+                    total_cluster_count += b.implicit_modules_out[module_index].cluster_count;
+
+                    // Somme de tous les labels des cellules
+                    uint cell_count = b.implicit_modules_in[module_index].cell_count;
+                    implicit_output_module * module_out = &b.implicit_modules_out[module_index];
+                    for (uint ic = 0; ic < cell_count; ++ic) {
+                        labels_sum += module_out->cells[ic].label;
+                    }
                 }
             }
         } else {
@@ -953,30 +1209,56 @@ namespace traccc {
             ||   (b.mode == sycl_mode::shared_USM)
             ||   (b.mode == sycl_mode::glibc) ) {
 
-                // Libération de la mémoire des listes de cellules de chaque module
-                for (uint im = 0; im < total_module_count; ++im) {
-                    traccc::implicit_input_module  * module_in  = &b.implicit_modules_in[im];
-                    traccc::implicit_output_module * module_out = &b.implicit_modules_out[im];
+                if (implicit_use_unique_module) {
+                    // un seul module pour les in/out
 
+                    // Libération de la mémoire des listes de cellules de chaque module
+                    for (uint im = 0; im < total_module_count; ++im) {
+                        traccc::implicit_module  * module  = &b.implicit_modules[im];
+
+                        if ( (b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::shared_USM) ) {
+                            cl::sycl::free(module->cells, b.sycl_q);
+                        }
+                        if (b.mode == sycl_mode::glibc) {
+                            delete[] module->cells;
+                        }
+                    }
+
+                    // Libération de la liste des modules
                     if ( (b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::shared_USM) ) {
-                        cl::sycl::free(module_in->cells, b.sycl_q);
-                        cl::sycl::free(module_out->cells, b.sycl_q);
+                        cl::sycl::free(b.implicit_modules, b.sycl_q);
                     }
-
                     if (b.mode == sycl_mode::glibc) {
-                        delete[] module_in->cells;
-                        delete[] module_out->cells;
+                        delete[] b.implicit_modules;
                     }
-                }
+                    
+                } else { // utilisation des modules in/out
+                    
+                    // Libération de la mémoire des listes de cellules de chaque module
+                    for (uint im = 0; im < total_module_count; ++im) {
+                        traccc::implicit_input_module  * module_in  = &b.implicit_modules_in[im];
+                        traccc::implicit_output_module * module_out = &b.implicit_modules_out[im];
 
-                // Libération de la liste des modules
-                if ( (b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::shared_USM) ) {
-                    cl::sycl::free(b.implicit_modules_in, b.sycl_q);
-                    cl::sycl::free(b.implicit_modules_out, b.sycl_q);
-                }
-                if (b.mode == sycl_mode::glibc) {
-                    delete[] b.implicit_modules_in;
-                    delete[] b.implicit_modules_out;
+                        if ( (b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::shared_USM) ) {
+                            cl::sycl::free(module_in->cells, b.sycl_q);
+                            cl::sycl::free(module_out->cells, b.sycl_q);
+                        }
+
+                        if (b.mode == sycl_mode::glibc) {
+                            delete[] module_in->cells;
+                            delete[] module_out->cells;
+                        }
+                    }
+
+                    // Libération de la liste des modules
+                    if ( (b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::shared_USM) ) {
+                        cl::sycl::free(b.implicit_modules_in, b.sycl_q);
+                        cl::sycl::free(b.implicit_modules_out, b.sycl_q);
+                    }
+                    if (b.mode == sycl_mode::glibc) {
+                        delete[] b.implicit_modules_in;
+                        delete[] b.implicit_modules_out;
+                    }
                 }
             }
         } else { // flatten
@@ -1137,7 +1419,7 @@ namespace traccc {
         // mem strategy  mem location
         // output : 2 0 ; 2 2 ; 1 20
         // fait en GM -> << (ignore_allocation_times ? 1 : 0) << " "
-        //<< out_total_size
+        << implicit_use_unique_module << " "
 
         // plus tard : intervalles de valeurs pour la sparcité
         << "\n";
@@ -1235,8 +1517,8 @@ namespace traccc {
 
             //ignore_allocation_times = (ignore_at == 1);
             
-            log("");
-            log("Mode(" + mode_to_string(CURRENT_MODE) + ")  memory_strategy(" + mem_strategy_to_str(memory_strategy) + ")");
+            log("\n");
+            log("==== Mode(" + mode_to_string(CURRENT_MODE) + ")  memory_strategy(" + mem_strategy_to_str(memory_strategy) + ") ====");
             traccc_main_sequence(myfile, CURRENT_MODE, memory_strategy);
             log("");
         }
@@ -1283,6 +1565,7 @@ namespace traccc {
 
         if ( ! ignore_pointer_graph_benchmark ) log("-----> Do graph pointer.");
         if ( ! ignore_flatten_benchmark ) log("-----> Do flatten.");
+        log("-----> traccc_repeat_load_count(" + std::to_string(traccc_repeat_load_count) + ")");
         //if ( ignore_allocation_times ) log("-----> Ignore allocation times.");
         //else                           log("-----> Count allocation times.");
 
@@ -1321,13 +1604,31 @@ namespace traccc {
             OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalFlatten" + file_name_const_part; // TRACCC_OUT_FNAME
             ignore_pointer_graph_benchmark = true;
             ignore_flatten_benchmark = false;
+            // inutile ici implicit_use_unique_module = false;
             main_of_traccc(bench_mem_location_and_strategy);
             break;
 
         case 2:
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalGraphPtr_uniqueModules" + file_name_const_part; // TRACCC_OUT_FNAME
+            ignore_pointer_graph_benchmark = false;
+            ignore_flatten_benchmark = true;
+            implicit_use_unique_module = true;
+            main_of_traccc(bench_mem_location_and_strategy);
+            break;
+
+        case 3:
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalGraphPtr_inOutModules" + file_name_const_part; // TRACCC_OUT_FNAME
+            ignore_pointer_graph_benchmark = false;
+            ignore_flatten_benchmark = true;
+            implicit_use_unique_module = false;
+            main_of_traccc(bench_mem_location_and_strategy);
+            break;
+
+        case 4:
             OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalGraphPtr" + file_name_const_part; // TRACCC_OUT_FNAME
             ignore_pointer_graph_benchmark = false;
             ignore_flatten_benchmark = true;
+            // inutile ici implicit_use_unique_module = false;
             main_of_traccc(bench_mem_location_and_strategy);
             break;
 
@@ -1376,7 +1677,7 @@ namespace traccc {
         // Tests to compare against, to check graphs validity
         //int test_runs_count = runs_count;
         for (uint irun = 1; irun <= runs_count; ++irun) {
-            for (uint itest = 1; itest <= 2; ++itest) {
+            for (uint itest = 1; itest <= 4; ++itest) {
                 run_single_test_generic_traccc(computer_name, itest, irun);
             }
         }

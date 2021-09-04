@@ -75,15 +75,19 @@ std::string DEVICE_NAME_ON_MSI_NVIDIA = "NVIDIA GeForce GTX 960M";
 std::string DEVICE_NAME_ON_SANDOR     = "Quadro RTX 5000";
 
 //std::string BENCHMARK_VERSION = "v06D";
-std::string BENCHMARK_VERSION = "v05_TEMP"; // Sandor compatible
-std::string BENCHMARK_VERSION_TRACCC = "acts05";
-std::string DISPLAY_VERSION = BENCHMARK_VERSION_TRACCC + " - TRACCC-011";
+std::string BENCHMARK_VERSION = "v05"; // Sandor compatible
+std::string BENCHMARK_VERSION_TRACCC = "acts06";
+std::string DISPLAY_VERSION = BENCHMARK_VERSION_TRACCC + " - TRACCC-013";
 
 // Not used anymore
 //std::string TRACCC_OUT_FNAME = "tracccMemLocStrat7_sansGraphPtr";
 
 // nombre de fois qu'il faut répéter le chargement des données
-unsigned int traccc_repeat_load_count = 10;
+unsigned int traccc_repeat_load_count = 1;
+const unsigned int traccc_repeat_load_count_ON_MSI_INTEL = 1;
+const unsigned int traccc_repeat_load_count_ON_MSI_NVIDIA = 1;
+const unsigned int traccc_repeat_load_count_ON_SANDOR = 10;
+const unsigned int traccc_repeat_load_count_ON_THINKPAD = 1;
 
 uint currently_running_on_computer_id = 0; // 1 thinkpad, 2 msi Intel (dpcpp), 3 msi Nvidia (syclcc), 4 sandor
 // les valeurs 2 et 3 sont équivalentes ici.
@@ -129,7 +133,7 @@ std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); 
 
 
 #define DATA_VERSION 7
-#define DATA_VERSION_TRACCC 104
+#define DATA_VERSION_TRACCC 105
 
 // number of diffrent datasets
 #define DATASET_NUMBER 1
