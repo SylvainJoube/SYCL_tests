@@ -359,22 +359,22 @@ public:
         if (devName.compare(DEVICE_NAME_ON_THINKPAD) == 0) {
             currently_running_on_computer_id = 1; // 1 Thinkpad
             MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_THINKPAD;
-            traccc_repeat_load_count = traccc_repeat_load_count_ON_THINKPAD;
+            base_traccc_repeat_load_count = traccc_repeat_load_count_ON_THINKPAD;
         }
         if (devName.compare(DEVICE_NAME_ON_MSI_INTEL) == 0) {
             currently_running_on_computer_id = 2; // MSI Intel (no Nvidia device is visible with dpcpp)
             MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_MSI_INTEL;
-            traccc_repeat_load_count = traccc_repeat_load_count_ON_MSI_INTEL;
+            base_traccc_repeat_load_count = traccc_repeat_load_count_ON_MSI_INTEL;
         }
         if (devName.compare(DEVICE_NAME_ON_MSI_NVIDIA) == 0) {
             currently_running_on_computer_id = 3; // MSI Nvidia (no Intel device is visible when using syclcc)
             MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_MSI_NVIDIA;
-            traccc_repeat_load_count = traccc_repeat_load_count_ON_MSI_NVIDIA;
+            base_traccc_repeat_load_count = traccc_repeat_load_count_ON_MSI_NVIDIA;
         }
         if (devName.compare(DEVICE_NAME_ON_SANDOR) == 0) {
             currently_running_on_computer_id = 4; // 4 Sandor
             MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_SANDOR;
-            traccc_repeat_load_count = traccc_repeat_load_count_ON_SANDOR;
+            base_traccc_repeat_load_count = traccc_repeat_load_count_ON_SANDOR;
         }
 
         // Return the default device score

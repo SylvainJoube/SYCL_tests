@@ -20,6 +20,9 @@ all_tests: build run_all_tests
 # Builds and runs each test separately
 each_test: build run_each_test
 
+profile_alloc: build run_profile_alloc
+
+traccc_sparse: build run_traccc_sparse
 
 #terminalout_build:
 #	$(CXX) $(CXXFLAGS) -o bin/memory_benchmark memory_benchmark.cpp
@@ -33,7 +36,11 @@ run_mem:
 
 run_traccc:
 	./$(RUN_EXE_NAME) traccc
+run_traccc_sparse:
+	./$(RUN_EXE_NAME) traccc sparse
 
+run_profile_alloc:
+	./$(RUN_EXE_NAME) profile_alloc
 
 build:
 	$(CXX) $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp

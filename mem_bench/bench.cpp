@@ -248,8 +248,8 @@ void delete_datasets(host_dataset* hdata) {
 
 host_dataset *global_persistent_datasets = nullptr;
 
-void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 
+void main_sequence(std::ofstream& write_file, sycl_mode mode) {
     // Pointers to allocation, compute and free SYCL functions.
     void (*sycl_allocation)(cl::sycl::queue &, host_dataset *, gpu_timer &, sycl_mode mode);
     void (*sycl_compute)(cl::sycl::queue &, host_dataset *, gpu_timer &, sycl_mode mode);
@@ -1113,6 +1113,123 @@ void run_single_test_generic(std::string size_prefix, std::string computer_name,
     }
 }
 
+
+void profile_mem_alloc_modes(std::ofstream& myfile) {
+
+    REPEAT_COUNT_REALLOC = 1;
+
+    for (int imode = 0; imode <= 2; ++imode)
+    for (int imcp = 0; imcp <= 1; ++imcp)  {
+        MEMCOPY_IS_SYCL = imcp;
+
+        
+        switch (imode) {
+        case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+        case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+        case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+        default : break;
+        }
+        log("PROFILING - PROFILING - Mode(" + mode_to_string(CURRENT_MODE) + ")  MEMCOPY_IS_SYCL(" + std::to_string(MEMCOPY_IS_SYCL) + ")");
+        
+        main_sequence(myfile, CURRENT_MODE);
+
+        log("");
+    }
+}
+void profile_mem_alloc_modes_ext(std::ofstream& myfile) { //, sycl_mode mode, bool use_sycl_memcpy) {
+
+    REPEAT_COUNT_REALLOC = 1;
+    //MEMCOPY_IS_SYCL = use_sycl_memcpy ? 1 : 0;
+
+    //CURRENT_MODE = mode;
+
+    log("PROFILING - PROFILING - Mode(" + mode_to_string(CURRENT_MODE) + ")  MEMCOPY_IS_SYCL(" + std::to_string(MEMCOPY_IS_SYCL) + ")");
+    
+    uint repeat_count = 3;
+    
+    for (uint ir = 0; ir < repeat_count; ++ir) {
+        main_sequence(myfile, CURRENT_MODE);
+        log("\nNOW SLEEP...");
+        unsigned int microseconds = 1000 * 1000; // 1 seconde
+        usleep(microseconds);
+        log("WOKEN-UP.");
+    }
+    
+    log("");
+}
+
+/*void profiling_run_test(std::string size_prefix, std::string computer_name,
+                             uint test_id, uint run_count) {
+    std::string file_name_prefix = "_" + computer_name + "_" + size_prefix + "_O2";
+    std::string file_name_const_part = file_name_prefix + "_RUN" + std::to_string(run_count) + ".t";
+
+    // profiler shared : copie glibc vs sycl
+    if (test_id == 1) {
+
+        VECTOR_SIZE_PER_ITERATION = 128;
+        PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
+
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_alloc_PROFILING" + file_name_const_part;
+        reset_bench_variables();
+        main_of_program(profile_mem_alloc_modes);
+    }
+}*/
+
+void profiling_run_test(std::string size_prefix, std::string computer_name,
+                             uint test_id, uint run_count) {
+    std::string file_name_prefix = "_" + computer_name + "_" + size_prefix + "_O2";
+    std::string file_name_const_part = file_name_prefix + "_RUN" + std::to_string(run_count) + ".t";
+
+    // profiler shared : copie glibc vs sycl
+
+    VECTOR_SIZE_PER_ITERATION = 128;
+    PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
+    
+    // host sycl
+    if (test_id == 1) {
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_alloc_PROFILING-host-sycl.protemp";// + file_name_const_part;
+        reset_bench_variables();
+        MEMCOPY_IS_SYCL = 1;
+        CURRENT_MODE = sycl_mode::host_USM;
+        main_of_program(profile_mem_alloc_modes_ext);
+    }
+    // host glibc
+    if (test_id == 2) {
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_alloc_PROFILING-host-glibc.protemp";// + file_name_const_part;
+        reset_bench_variables();
+        MEMCOPY_IS_SYCL = 0;
+        CURRENT_MODE = sycl_mode::host_USM;
+        main_of_program(profile_mem_alloc_modes_ext);
+    }
+    // host sycl
+    if (test_id == 3) {
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_alloc_PROFILING-shared-sycl.protemp";// + file_name_const_part;
+        reset_bench_variables();
+        MEMCOPY_IS_SYCL = 1;
+        CURRENT_MODE = sycl_mode::shared_USM;
+        main_of_program(profile_mem_alloc_modes_ext);
+    }
+    // host glibc
+    if (test_id == 4) {
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_alloc_PROFILING-shared-glibc.protemp";// + file_name_const_part;
+        reset_bench_variables();
+        MEMCOPY_IS_SYCL = 0;
+        CURRENT_MODE = sycl_mode::shared_USM;
+        main_of_program(profile_mem_alloc_modes_ext);
+    }
+
+    // device
+    if (test_id == 5) {
+        OUTPUT_FILE_NAME = BENCHMARK_VERSION + "_alloc_PROFILING-device-sycl.protemp";// + file_name_const_part;
+        reset_bench_variables();
+        MEMCOPY_IS_SYCL = 1;
+        CURRENT_MODE = sycl_mode::device_USM;
+        main_of_program(profile_mem_alloc_modes_ext);
+    }
+
+
+}
+
 void run_all_test_generic(std::string size_prefix, std::string computer_name, int runs_count = 4) {
     std::string file_name_prefix = "_" + computer_name + "_" + size_prefix + "_O2";
     // new naming convention : vXX_benchType_computer_size.t
@@ -1255,6 +1372,12 @@ int main(int argc, char *argv[])
         }
 
 
+        if (arg.compare("profile_alloc") == 0) {
+            profiling_run_test(size_str, computerName + "_AT", 1, 1);
+            return 0;
+        }
+
+
         std::string runCount = argv[1];
         if ( ! is_number(runCount) ) {
             log("ERROR, runCount(" + runCount + ") as argv[2] is not a number.");
@@ -1289,6 +1412,23 @@ int main(int argc, char *argv[])
 
     // Run one single test
     if (argc == 3) {
+
+        if (std::string(argv[1]).compare("profile_alloc") == 0) {
+            profiling_run_test(size_str, computerName + "_AT", std::stoi(argv[2]), 1);
+            return 0;
+        }
+
+        if (std::string(argv[1]).compare("traccc") == 0) {
+            if (std::string(argv[2]).compare("sparse") == 0) {
+                traccc::run_single_test_generic_traccc(computerName + "_AT", 5, 1);
+                traccc::run_single_test_generic_traccc(computerName + "_AT", 6, 1);
+                return 0;
+            }
+            return 0;
+        }
+
+
+
         //std::string computerName = argv[1]; deduces from the device list
         std::string testID = argv[1];
         std::string runCount = argv[2];
@@ -1309,6 +1449,28 @@ int main(int argc, char *argv[])
         run_single_test_generic(size_str, computerName + "_ST", std::stoi(testID), std::stoi(runCount));
 
 
+    }
+
+    // Un seul test de traccc
+    if (argc == 4) {
+
+        if (std::string(argv[1]).compare("traccc") != 0) {
+            return 0;
+        }
+
+        std::string testID = argv[2];
+        std::string runCount = argv[3];
+
+        if ( ! is_number(testID) ) {
+            log("ERROR, testID(" + testID + ") as argv[2] is not a number.");
+            return 3;
+        }
+        if ( ! is_number(runCount) ) {
+            log("ERROR, runCount(" + runCount + ") as argv[3] is not a number.");
+            return 3;
+        }
+
+        traccc::run_single_test_generic_traccc(computerName + "_AT", std::stoi(testID), std::stoi(runCount));
     }
     
     //run_all_test_on_msiNvidia();

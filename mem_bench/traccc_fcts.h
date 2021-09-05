@@ -249,14 +249,222 @@ namespace traccc {
     unsigned int expected_cluster_count = 380554;
     unsigned int expected_label_sum = 23681637;
 
-    unsigned int* all_data; // allocated with read_cells_lite
+    // pour multiplier en cas de faible sparsité
+    const unsigned int expected_in_module_count = 38784;
+    const unsigned int expected_in_cell_count = 2041344;
+
+    unsigned int* all_data = nullptr; // allocated with read_cells_lite
     unsigned int i_all_data;
 
     unsigned int read_source() {
         return all_data[i_all_data++];
     }
 
+    int traccc_last_SPARSITY_MIN = -1;
+    int traccc_last_SPARSITY_MAX = -1;
+
     void read_cells_lite(std::string fpath) {
+
+        i_all_data = 0;
+
+        if ( (traccc_last_SPARSITY_MIN == -1) || (traccc_last_SPARSITY_MAX == -1) ) {
+            traccc_last_SPARSITY_MIN = traccc_SPARSITY_MIN;
+            traccc_last_SPARSITY_MAX = traccc_SPARSITY_MAX;
+            data_already_loaded_from_disk = false;
+        }
+
+        if ( (traccc_last_SPARSITY_MIN != traccc_SPARSITY_MIN)
+          || (traccc_last_SPARSITY_MAX != traccc_SPARSITY_MAX) ) {
+            traccc_last_SPARSITY_MIN = traccc_SPARSITY_MIN;
+            traccc_last_SPARSITY_MAX = traccc_SPARSITY_MAX;
+            data_already_loaded_from_disk = false;
+        }
+
+        if (data_already_loaded_from_disk) return;
+
+        // Suppression des anciennes données
+        if (all_data != nullptr) {
+            delete[] all_data;
+            all_data = nullptr;
+        }
+        log("\n\n=========== LOAD DATA ===========");
+
+        if (TRACCC_LOG_LEVEL >= 0) {
+            log("Read from " + fpath + "...");
+            log("  - traccc_SPARSITY_MIN(" + std::to_string(traccc_SPARSITY_MIN) + ")");
+            log("  - traccc_SPARSITY_MAX(" + std::to_string(traccc_SPARSITY_MAX) + ")");
+        }
+        
+        total_module_count = 0;
+        total_cell_count = 0;
+        total_int_written = 0;
+
+        data_already_loaded_from_disk = true;
+
+        //traccc::host_cell_container cells_per_event;
+
+        long fsize = GetFileSize(fpath);
+
+        //log("read_cells 0");
+        std::ifstream rf(fpath, std::ios::out | std::ios::binary);
+        
+        if(!rf) {
+            return;
+        }
+
+        rf.read((char *)(&total_module_count), sizeof(unsigned int));
+        rf.read((char *)(&total_cell_count), sizeof(unsigned int));
+        rf.read((char *)(&total_int_written), sizeof(unsigned int));
+
+        log("total_module_count = " + std::to_string(total_module_count));
+        log("total_cell_count = " + std::to_string(total_cell_count));
+        log("total_int_written = " + std::to_string(total_int_written));
+
+        unsigned int nb_ints_chk = (fsize / sizeof(unsigned int)) - 3;
+
+        if (nb_ints_chk != total_int_written) {
+            log("ERROR ?   nb_ints_chk(" +std::to_string(nb_ints_chk)
+            + ") != total_int_written(" + std::to_string(total_int_written) + ")");
+
+        }
+
+        // fdata = flat data
+        unsigned int* read_data = new unsigned int[total_int_written];
+
+        // read the whole remaining file at once
+        rf.read((char *)(read_data), total_int_written * sizeof(unsigned int));
+
+        //log("read_cells closing...");
+        rf.close();
+
+        all_data = nullptr;
+
+        //log("read_cells closed !");
+        if(!rf.good()) {
+            delete[] read_data;
+            in_total_size = 0;
+            out_total_size = 0;
+            log("ERROR : unable to open & read file.");
+            log("\n\n");
+            return;
+        }
+
+        // Première lecture : calcul du nombre de modules et de cellules
+        // satisfaisant les valeurs de la sparsité
+
+        // Pour avoir la compatibilité avec read_source()
+        all_data = read_data;
+        
+        uint nb_ok_modules = 0;
+        uint nb_ok_cells = 0;
+        // La taille du tableau sera de :
+        // nb_ok_cells * 2 (2 channels) + nb_ok_modules (taille du tableau)
+        
+        // pas d'incrément de ind
+        for (; i_all_data < total_int_written; ) {
+            uint cell_count = read_source();
+            i_all_data += cell_count * 2; // chan0 + chan1
+
+            // mauvaise valeur de sparsité
+            if ( (cell_count > traccc_SPARSITY_MAX)
+              || (cell_count < traccc_SPARSITY_MIN) ) {
+                  continue;
+              }
+            
+            // Bonne valeur, j'ajoute le compte
+            nb_ok_modules += 1;
+            nb_ok_cells += cell_count;
+        }
+
+        i_all_data = 0;
+
+        // Allocation
+        uint * right_sparse_data = new uint[nb_ok_cells * 2 + nb_ok_modules];
+        uint i_rsd = 0;
+
+        for (; i_all_data < total_int_written; ) {
+            uint cell_count = read_source();
+
+            // mauvaise valeur de sparsité
+            if ( (cell_count > traccc_SPARSITY_MAX)
+              || (cell_count < traccc_SPARSITY_MIN) ) {
+                  i_all_data += cell_count * 2; // chan0 + chan1
+                  continue;
+              }
+            
+            right_sparse_data[i_rsd++] = cell_count;
+            for (uint ic = 0; ic < cell_count; ++ic) {
+                right_sparse_data[i_rsd++] = read_source(); // chan 0
+                right_sparse_data[i_rsd++] = read_source(); // chan 1
+            }
+        }
+
+        if ( i_rsd != (nb_ok_cells * 2 + nb_ok_modules) ) {
+            log(std::string("\n======= ERROR =======\n") + 
+            "ERROR : i_rsd(" + std::to_string(i_rsd) + ") != "
+            + " expected size(" + std::to_string(nb_ok_cells * 2 + nb_ok_modules) + ")"
+            + "\n======= ERROR =======\n");
+        }
+
+        total_int_written = i_rsd; // = nb_ok_cells * 2 + nb_ok_modules
+        total_cell_count = nb_ok_cells;
+        total_module_count = nb_ok_modules;
+
+        log("without sparse multiply : total_module_count = " + std::to_string(total_module_count) );
+        log("without sparse multiply : total_cell_count   = " + std::to_string(total_cell_count) );
+
+        traccc_repeat_load_count = base_traccc_repeat_load_count; // as defined in class selector_list_devices of utils.h
+
+        if (total_cell_count != 0) {
+            uint multiply_repeat_by = expected_in_cell_count / total_cell_count;
+            log("-- adjust to sparcity by multiplication = " + std::to_string(multiply_repeat_by));
+            traccc_repeat_load_count *= multiply_repeat_by;
+        }
+
+        log("alloc traccc_repeat_load_count = " + std::to_string(traccc_repeat_load_count));
+        all_data = new unsigned int[total_int_written * traccc_repeat_load_count];
+
+        
+        for (uint ir = 0; ir < traccc_repeat_load_count; ++ir) {
+            //log("copy ir = " + std::to_string(ir) + "...");
+            memcpy(&all_data[ir * total_int_written], right_sparse_data, total_int_written * sizeof(unsigned int));
+            // et non plus depuis read_data
+        }
+
+
+        total_module_count = total_module_count * traccc_repeat_load_count;
+        total_cell_count = total_cell_count * traccc_repeat_load_count;
+
+        log("copy ok");
+        log("total_module_count = " + std::to_string(total_module_count) );
+        log("total_cell_count   = " + std::to_string(total_cell_count) );
+
+        expected_cluster_count = expected_cluster_count * traccc_repeat_load_count;
+        expected_label_sum = expected_label_sum * traccc_repeat_load_count;
+
+        in_total_size = total_module_count * sizeof(implicit_input_module) + total_cell_count * sizeof(input_cell);
+        out_total_size = total_module_count * sizeof(implicit_output_module) + total_cell_count * sizeof(output_cell);
+
+        log("IN SIZE  = " + std::to_string(in_total_size / 1024) + " KiB");
+        log("OUT SIZE = " + std::to_string(out_total_size / 1024) + " KiB");
+
+        log("\n\n");
+
+        delete[] right_sparse_data;
+        delete[] read_data;
+        
+        i_all_data = 0;
+
+        return;
+    }
+
+    void read_cells_lite() {
+        std::string wdir_tmp = std::filesystem::current_path();
+        std::string bin_path = wdir_tmp + "/events_bin/lite_all_events.bin";
+        read_cells_lite(bin_path);
+    }
+
+    void read_cells_lite_no_sparcity(std::string fpath) {
 
         i_all_data = 0;
 
@@ -339,6 +547,8 @@ namespace traccc {
 
         log("IN SIZE  = " + std::to_string(in_total_size / 1024) + " KiB");
         log("OUT SIZE = " + std::to_string(out_total_size / 1024) + " KiB");
+
+        delete[] read_data;
 
         return;
     }
@@ -1181,12 +1391,16 @@ namespace traccc {
 
         }
 
-        if ( (total_cluster_count != expected_cluster_count) || (labels_sum != expected_label_sum) ) {
-            logs("\n    ERROR [[[ clusters(" + std::to_string(total_cluster_count)
-                + " != expected " + std::to_string(expected_cluster_count) + ")"
-                + " labels(" + std::to_string(labels_sum) + " != expected " + std::to_string(expected_label_sum) + ") ]]]   ");
+        if ( ! traccc_sparsity_ignore ) {
+            if ( (total_cluster_count != expected_cluster_count) || (labels_sum != expected_label_sum) ) {
+                logs("\n    ERROR [[[ clusters(" + std::to_string(total_cluster_count)
+                    + " != expected " + std::to_string(expected_cluster_count) + ")"
+                    + " labels(" + std::to_string(labels_sum) + " != expected " + std::to_string(expected_label_sum) + ") ]]]   ");
+            } else {
+                logs("\n    OK [[[ clusters(" + std::to_string(total_cluster_count) + ")  labels(" + std::to_string(labels_sum) + ") ]]]   ");
+            }
         } else {
-            logs("\n    OK [[[ clusters(" + std::to_string(total_cluster_count) + ")  labels(" + std::to_string(labels_sum) + ") ]]]   ");
+            logs("\n    [[[ clusters(" + std::to_string(total_cluster_count) + ")  labels(" + std::to_string(labels_sum) + ") ]]]   ");
         }
         
         
@@ -1292,10 +1506,13 @@ namespace traccc {
 
     traccc_chrono_results traccc_bench(sycl_mode mode, mem_strategy memory_strategy) {
 
+        read_cells_lite();
+        /*
+        Fait lors du lancement des tests.  -> read_cells_lite();
         std::string wdir_tmp = std::filesystem::current_path();
         std::string bin_path = wdir_tmp + "/events_bin/lite_all_events.bin";
-        
-        read_cells_lite(bin_path);
+        read_cells_lite(bin_path);*/
+
         // TODO : repeat_count pour les lire plusieurs fois
         // et ainsi simuler plus de données.
 
@@ -1590,8 +1807,10 @@ namespace traccc {
 
     void run_single_test_generic_traccc(std::string computer_name,
                              uint test_id, uint run_count) {
-        std::string file_name_prefix = "_" + computer_name + "_ld" + std::to_string(traccc_repeat_load_count); // 02
+        std::string file_name_prefix = "_" + computer_name + "_ld" + std::to_string(base_traccc_repeat_load_count); // 02
         std::string file_name_const_part = file_name_prefix + "_RUN" + std::to_string(run_count) + ".t";
+
+        bool do_sparse_bench = false;
 
         switch (test_id) {
         //reset_bench_variables();
@@ -1632,40 +1851,34 @@ namespace traccc {
             main_of_traccc(bench_mem_location_and_strategy);
             break;
 
-        /*case 1:
-            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalFlatten_ignoreAlloc" + file_name_const_part; // TRACCC_OUT_FNAME
-            ignore_pointer_graph_benchmark = true;
-            ignore_flatten_benchmark = false;
-            //ignore_allocation_times = true;
-            main_of_traccc(bench_mem_location_and_strategy);
+
+        case 5:
+            traccc_SPARSITY_MIN = 1;
+            traccc_SPARSITY_MAX = 2;
+            do_sparse_bench = true;
             break;
+
+        case 6:
+            traccc_SPARSITY_MIN = 500;
+            traccc_SPARSITY_MAX = 1000;
+            do_sparse_bench = true;
+            break;
+
         
-        case 2:
-            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalFlatten_withAlloc" + file_name_const_part; // TRACCC_OUT_FNAME
-            ignore_pointer_graph_benchmark = true;
-            ignore_flatten_benchmark = false;
-            ignore_allocation_times = false;
-            main_of_traccc(bench_mem_location_and_strategy);
-            break;
-
-        case 3:
-            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "__generalGraphPtr_withAlloc" + file_name_const_part;
-            ignore_pointer_graph_benchmark = false;
-            ignore_flatten_benchmark = true;
-            ignore_allocation_times = false;
-            main_of_traccc(bench_mem_location_and_strategy);
-            break;
-
-        case 4:
-            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "__generalGraphPtr_ignoreAlloc" + file_name_const_part;
-            ignore_pointer_graph_benchmark = false;
-            ignore_flatten_benchmark = true;
-            ignore_allocation_times = true;
-            main_of_traccc(bench_mem_location_and_strategy);
-            break;*/
         
         default: break;
         }
+
+        if (do_sparse_bench) {
+            std::string sparse_str = std::to_string(traccc_SPARSITY_MIN) + "-" + std::to_string(traccc_SPARSITY_MAX);
+            OUTPUT_FILE_NAME = BENCHMARK_VERSION_TRACCC + "_generalFlatten_sparse-" + sparse_str + file_name_const_part; // TRACCC_OUT_FNAME
+            ignore_pointer_graph_benchmark = true;
+            ignore_flatten_benchmark = false;
+            // inutile ici implicit_use_unique_module = false;
+            main_of_traccc(bench_mem_location_and_strategy);
+        }
+
+
     }
 
     // Lancement de tous les tests traccc et écriture dans des fichiers
@@ -1677,7 +1890,7 @@ namespace traccc {
         // Tests to compare against, to check graphs validity
         //int test_runs_count = runs_count;
         for (uint irun = 1; irun <= runs_count; ++irun) {
-            for (uint itest = 1; itest <= 4; ++itest) {
+            for (uint itest = 1; itest <= 6; ++itest) {
                 run_single_test_generic_traccc(computer_name, itest, irun);
             }
         }
