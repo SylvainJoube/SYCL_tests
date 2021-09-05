@@ -116,7 +116,10 @@ surface_reset_target();
 if ( dFileExists(graph.output_path) ) {
     error_add("Fichier de sortie déjà présent : " + graph.output_path, 0);
     return 2;
+} else {
+    //get_string("Ok, fichier non présent : ", graph.output_path);
 }
 
+//get_string("Will save to : ", graph.output_path);
 surface_save(g_graph_surface, get_save_filename("", graph.output_path));
 //surface_free(g_graph_surface);

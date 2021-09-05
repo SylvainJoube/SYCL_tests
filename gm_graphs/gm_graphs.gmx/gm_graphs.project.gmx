@@ -45,6 +45,7 @@
       <script>scripts\batch_add_graph_v1.gml</script>
       <script>scripts\batch_add_file.gml</script>
       <script>scripts\batch_add_file_v1.gml</script>
+      <script>scripts\traccc_refresh_output_name.gml</script>
     </scripts>
     <script>scripts\s_info.gml</script>
     <scripts name="load">
@@ -141,9 +142,9 @@
     <font>fonts\ft_very_small_number</font>
   </fonts>
   <objects name="objects">
+    <object>objects\ctrl_batch_traccc</object>
     <object>objects\ctrl_betaGraphs</object>
     <object>objects\ctrl_batch</object>
-    <object>objects\ctrl_batch_traccc</object>
     <object>objects\ctrl_prompt</object>
     <object>objects\jobs_fixed</object>
     <object>objects\dataset_fixed</object>
@@ -162,6 +163,7 @@
     <object>objects\ctrl_test_var</object>
   </objects>
   <rooms name="rooms">
+    <room>rooms\rm_batch_traccc</room>
     <room>rooms\rm_betaGraphs</room>
     <room>rooms\rm_batch</room>
     <room>rooms\rm_prompt</room>

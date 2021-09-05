@@ -7,44 +7,51 @@ Does not save to file, only pints graphically.
 */
 
 var step = argument0; // must start at 0
-var computer_name = argument1; // e.g. "msiNvidia_ST" or "thinkpad"
+computer_name = argument1; // e.g. "msiNvidia_ST" or "thinkpad"
 
 // daclared in create var total_iterations = tests_per_run * run_number;
 
-if ( step >= traccc_total_iterations * 2) return -1;
+if ( step >= traccc_total_iterations) return -1;
 
 
 // nombre de fois que les fichiers sont chargés (pour simuler + de données)
 // traccc_repeat_load_count dans le init()
 
 // premières exécutions avec repeat_count = 1 puis 10 pour les dernières
-if ( step >= traccc_total_iterations ) {
+/*if ( step >= traccc_total_iterations ) {
     step -= traccc_total_iterations;
     traccc_repeat_load_count = 10;
 } else {
     traccc_repeat_load_count = 1;
-}
+}*/
 
 
-var current_run = 1; //step + 1;
+current_run = 1; //step + 1;
+
+traccc_hide_host = false;
 
 // ON MSI var common_path = "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
 // ON ordi fixe blanc
-common_path = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\traccc\";
+common_path = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
+output_path = common_path + "traccc\";
 
 //var size_str = "512MiB";
 
 
+// traccc_refresh_output_name(); à faire à chaque test
+
+var current_test = step + 9; //5 + step;
+
 //var bench_version = "v06";
-var bench_test_nb = "A";
+/*var bench_test_nb = "A";
 var debug_run_prefix = "";
 var debug_verid = "g";
 
 //var citer = 1; // iteration count
 
 //for (var current_run = 1; current_run <= run_number; ++current_run) {
-    
-var fname_prefix_output_short = "b" + bench_test_nb + "_";// + bench_version + "_";
+
+var fname_prefix_output_short = "" + bench_test_nb + "_";// + bench_version + "_";
 //var fname_prefix_output = "b" + bench_test_nb + "_" + bench_version + "_";
 //var fname_prefix_input  = bench_version + "_";
 
@@ -67,110 +74,132 @@ if (traccc_hide_host) {
 //var local_common_path = common_path + bench_version;
 //var file_name_const_part_ouptut_png = file_name_const_part + "_" + bench_test_nb + ".png";
 
-var current_test = step + 9; //5 + step;
 
+//show_message("run_batch_job_traccc current_test = " + string(current_test)
+//+ chr(10) + "step = " + string(step) + " traccc_total_iterations = " + string(traccc_total_iterations));
 
+// in out file name suffix
+var benchmark_version_traccc = "acts06_";
+var bvt = benchmark_version_traccc;
+fname_prefix_output_short += benchmark_version_traccc;*/
 
 switch (current_test) {
 
 // TRACCC land
 
 // ===================================================
-
+//H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\A_acts06_generalGraphPtr_withAlloc_msiNvidia_AT_ld1_RUN1_q1.5.png
 // ===== Comparaison des USM en graphe de pointeur =====
 case 9:
+
+    g_multiple_xaxis = true;
+    g_xgroup_has_own_scale = false;
+    g_traccc_draw_graph_ptr = true;
+    g_traccc_draw_flatten = false;
+    g_traccc_ignore_allocation_time = false;
+    traccc_repeat_load_count = traccc_repeat_load_count_base;
+    traccc_refresh_output_name();
+    
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "acts05_generalGraphPtr_withAlloc" + fname_suffix_output_traccc,
+    /*output_path*/   output_path,
+    /*output_fname*/  fname_prefix_output_short + "generalGraphPtr_withAlloc" + fname_suffix_output_traccc,
     /*use_script*/    draw_some_graph_traccc_16,
     /*display_name*/  computer_name + " - ACTS graphPtr - run " + string(current_run)
     );
     batch_add_file(
     /*graph*/       graph,
     /*in_path*/     common_path,
-    /*in_fname*/    "acts05_generalGraphPtr" + fname_suffix_input_traccc,
+    /*in_fname*/    bvt + "generalGraphPtr" + fname_suffix_input_traccc,
     /*curve_name*/  "aucun nom", // nom de la courbe associée
     /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
     );
-    g_multiple_xaxis = true;
-    g_xgroup_has_own_scale = false;
-    g_traccc_draw_graph_ptr = true;
-    g_traccc_draw_flatten = false;
-    g_traccc_ignore_allocation_time = false;
     load_draw_save_graph(graph);
     ++g_citer;
     break;
 
 // ===== Comparaison des USM en flatten =====
+// -> ça serait bien de l'avoir aussi en without host
 case 10:
+    g_multiple_xaxis = true;
+    g_xgroup_has_own_scale = false;
+    g_traccc_draw_graph_ptr = false;
+    g_traccc_draw_flatten = true;
+    g_traccc_ignore_allocation_time = false;
+    traccc_repeat_load_count = traccc_repeat_load_count_base;
+    traccc_refresh_output_name();
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "acts05_generalFlatten_withAlloc" + fname_suffix_output_traccc,
+    /*output_path*/   output_path,
+    /*output_fname*/  fname_prefix_output_short + "generalFlatten_withAlloc" + fname_suffix_output_traccc,
     /*use_script*/    draw_some_graph_traccc_16,
     /*display_name*/  computer_name + " - ACTS flatten - run " + string(current_run)
     );
     batch_add_file( // gr.ptr.
     /*graph*/       graph,
     /*in_path*/     common_path,
-    /*in_fname*/    "acts05_generalFlatten" + fname_suffix_input_traccc,
+    /*in_fname*/    bvt + "generalFlatten" + fname_suffix_input_traccc,
     /*curve_name*/  "aucun nom", // nom de la courbe associée
     /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
     );
-    g_multiple_xaxis = true;
-    g_xgroup_has_own_scale = false;
-    g_traccc_draw_graph_ptr = false;
-    g_traccc_draw_flatten = true;
-    g_traccc_ignore_allocation_time = false;
     load_draw_save_graph(graph);
     ++g_citer;
     break;
 
 // ===== Comparaison des USM en graphe de pointeur =====
 // -> Sans temps d'allocation
-case 11:
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "acts05_generalGraphPtr_ignoreAlloc" + fname_suffix_output_traccc,
-    /*use_script*/    draw_some_graph_traccc_16,
-    /*display_name*/  computer_name + " - ACTS graphPtr - run " + string(current_run)
-    );
-    batch_add_file(
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "acts05_generalGraphPtr" + fname_suffix_input_traccc,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    g_multiple_xaxis = true;
-    g_xgroup_has_own_scale = false;
-    g_traccc_draw_graph_ptr = true;
-    g_traccc_draw_flatten = false;
-    g_traccc_ignore_allocation_time = true;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
+
 
 // ===== Comparaison des USM en flatten =====
 // -> Sans temps d'allocation
-case 12:
+// -> ça serait bien de l'avoir aussi en without host
+case 11:
+    g_multiple_xaxis = true;
+    g_xgroup_has_own_scale = false;
+    g_traccc_draw_graph_ptr = false;
+    g_traccc_draw_flatten = true;
+    g_traccc_ignore_allocation_time = true;
+    traccc_hide_host = false;
+    traccc_repeat_load_count = traccc_repeat_load_count_base;
+    traccc_refresh_output_name();
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "acts05_generalFlatten_ignoreAlloc" + fname_suffix_output_traccc,
+    /*output_path*/   output_path,
+    /*output_fname*/  fname_prefix_output_short + "generalFlatten_ignoreAlloc_withHost" + fname_suffix_output_traccc,
     /*use_script*/    draw_some_graph_traccc_16,
     /*display_name*/  computer_name + " - ACTS flatten - run " + string(current_run)
     );
     batch_add_file( // gr.ptr.
     /*graph*/       graph,
     /*in_path*/     common_path,
-    /*in_fname*/    "acts05_generalFlatten" + fname_suffix_input_traccc,
+    /*in_fname*/    bvt + "generalFlatten" + fname_suffix_input_traccc,
     /*curve_name*/  "aucun nom", // nom de la courbe associée
     /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
     );
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
+
+// Idem mais sans l'host
+case 12:
     g_multiple_xaxis = true;
     g_xgroup_has_own_scale = false;
     g_traccc_draw_graph_ptr = false;
     g_traccc_draw_flatten = true;
     g_traccc_ignore_allocation_time = true;
+    traccc_hide_host = true;
+    traccc_repeat_load_count = traccc_repeat_load_count_base;
+    traccc_refresh_output_name();
+    var graph = batch_add_graph(
+    /*output_path*/   output_path,
+    /*output_fname*/  fname_prefix_output_short + "generalFlatten_ignoreAlloc_ignoreHost" + fname_suffix_output_traccc,
+    /*use_script*/    draw_some_graph_traccc_16,
+    /*display_name*/  computer_name + " - ACTS flatten - run " + string(current_run)
+    );
+    batch_add_file( // gr.ptr.
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    bvt + "generalFlatten" + fname_suffix_input_traccc,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
     load_draw_save_graph(graph);
     ++g_citer;
     break;
@@ -179,62 +208,71 @@ case 12:
 
 // ===== Tout supperposé, sans alloc =====
 case 13:
-    var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "acts05_generalAll_ignoreAlloc" + fname_suffix_output_traccc,
-    /*use_script*/    draw_some_graph_traccc_16,
-    /*display_name*/  computer_name + " - ACTS flatten - run " + string(current_run)
-    );
-    batch_add_file( // gr.ptr.
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "acts05_generalFlatten" + fname_suffix_input_traccc,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
-    batch_add_file( // gr.ptr.
-    /*graph*/       graph,
-    /*in_path*/     common_path,
-    /*in_fname*/    "acts05_generalGraphPtr" + fname_suffix_input_traccc,
-    /*curve_name*/  "aucun nom", // nom de la courbe associée
-    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-    );
     g_multiple_xaxis = true;
     g_xgroup_has_own_scale = false;
     g_traccc_draw_graph_ptr = true;
     g_traccc_draw_flatten = true;
     g_traccc_ignore_allocation_time = true;
-    load_draw_save_graph(graph);
-    ++g_citer;
-    break;
-
-// ===== Tout supperposé, avec alloc =====
-case 14:
+    traccc_repeat_load_count = traccc_repeat_load_count_base;
+    traccc_refresh_output_name();
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
-    /*output_fname*/  fname_prefix_output_short + "acts05_generalAll_withAlloc" + fname_suffix_output_traccc,
+    /*output_path*/   output_path,
+    /*output_fname*/  fname_prefix_output_short + "generalAll_ignoreAlloc" + fname_suffix_output_traccc,
     /*use_script*/    draw_some_graph_traccc_16,
     /*display_name*/  computer_name + " - ACTS flatten - run " + string(current_run)
     );
     batch_add_file( // gr.ptr.
     /*graph*/       graph,
     /*in_path*/     common_path,
-    /*in_fname*/    "acts05_generalFlatten" + fname_suffix_input_traccc,
+    /*in_fname*/    bvt + "generalFlatten" + fname_suffix_input_traccc,
     /*curve_name*/  "aucun nom", // nom de la courbe associée
     /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
     );
     batch_add_file( // gr.ptr.
     /*graph*/       graph,
     /*in_path*/     common_path,
-    /*in_fname*/    "acts05_generalGraphPtr" + fname_suffix_input_traccc,
+    /*in_fname*/    bvt + "generalGraphPtr" + fname_suffix_input_traccc,
     /*curve_name*/  "aucun nom", // nom de la courbe associée
     /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
     );
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
+
+// ===== Tout supperposé, avec alloc =====
+case 14: // generalAll_withAlloc_hideHost inutile
+    ++g_citer;
+    break;
+
+case 15:
     g_multiple_xaxis = true;
     g_xgroup_has_own_scale = false;
     g_traccc_draw_graph_ptr = true;
     g_traccc_draw_flatten = true;
     g_traccc_ignore_allocation_time = false;
+    traccc_hide_host = false;
+    traccc_repeat_load_count = traccc_repeat_load_count_base;
+    traccc_refresh_output_name();
+    var graph = batch_add_graph(
+    /*output_path*/   output_path,
+    /*output_fname*/  fname_prefix_output_short + "generalAll_withAlloc_withHost" + fname_suffix_output_traccc,
+    /*use_script*/    draw_some_graph_traccc_16,
+    /*display_name*/  computer_name + " - ACTS flatten - run " + string(current_run)
+    );
+    batch_add_file( // gr.ptr.
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    bvt + "generalFlatten" + fname_suffix_input_traccc,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    batch_add_file( // gr.ptr.
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    bvt + "generalGraphPtr" + fname_suffix_input_traccc,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
     load_draw_save_graph(graph);
     ++g_citer;
     break;
@@ -248,7 +286,8 @@ case 3 : return "buffers";
 case 20 : return "glibc";
 */
 // ===== Comparaison de chaque type USM : graphe ptr vs flatten =====
-case 15:
+case 16:
+    
     for (var im = 0; im < 3; ++im) {
         var mem_location;
         switch (im) {
@@ -258,39 +297,42 @@ case 15:
         default: break;
         }
         
-        var graph = batch_add_graph(
-        /*output_path*/   common_path,
-        /*output_fname*/  fname_prefix_output_short + "acts05_ptrVsFlat_mem" + string(mem_location) + fname_suffix_output_traccc,
-        /*use_script*/    draw_some_graph_traccc_17, 
-        /*display_name*/  computer_name + " - ACTS mémoire " + mem_location_to_str(mem_location) + " - run " + string(current_run)
-        );
-        batch_add_file( // gr.ptr.
-        /*graph*/       graph,
-        /*in_path*/     common_path,
-        /*in_fname*/    "acts05_generalFlatten" + fname_suffix_input_traccc,
-        /*curve_name*/  "aucun nom", // nom de la courbe associée
-        /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-        );
-        batch_add_file( // gr.ptr.
-        /*graph*/       graph,
-        /*in_path*/     common_path,
-        /*in_fname*/    "acts05_generalGraphPtr_uniqueModules" + fname_suffix_input_traccc,
-        /*curve_name*/  "aucun nom", // nom de la courbe associée
-        /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-        );
         g_multiple_xaxis = true;
         g_xgroup_has_own_scale = false;
         g_traccc_draw_graph_ptr = true;
         g_traccc_draw_flatten = true;
         g_traccc_ptrVsFlat_memLocation = mem_location;
         g_traccc_ignore_allocation_time = false;
+        traccc_repeat_load_count = traccc_repeat_load_count_base;
+        traccc_refresh_output_name();
+        
+        var graph = batch_add_graph(
+        /*output_path*/   output_path,
+        /*output_fname*/  fname_prefix_output_short + "ptrVsFlat_mem" + string(mem_location) + fname_suffix_output_traccc,
+        /*use_script*/    draw_some_graph_traccc_17, 
+        /*display_name*/  computer_name + " - ACTS mémoire " + mem_location_to_str(mem_location) + " - run " + string(current_run)
+        );
+        batch_add_file( // gr.ptr.
+        /*graph*/       graph,
+        /*in_path*/     common_path,
+        /*in_fname*/    bvt + "generalFlatten" + fname_suffix_input_traccc,
+        /*curve_name*/  "aucun nom", // nom de la courbe associée
+        /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+        );
+        batch_add_file( // gr.ptr.
+        /*graph*/       graph,
+        /*in_path*/     common_path,
+        /*in_fname*/    bvt + "generalGraphPtr_uniqueModules" + fname_suffix_input_traccc,
+        /*curve_name*/  "aucun nom", // nom de la courbe associée
+        /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+        );
         load_draw_save_graph(graph);
         ++g_citer;
     }
     break;
 
 // ===== Comparaison de chaque type USM : inout vs unique tableau implicite =====
-case 16:
+case 17:
     for (var im = 0; im < 3; ++im) {
         var mem_location;
         switch (im) {
@@ -300,38 +342,91 @@ case 16:
         default: break;
         }
         
-        var graph = batch_add_graph(
-        /*output_path*/   common_path,
-        /*output_fname*/  fname_prefix_output_short + "acts05_inOutVsUnique_mem" + string(mem_location) + fname_suffix_output_traccc,
-        /*use_script*/    draw_some_graph_traccc_18, 
-        /*display_name*/  computer_name + " - ACTS mémoire " + mem_location_to_str(mem_location) + " - run " + string(current_run)
-        );
-        batch_add_file( // gr.ptr.
-        /*graph*/       graph,
-        /*in_path*/     common_path,
-        /*in_fname*/    "acts05_generalGraphPtr_inOutModules" + fname_suffix_input_traccc,
-        /*curve_name*/  "aucun nom", // nom de la courbe associée
-        /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-        );
-        batch_add_file( // gr.ptr.
-        /*graph*/       graph,
-        /*in_path*/     common_path,
-        /*in_fname*/    "acts05_generalGraphPtr_uniqueModules" + fname_suffix_input_traccc,
-        /*curve_name*/  "aucun nom", // nom de la courbe associée
-        /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
-        );
         g_multiple_xaxis = true;
         g_xgroup_has_own_scale = false;
         g_traccc_draw_graph_ptr = true;
         g_traccc_draw_flatten = true;
         g_traccc_ptrVsFlat_memLocation = mem_location; // -1 pour afficher tout
         g_traccc_ignore_allocation_time = false;
+        traccc_repeat_load_count = traccc_repeat_load_count_base;
+        traccc_refresh_output_name();
+        var graph = batch_add_graph(
+        /*output_path*/   output_path,
+        /*output_fname*/  fname_prefix_output_short + "inOutVsUnique_mem" + string(mem_location) + fname_suffix_output_traccc,
+        /*use_script*/    draw_some_graph_traccc_18, 
+        /*display_name*/  computer_name + " - ACTS mémoire " + mem_location_to_str(mem_location) + " - run " + string(current_run)
+        );
+        batch_add_file( // gr.ptr.
+        /*graph*/       graph,
+        /*in_path*/     common_path,
+        /*in_fname*/    bvt + "generalGraphPtr_inOutModules" + fname_suffix_input_traccc,
+        /*curve_name*/  "aucun nom", // nom de la courbe associée
+        /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+        );
+        batch_add_file( // gr.ptr.
+        /*graph*/       graph,
+        /*in_path*/     common_path,
+        /*in_fname*/    bvt + "generalGraphPtr_uniqueModules" + fname_suffix_input_traccc,
+        /*curve_name*/  "aucun nom", // nom de la courbe associée
+        /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+        );
         load_draw_save_graph(graph);
         ++g_citer;
     }
     break;
-    
-    
+
+// 
+case 18:
+    g_multiple_xaxis = true;
+    g_xgroup_has_own_scale = false;
+    g_traccc_draw_graph_ptr = false;
+    g_traccc_draw_flatten = true;
+    g_traccc_ignore_allocation_time = false;
+    traccc_hide_host = false;
+    traccc_repeat_load_count = 10;
+    traccc_refresh_output_name();
+    var graph = batch_add_graph(
+    /*output_path*/   output_path,
+    /*output_fname*/  fname_prefix_output_short + "generalFlatten_sparse-1-2" + fname_suffix_output_traccc,
+    /*use_script*/    draw_some_graph_traccc_16,
+    /*display_name*/  computer_name + " - ACTS sparse 1-2" // - run " + string(current_run)
+    );
+    batch_add_file( // gr.ptr.
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    bvt + "generalFlatten_sparse-1-2" + fname_suffix_input_traccc,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
+
+case 19:
+    g_multiple_xaxis = true;
+    g_xgroup_has_own_scale = false;
+    g_traccc_draw_graph_ptr = false;
+    g_traccc_draw_flatten = true;
+    g_traccc_ignore_allocation_time = false;
+    traccc_hide_host = false;
+    traccc_repeat_load_count = 10;
+    traccc_refresh_output_name();
+    var graph = batch_add_graph(
+    /*output_path*/   output_path,
+    /*output_fname*/  fname_prefix_output_short + "generalFlatten_sparse-500-1000" + fname_suffix_output_traccc,
+    /*use_script*/    draw_some_graph_traccc_16,
+    /*display_name*/  computer_name + " - ACTS sparse 500-1000" // - run " + string(current_run)
+    );
+    batch_add_file( // gr.ptr.
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    bvt + "generalFlatten_sparse-500-1000" + fname_suffix_input_traccc,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
     
 default :
     show_message("ERROR @ run_batch_job_betaGraphs : current_test(" + string(current_test) + ") not handled.");

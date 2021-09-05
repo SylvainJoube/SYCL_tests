@@ -35,15 +35,18 @@ draw_every_x_frames = 4; // draw every x frames
 done_images = 0;
 
 
-traccc_tests_per_run = 7;
+traccc_tests_per_run = 11;
 traccc_run_number = 1;
 traccc_total_iterations = traccc_tests_per_run * traccc_run_number;
 // Et répété deux fois : pour repeat_count = 1 et 10.
 
+
+
 //current_computer_name = "thinkpad_AT";//"msiNvidia_ST";
-current_computer_name = "msiNvidia_AT";
-//current_computer_name = "thinkpad_AT";
-//current_computer_name = "sandor_AT";
+current_computer_name = "msiNvidia_AT"; traccc_repeat_load_count_base = 1;
+//current_computer_name = "sandor_AT"; traccc_repeat_load_count_base = 10;
+
+
 
 
 </string>
@@ -82,6 +85,10 @@ if ( wait ) {
     
     var res = run_batch_job_traccc(real_step, current_computer_name);
     ++done_images;
+    
+    if (res == -1) { // finished drawing
+        wait = false;
+    }
     
     ++step;
 }
