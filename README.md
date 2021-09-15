@@ -29,6 +29,18 @@ export HIPSYCL_GPU_ARCH="sm_35" && \
 export HIPSYCL_CUDA_PATH="/usr/local/cuda-10.1"
 ```
 
+Blop Nvidia : (sm_30)
+```
+export HIPSYCL_TARGETS="cuda:sm_30" && \
+export HIPSYCL_GPU_ARCH="sm_30" && \
+export HIPSYCL_CUDA_PATH="/usr/local/cuda-10.1"
+```
+
+Pour dpcpp :
+```
+source /opt/intel/oneapi/setvars.sh
+```
+
 Depuis Sandor :
 ```
 export HIPSYCL_TARGETS="cuda:sm_75" && \
@@ -88,3 +100,24 @@ apt hold nvidia*
 ```
 
 Bon, j'ai un conflit à la con quand je fais apt upgrade, je verrai ça un jour quand j'aurai du temps...
+
+
+Sur Blop, dpcpp :
+```
+== List of available devices ==
+    Intel(R) Core(TM) i3-4360 CPU @ 3.70GHz (cpu) - score 299
+    Intel(R) FPGA Emulation Device (unknown type) - score 74
+    SYCL host device (host) - score -1
+```
+
+Sur Blop, syclcc :
+```
+== List of available devices ==
+    hipSYCL OpenMP host device (cpu) - score 1
+    NVIDIA GeForce GTX 780 (gpu) - score 2
+    NVIDIA GeForce GTX 780 (gpu) - score 2
+    hipSYCL OpenMP host device (cpu) - score 1
+```
+
+
+[Quel flag sm utiliser ?](https://arnon.dk/matching-sm-architectures-arch-and-gencode-for-various-nvidia-cards/)
