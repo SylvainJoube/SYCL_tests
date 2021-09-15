@@ -43,8 +43,9 @@ traccc_total_iterations = traccc_tests_per_run * traccc_run_number;
 
 
 //current_computer_name = "thinkpad_AT";//"msiNvidia_ST";
-current_computer_name = "msiNvidia_AT"; traccc_repeat_load_count_base = 1;
+//current_computer_name = "msiNvidia_AT"; traccc_repeat_load_count_base = 1;
 //current_computer_name = "sandor_AT"; traccc_repeat_load_count_base = 10;
+current_computer_name = "thinkpad_AT"; traccc_repeat_load_count_base = 1;
 
 
 

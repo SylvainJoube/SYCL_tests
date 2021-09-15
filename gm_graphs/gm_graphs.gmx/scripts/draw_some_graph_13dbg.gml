@@ -90,14 +90,15 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
             var memcopy_name = "non connue";
             var memcopy_short_name = "nc";
             if (j.USE_HOST_SYCL_BUFFER == 1) { // utilisation du buffer temporaire
-                memcopy_name = "buffer temporaire";
-                memcopy_short_name = "t";
+                memcopy_name = ", buffer sycl";
+                memcopy_short_name = "b";
             } else {
-                memcopy_name = "copie directe";
-                memcopy_short_name = "d";
+                memcopy_name = "";
+                memcopy_short_name = "";
             }
-            var gpname = "Mem location = " + mem_location_to_str(j.MEMORY_LOCATION) + " (" + memcopy_name + ")";
             var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + memcopy_short_name;
+            
+            var gpname = "" + mem_location_to_str(j.MEMORY_LOCATION) + memcopy_name + " (" + gpshort_name + ")";
             
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
             if (gp.newly_created) {
@@ -127,7 +128,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "sycl mem alloc";
+                pt.xlabel = "SYCL alloc";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -167,7 +168,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "copy to sycl mem";
+                pt.xlabel = "copie SYCL";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -179,7 +180,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "parallel for";
+                pt.xlabel = "kernel";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -191,7 +192,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "read from SYCL mem";
+                pt.xlabel = "lecture SYCL";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -203,7 +204,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "free SYCL mem";
+                pt.xlabel = "free";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -267,7 +268,7 @@ for (var i = 0; i <= 2; ++i) {
     ds_list_add(sorted_glist, ds_list_find_value(graph_list, 3 + i));
 }
 
-draw_graph_objs(graph_list, 20, 20, "Grandeur mesurée", "Temps pris en microsecondes", 0, -1, -1, -1);
+draw_graph_objs(graph_list, 20, 20, "", "Temps pris en microsecondes", 0, -1, -1, -1);
 
 ds_list_destroy(graph_list);
 ds_list_destroy(sorted_glist);

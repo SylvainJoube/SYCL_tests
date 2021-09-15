@@ -186,7 +186,7 @@ for (var i = 0; i <= 2; ++i) {
     ds_list_add(sorted_glist, ds_list_find_value(graph_list, 3 + i));
 }
 
-draw_graph_objs(graph_list, 20, 20, "Nombre de répétitions lors de l'accès aux données", "Débit en mébioctet par seconde (MiO/s)", 0, -1, -1, -1);
+draw_graph_objs(graph_list, 20, 20, "Nombre de répétitions lors de l'accès aux données", "Débit en MiO/s", 0, -1, -1, -1);
 
 ds_list_destroy(graph_list);
 ds_list_destroy(sorted_glist);

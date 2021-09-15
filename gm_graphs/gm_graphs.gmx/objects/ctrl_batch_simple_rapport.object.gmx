@@ -36,14 +36,13 @@ step = 0;
 draw_every_x_frames = 4; // draw every x frames
 done_images = 0;
 
-tests_per_run = 13; //8; // 5 tests + LM classic vs optim + LM bandwidth classique + optimisé
+tests_per_run = 10; //8; // 5 tests + LM classic vs optim + LM bandwidth classique + optimisé
 run_number = 1;
 total_iterations = tests_per_run * run_number;
 
 //current_computer_name = "thinkpad_AT";//"msiNvidia_ST";
 //current_computer_name = "msiNvidia_AT";
 //current_computer_name = "thinkpad_AT";
-current_computer_name = "blopNvidia_AT";
 //current_computer_name = "sandor_AT";
 
 </string>
@@ -73,38 +72,20 @@ current_computer_name = "blopNvidia_AT";
 if ( wait ) {
     
     var real_step  = step / draw_every_x_frames;
-    
-    //if (step == 30 || step == 60)
-    //    show_message("real_step(" + string(real_step) + ")");
-    
+
     if (real_step != floor(real_step)) {
         ++step;
         exit;
     }
     //show_message("should run execute");
     
-    var res = run_batch_job(real_step, current_computer_name);
+    var res = run_batch_job_rapport_simple(real_step);
     ++done_images;
     if (res == -1) { // finished drawing
-        if (current_computer_name == "msiNvidia_ST") {
-            current_computer_name = "msiNvidia_AT";
-            step = -1; // will be ++
-        } else {
-            wait = false;
-        } 
+        wait = false;
     }
     
     ++step;
-
-    /*if ( (citer_step / 10) == floor(citer_step / 10) ) {
-        
-        
-        var res = run_batch_thinkpad_1(floor(citer_step / 10));
-        if (res == -1) { // finished drawing
-           wait = false; 
-        }
-    }*/
-    //++citer_step;
 }
 </string>
           </argument>
@@ -159,7 +140,7 @@ draw_set_halign(fa_left);
 
 if ( wait ) {
     draw_clear(merge_colour(c_white, c_gray, 0.2));
-    draw_text(30, 30,
+    draw_text(30, 30, "== RAPPORT - simple ==" + chr(10) + 
               "step(" + string(step) + ") done_images(" + string(done_images)
               + ") errors(" + string(ds_list_size(g_display_error_list)) + ")");
     exit;

@@ -25,24 +25,82 @@ var draw_flatten = g_traccc_draw_flatten;
 
 //g_traccc_ptrVsFlat_memLocation // j.MEMORY_LOCATION
 
-ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // graphe de pointeurs
-ds_list_add(colors, merge_colour(c_red, c_black, 0));  // flatten
+var merge_fact = 0.3;
 
-/*
-if (draw_graph_ptr && draw_flatten) {
-    ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared flat
-    ds_list_add(colors, merge_colour(c_green, c_black, 0)); // glibc flat
-    ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host   flat
-    ds_list_add(colors, merge_colour(c_maroon, c_black, 0));  // device   flat
-    ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared graph pointer
-    ds_list_add(colors, merge_colour(c_green, c_black, merge_cfactor)); // glibc graph pointer
-    ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host    graph pointer
-} else {
+// Shared
+if (g_traccc_ptrVsFlat_memLocation == 0) {
+    ds_list_add(colors, merge_colour(c_blue, c_black, merge_fact)); // shared
     ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
-    ds_list_add(colors, merge_colour(c_green, c_black, 0)); // glibc
+}
+// Host
+if (g_traccc_ptrVsFlat_memLocation == 2) {
+    ds_list_add(colors, merge_colour(c_red, c_black, merge_fact));  // host
     ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
-    ds_list_add(colors, merge_colour(c_maroon, c_black, 0));  // device (if flatten, else not used)
-}*/
+}
+// CPU
+if (g_traccc_ptrVsFlat_memLocation == 20) {
+    ds_list_add(colors, merge_colour(c_maroon, c_black, 0.9)); // GPU
+    ds_list_add(colors, merge_colour(c_maroon, c_black, 0)); // GPU
+}
+
+//ds_list_add(colors, merge_colour(c_yellow, c_black, 0)); // graphe de pointeurs
+//ds_list_add(colors, merge_colour(c_yellow, c_black, 0));  // flatten
+
+// aplati : 0 shared 1 cpu 2 host 3 device ;   graphe ptr : 4 shared 5 cpu 6 host
+var do_job_index = ds_list_create();
+//ds_list_add(do_job_index, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+ds_list_add(do_job_index, 0, 1, 2, 3, 4, 5, 6);
+
+// shared
+if (g_traccc_ptrVsFlat_memLocation == 0) {
+    if (g_ptrVsFlat_firstStep) ds_list_replace(do_job_index, 0, -1); // shared
+    ds_list_replace(do_job_index, 1, -1); // cpu
+    ds_list_replace(do_job_index, 2, -1); // host
+    ds_list_replace(do_job_index, 3, -1); // device
+    //ds_list_replace(do_job_index, 4, -1); // shared ptr
+    ds_list_replace(do_job_index, 5, -1); // cpu ptr
+    ds_list_replace(do_job_index, 6, -1); // host ptr
+}
+
+// host
+if (g_traccc_ptrVsFlat_memLocation == 2) {
+    ds_list_replace(do_job_index, 0, -1); // shared
+    ds_list_replace(do_job_index, 1, -1); // cpu
+    if (g_ptrVsFlat_firstStep) ds_list_replace(do_job_index, 2, -1); // host
+    ds_list_replace(do_job_index, 3, -1); // device
+    ds_list_replace(do_job_index, 4, -1); // shared ptr
+    ds_list_replace(do_job_index, 5, -1); // cpu ptr
+    //ds_list_replace(do_job_index, 6, -1); // host ptr
+}
+
+// cpu
+if (g_traccc_ptrVsFlat_memLocation == 20) {
+    ds_list_replace(do_job_index, 0, -1); // shared
+    if (g_ptrVsFlat_firstStep) ds_list_replace(do_job_index, 1, -1); // cpu
+    ds_list_replace(do_job_index, 2, -1); // host
+    ds_list_replace(do_job_index, 3, -1); // device
+    ds_list_replace(do_job_index, 4, -1); // shared ptr
+    //ds_list_replace(do_job_index, 5, -1); // cpu ptr
+    ds_list_replace(do_job_index, 6, -1); // host ptr
+}
+
+
+var do_job_index2 = ds_list_create();
+ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 4));
+ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 5));
+ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 6));
+ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 0));
+ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 1));
+ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 2));
+ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 3));
+
+var tt = do_job_index;
+do_job_index = do_job_index2;
+ds_list_destroy(tt);
+
+//if ( ! g_display_shared ) ds_list_replace(do_job_index, 4, -1);
+//if ( ! g_display_host )   ds_list_replace(do_job_index, 5, -1);
+
 
 
 ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
@@ -52,11 +110,17 @@ g_iteration_count = 0;
 
 for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
     var ij = loop_ij;
+    
+    //show_message("ij index = " + string(ij) + " size = " + string(ds_list_size(ctrl.jobs_fixed_list)));
+    
+    var new_jindex = ds_list_find_value(do_job_index, loop_ij);
+    
+    if (new_jindex == -1) continue;
 
-    var j = ds_list_find_value(ctrl.jobs_fixed_list, ij);
+    var j = ds_list_find_value(ctrl.jobs_fixed_list, new_jindex);
 
     // Seulement afficher la mémoire localisée à g_traccc_ptrVsFlat_memLocation.
-    if (j.MEMORY_LOCATION != g_traccc_ptrVsFlat_memLocation)  continue;
+    //if (j.MEMORY_LOCATION != g_traccc_ptrVsFlat_memLocation)  continue;
     
     for (var ids = 0; ids < ds_list_size(j.datasets); ++ids) {
     
@@ -72,11 +136,16 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
         if (lsize > g_iteration_count) g_iteration_count = lsize;
         if (lsize != 0) {
             
-            var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + mem_strategy_to_name_prefix(j.MEMORY_STRATEGY);
-                               //+ ignore_alloc_time_to_name_prefix(j.IGNORE_ALLOC_TIME);
-            var gpname = "" + mem_location_to_str(j.MEMORY_LOCATION) + ", " + mem_strategy_to_name(j.MEMORY_STRATEGY)
+            var gpshort_name = "NC";
+            var gpname = "inconnu";
+            if (j.MEMORY_STRATEGY == 1) { gpshort_name = ""; gpname = mem_location_to_str(j.MEMORY_LOCATION) + ", graphe de pointeurs"; }
+            if (j.MEMORY_STRATEGY == 2) { gpshort_name = "ap"; gpname = mem_location_to_str(j.MEMORY_LOCATION) + ", aplati (ap)"; }
+            //var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + mem_strategy_to_name_prefix(j.MEMORY_STRATEGY);
+            //                   //+ ignore_alloc_time_to_name_prefix(j.IGNORE_ALLOC_TIME);
+            // mem_location_to_str(j.MEMORY_LOCATION) +
+            //var gpname = "" + "" + mem_strategy_to_name(j.MEMORY_STRATEGY)
                          //+ ", " + ignore_alloc_time_to_name(j.IGNORE_ALLOC_TIME)
-                         +  " (" + gpshort_name + ")";
+            //             +  " (" + gpshort_name + ")";
             
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
             if (gp.newly_created) {
@@ -105,10 +174,11 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
                     var pt = instance_create(0, 0, graph_single_point);
                     
                     if (g_traccc_ignore_allocation_time) {
-                        pt.xlabel = "fill";
+                        pt.xlabel = "remplissage";
                         as_y = iter.t_flatten_fill; // ne prend en charge que flatten et pas graphe de ptr
                     } else {
-                        pt.xlabel = "alloc & fill";
+                        if (j.MEMORY_LOCATION == 20) pt.xlabel = "alloc CPU et remplissage";
+                        else                         pt.xlabel = "alloc SYCL et remplissage";
                         as_y = iter.t_alloc_fill;
                     }
                     
@@ -128,7 +198,8 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "copy & kernel";
+                if (j.MEMORY_LOCATION == 20) pt.xlabel = "calculs CPU";
+                else                         pt.xlabel = "calculs GPU";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -138,7 +209,8 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "read";
+                if (j.MEMORY_LOCATION == 20) pt.xlabel = "lecture depuis RAM CPU";
+                else                         pt.xlabel = "lecture depuis SYCL";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -151,7 +223,8 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
                     var pt = instance_create(0, 0, graph_single_point);
                     pt.xx = as_x;
                     pt.yy = as_y;
-                    pt.xlabel = "free mem";
+                    if (j.MEMORY_LOCATION == 20) pt.xlabel = "libération mem CPU";
+                    else                         pt.xlabel = "libération mem SYCL";
                     pt.ylabel = split_thousands(as_y);
                     pt.color = gp.color; // <- debug only
                     ds_list_add(gp.points, pt);
@@ -164,7 +237,7 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
 
 draw_some_graph_shared_code(graph_list);
 
-draw_graph_objs(graph_list, 20, 20, "", "Temps en microsecondes", 0, -1, -1, -1);
+draw_graph_objs(graph_list, 20, 20, "", "Temps en microsecondes", 0, g_ymax_impose, -1, -1);
 
 ds_list_destroy(graph_list);
 ds_list_destroy(colors);

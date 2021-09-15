@@ -107,7 +107,7 @@ if (must_recreate) {
 } else {
     //show_message("reuse surf (load_draw_save_graph)");
 }
-
+//show_message("g_surface_height = " + string(g_surface_height));
 surface_set_target(g_graph_surface);
 draw_clear(c_white);
 script_execute(graph.use_script); // no argument //draw_some_graph_common();

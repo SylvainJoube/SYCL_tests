@@ -33,7 +33,7 @@ traccc_hide_host = false;
 // ON MSI var common_path = "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
 // ON ordi fixe blanc
 common_path = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
-output_path = common_path + "traccc\";
+output_path = common_path + "thinkpad\";
 
 //var size_str = "512MiB";
 

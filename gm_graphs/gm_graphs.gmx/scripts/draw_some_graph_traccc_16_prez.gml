@@ -1,10 +1,17 @@
 
 /*
 
-version traccc_17 : comparaison des différents temps en fonction de la locatlisation de la mémoire.
+version traccc_16 : comparaison des différents temps en fonction de la locatlisation de la mémoire.
 
-Graphe de pointeurs vs flatten : glibc puis SYCL
 
+WIP :
+i.e. temps parall_for, allocation, copy... en fonction de si la mémoire est
+allouée en host, device ou shared.
+Paramètre supplémentaire : memcpy de SYCL vs de la glibc.
+
+- évolution du temps pris d'une itération à l'autre
+    x = n° itération (1, 2, ...)
+    y = temps pris par [parallel for | allocation | copie | ... ]
 */
 
 var echelle_log = false;
@@ -23,13 +30,7 @@ var merge_cfactor = 0.3;
 var draw_graph_ptr = g_traccc_draw_graph_ptr;
 var draw_flatten = g_traccc_draw_flatten;
 
-//g_traccc_ptrVsFlat_memLocation // j.MEMORY_LOCATION
-
-ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // graphe de pointeurs
-ds_list_add(colors, merge_colour(c_red, c_black, 0));  // flatten
-
-/*
-if (draw_graph_ptr && draw_flatten) {
+/*if (draw_graph_ptr && draw_flatten) {
     ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared flat
     ds_list_add(colors, merge_colour(c_green, c_black, 0)); // glibc flat
     ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host   flat
@@ -45,18 +46,62 @@ if (draw_graph_ptr && draw_flatten) {
 }*/
 
 
+var do_job_index = ds_list_create();
+
+//ds_list_add(do_job_index, 0, 1, 2, 3, 4, 5);
+
+// 0 shared 1 glibc 2 host 3 device
+
+if ( g_draw_shared_before_shared ) {
+    ds_list_add(do_job_index, 0, 3, 2, -1, -1, -1);//1, 3, 4, 0, 2);
+    
+    if ( ! g_display_device ) ds_list_replace(do_job_index, 1, -1);
+    if ( ! g_display_shared ) ds_list_replace(do_job_index, 0, -1);
+    if ( ! g_display_host )   ds_list_replace(do_job_index, 2, -1);
+    
+    ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
+    ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
+    ds_list_add(colors, merge_colour(c_red, c_black, 0)); // host
+} else {
+    ds_list_add(do_job_index, 3, 0, 2, -1, -1, -1);//1, 3, 4, 0, 2);
+    
+    if ( ! g_display_shared ) ds_list_replace(do_job_index, 1, -1);
+    if ( ! g_display_host )   ds_list_replace(do_job_index, 2, -1);
+    
+    ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
+    ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
+    ds_list_add(colors, merge_colour(c_red, c_black, 0)); // host
+}
+
+
+
 ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
 var current_color_index = 0;
 
 g_iteration_count = 0;
 
 for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
+
     var ij = loop_ij;
+    
+    var new_jindex = ds_list_find_value(do_job_index, ij);
+    if (new_jindex == -1) continue;
+    
+    var j = ds_list_find_value(ctrl.jobs_fixed_list, new_jindex);
 
-    var j = ds_list_find_value(ctrl.jobs_fixed_list, ij);
-
-    // Seulement afficher la mémoire localisée à g_traccc_ptrVsFlat_memLocation.
-    if (j.MEMORY_LOCATION != g_traccc_ptrVsFlat_memLocation)  continue;
+    // ingore when copy strategy is glibc and on device (no glibc on device)
+    
+    // Si ne pas dessiner graphe ptr et que la mémoire est graphe ptr, continuer
+    //if ( (! draw_graph_ptr) && (j.MEMORY_STRATEGY == 1) ) continue;
+    
+    // Si ne pas dessiner flatten et que la mémoire est flatten, continuer
+    //if ( (! draw_flatten) && (j.MEMORY_STRATEGY == 2) ) continue;
+    
+    // Ne pas afficher l'hôte s'il faut le cacher
+    //if ( traccc_hide_host && (j.MEMORY_LOCATION == 2) ) continue;
+    
+    //if ( (j.MEMORY_LOCATION == 2) ) continue; // afficher sans host
+    
     
     for (var ids = 0; ids < ds_list_size(j.datasets); ++ids) {
     
@@ -72,7 +117,7 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
         if (lsize > g_iteration_count) g_iteration_count = lsize;
         if (lsize != 0) {
             
-            var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + mem_strategy_to_name_prefix(j.MEMORY_STRATEGY);
+            var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION);// + "" + mem_strategy_to_name_prefix(j.MEMORY_STRATEGY);
                                //+ ignore_alloc_time_to_name_prefix(j.IGNORE_ALLOC_TIME);
             var gpname = "" + mem_location_to_str(j.MEMORY_LOCATION) + ", " + mem_strategy_to_name(j.MEMORY_STRATEGY)
                          //+ ", " + ignore_alloc_time_to_name(j.IGNORE_ALLOC_TIME)
@@ -105,10 +150,10 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
                     var pt = instance_create(0, 0, graph_single_point);
                     
                     if (g_traccc_ignore_allocation_time) {
-                        pt.xlabel = "fill";
+                        pt.xlabel = "remplissage mem SYCL";
                         as_y = iter.t_flatten_fill; // ne prend en charge que flatten et pas graphe de ptr
                     } else {
-                        pt.xlabel = "alloc & fill";
+                        pt.xlabel = "alloc et remplissage mem SYCL";
                         as_y = iter.t_alloc_fill;
                     }
                     
@@ -128,7 +173,7 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "copy & kernel";
+                pt.xlabel = "calculs GPU";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -138,7 +183,7 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "read";
+                pt.xlabel = "lecture depuis mem SYCL";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -151,7 +196,7 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
                     var pt = instance_create(0, 0, graph_single_point);
                     pt.xx = as_x;
                     pt.yy = as_y;
-                    pt.xlabel = "free mem";
+                    pt.xlabel = "libération mem SYCL";
                     pt.ylabel = split_thousands(as_y);
                     pt.color = gp.color; // <- debug only
                     ds_list_add(gp.points, pt);

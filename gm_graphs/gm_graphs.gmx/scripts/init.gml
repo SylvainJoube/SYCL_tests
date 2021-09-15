@@ -1,5 +1,13 @@
 /// init();
 
+
+g_display_device = true;
+g_display_shared = true;
+g_display_host   = true;
+g_ymax_impose = -1;
+g_ptrVsFlat_firstStep = false;
+g_draw_shared_before_shared = true;
+
 // Sets the global variables
 
 g_graph_title = "Mon zouli graphe.";
@@ -9,11 +17,17 @@ g_graph_object = -1;
 g_display_error_list = ds_list_create();
 
 // Dimensions du graphe
-g_graph_yoffset = 160;
+//g_graph_yoffset = 160;
+g_graph_yoffset = 90;
 g_graph_label_ystart = 70;
 g_origin_arrow_size = 15;
-g_graph_height = 700;
-g_graph_width = 800;
+//g_graph_height = 700;
+//g_graph_width = 800;
+g_graph_height = 600;//360; // + 160
+g_graph_width = 800; // 600 x 360 dans rapport de base
+
+g_line_pts_link_width = 1;
+
 g_xorig = 136;
 g_yorig = g_graph_height + g_graph_yoffset;
 g_surface_width = g_graph_width + g_xorig + 100;

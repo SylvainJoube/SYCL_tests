@@ -48,7 +48,7 @@ draw_set_font(ft_base);
 
 // Draw labels
 draw_text(xorig + floor(graph_width / 2), yorig + 40, xlabel);
-draw_text_transformed(10, yorig - floor(graph_height / 2), ylabel, 1, 1, 90);
+draw_text_transformed(10, yorig - floor(graph_height / 2) - 10, ylabel, 1, 1, 90);
 
 // Draw graph title
 var xcenter_surface = floor((graph_width + xorig * 2) / 2);
@@ -58,25 +58,27 @@ draw_text(xcenter_surface, 20, g_graph_display_name);
 draw_set_halign(fa_right);
 var dstr = "";
 
+draw_set_font(ft_LM);
 if (g_display_LM) {
     dstr =
       split_thousands(g_VECTOR_SIZE_PER_ITERATION_common) + " = L" + chr(10)
       + split_thousands(g_PARALLEL_FOR_SIZE_common) + " = M" + chr(10)
-      + split_thousands(g_iteration_count) + " pts" + chr(10)
+      //+ split_thousands(g_iteration_count) + " pts" + chr(10)
       + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio" + chr(10)
       + "out " + split_thousands(round(g_output_data_size / 1024)) + " kio";
 } else {
-    dstr = split_thousands(g_iteration_count) + " pts" + chr(10)
+    dstr = "" //split_thousands(g_iteration_count) + " pts" + chr(10)
       + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio" + chr(10)
       + "out " + split_thousands(round(g_output_data_size / 1024)) + " kio";
 }
 
 if (g_display_REPEAT_COUNT_SUM && (g_REPEAT_COUNT_SUM_common != -1)) {
-    dstr += chr(10) + string(g_REPEAT_COUNT_SUM_common) + " = repeat access";
+    dstr += chr(10) + string(g_REPEAT_COUNT_SUM_common) + " accès";
 }        
 
 
 draw_text(graph_width + xorig - x_space_left + 100, 60, dstr);
+draw_set_font(ft_base);
 
 
 var plabel_xmin = 160;
@@ -340,10 +342,10 @@ for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
         
         var local_xorig = xdraw - x_space_left;
         
-        if (g_multiple_xaxis) {
-            draw_set_color(c_black);
-            draw_set_alpha(0.2);
-            draw_arrow(local_xorig, yorig, local_xorig, yorig - graph_height, origin_arrow_size);
+        if (g_multiple_xaxis && (xgroup.xx != 0) ) {
+            draw_set_color(merge_colour(c_black, c_white, 0.7));
+            draw_set_alpha(1);
+            draw_arrow(local_xorig, yorig - 1, local_xorig, yorig - graph_height, origin_arrow_size);
             draw_set_alpha(1);
         }
         
@@ -544,7 +546,7 @@ for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
         // pour une courbe donnée
         if ( (gp_xdraw_old != -1) ) {
             draw_set_alpha(0.4);
-            draw_line(gp_xdraw_old, gp_ydraw_old, xdraw, median_ydraw);
+            draw_line_width(gp_xdraw_old, gp_ydraw_old, xdraw, median_ydraw, g_line_pts_link_width);
         }
         
         gp_xdraw_old = xdraw;

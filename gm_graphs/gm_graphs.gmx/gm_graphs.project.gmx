@@ -34,8 +34,12 @@
     <scripts name="batch">
       <script>scripts\run_batch_msi_1_old.gml</script>
       <script>scripts\run_batch_thinkpad_1.gml</script>
-      <script>scripts\run_batch_job.gml</script>
+      <script>scripts\run_batch_job_prez_simple.gml</script>
+      <script>scripts\run_batch_job_prez_traccc.gml</script>
+      <script>scripts\run_batch_job_rapport_simple.gml</script>
+      <script>scripts\run_batch_job_rapport_traccc.gml</script>
       <script>scripts\run_batch_job_traccc.gml</script>
+      <script>scripts\run_batch_job.gml</script>
       <script>scripts\run_batch_job_save_will_be_deleted.gml</script>
       <script>scripts\run_batch_job_betaGraphs.gml</script>
       <script>scripts\run_batch_thinkpad_1_debug_only.gml</script>
@@ -45,6 +49,7 @@
       <script>scripts\batch_add_graph_v1.gml</script>
       <script>scripts\batch_add_file.gml</script>
       <script>scripts\batch_add_file_v1.gml</script>
+      <script>scripts\simple_refresh_output_name.gml</script>
       <script>scripts\traccc_refresh_output_name.gml</script>
     </scripts>
     <script>scripts\s_info.gml</script>
@@ -77,6 +82,8 @@
       <script>scripts\draw_some_graph_6.gml</script>
       <script>scripts\draw_some_graph_7.gml</script>
       <script>scripts\draw_some_graph_8.gml</script>
+      <script>scripts\draw_some_graph_8_compUSM.gml</script>
+      <script>scripts\draw_some_graph_8_compUSMAccDirect.gml</script>
       <script>scripts\draw_some_graph_9.gml</script>
       <script>scripts\draw_some_graph_10.gml</script>
       <script>scripts\draw_some_graph_10b.gml</script>
@@ -91,7 +98,9 @@
       <script>scripts\draw_some_graph_15cacheSize.gml</script>
       <script>scripts\draw_some_graph_15cacheSizeBandwidth.gml</script>
       <script>scripts\draw_some_graph_traccc_16.gml</script>
+      <script>scripts\draw_some_graph_traccc_16_prez.gml</script>
       <script>scripts\draw_some_graph_traccc_17.gml</script>
+      <script>scripts\draw_some_graph_traccc_17_prez.gml</script>
       <script>scripts\draw_some_graph_traccc_18.gml</script>
       <script>scripts\draw_test_qualtiles.gml</script>
       <script>scripts\mem_location_to_str.gml</script>
@@ -135,6 +144,7 @@
   </scripts>
   <fonts name="fonts">
     <font>fonts\ft_base</font>
+    <font>fonts\ft_LM</font>
     <font>fonts\ft_big_error</font>
     <font>fonts\ft_point_label</font>
     <font>fonts\ft_small_number</font>
@@ -142,6 +152,10 @@
     <font>fonts\ft_very_small_number</font>
   </fonts>
   <objects name="objects">
+    <object>objects\ctrl_batch_traccc_prez</object>
+    <object>objects\ctrl_batch_prez_simple</object>
+    <object>objects\ctrl_batch_simple_rapport</object>
+    <object>objects\ctrl_batch_traccc_rapport</object>
     <object>objects\ctrl_batch_traccc</object>
     <object>objects\ctrl_betaGraphs</object>
     <object>objects\ctrl_batch</object>
@@ -164,8 +178,12 @@
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_batch_traccc</room>
-    <room>rooms\rm_betaGraphs</room>
     <room>rooms\rm_batch</room>
+    <room>rooms\rm_prez_traccc</room>
+    <room>rooms\rm_prez_simple</room>
+    <room>rooms\rm_rapport_simple</room>
+    <room>rooms\rm_rapport_traccc</room>
+    <room>rooms\rm_betaGraphs</room>
     <room>rooms\rm_prompt</room>
     <room>rooms\rm_test_var_independance</room>
   </rooms>

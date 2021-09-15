@@ -28,6 +28,7 @@ var current_test = step - current_run * tests_per_run; // 0..3
 // ON MSI var common_path = "C:\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
 // ON ordi fixe blanc
 common_path = "H:\SYNCTHING\data_sync\academique\M2\StageM2\SYCL_tests\mem_bench\output_bench\";
+common_path_out = common_path;// + "blopNvidia\";
 
 
 //var common_path = "C:\Users\sylvain\Desktop\plot_thinkpad_512MiB\";
@@ -38,7 +39,7 @@ var size_str = "512MiB";
 
 
 var bench_version = "v05";
-var bench_test_nb = "010"; // 007
+var bench_test_nb = "020"; // 007
 var debug_run_prefix = "";
 var debug_verid = "g";
 
@@ -63,7 +64,7 @@ switch (current_test) {
 case 1:
     // == LM ==
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "LMoptim" + fname_suffix_output,
     /*use_script*/    draw_some_graph_11,
     /*display_name*/  computer_name + " - LM optim - " + size_str + " - run " + string(current_run)
@@ -83,7 +84,7 @@ case 1:
 case 2:
     // == DMA ==
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "dma" + fname_suffix_output,
     /*use_script*/    draw_some_graph_13dbg,
     /*display_name*/  computer_name + " - DMA - " + size_str + " - run " + string(current_run)
@@ -104,7 +105,7 @@ case 2:
 case 3:
     // == SIMD ==
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "simd" + fname_suffix_output,
     /*use_script*/    draw_some_graph_9,
     /*display_name*/  computer_name + " - SIMD - " + size_str + " - run " + string(current_run)
@@ -124,7 +125,7 @@ case 3:
 case 4:
     // == Alloc (glibc vs sycl) ==
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "alloc" + fname_suffix_output,
     /*use_script*/   draw_some_graph_8,
     /*display_name*/ computer_name + " - alloc glibc vs sycl - " + size_str + " - run " + string(current_run)
@@ -144,7 +145,7 @@ case 4:
 case 5:
     // == LM classic ==
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "LMclassic" + fname_suffix_output,
     /*use_script*/    draw_some_graph_11,
     /*display_name*/  computer_name + " - LM classic - " + size_str + " - run " + string(current_run)
@@ -165,7 +166,7 @@ case 5:
 case 6: // ...
     // == LM classic vs optimization ==
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "LMclassicVSoptim" + fname_suffix_output,
     /*use_script*/    draw_some_graph_11,
     /*display_name*/  computer_name + " - LM classic - " + size_str + " - run " + string(current_run)
@@ -193,7 +194,7 @@ case 6: // ...
 case 7:
     // == LM classic ==
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "LMclassicBandwidth" + fname_suffix_output,
     /*use_script*/    draw_some_graph_11bandwidth,
     /*display_name*/  computer_name + " - LM classique, débit - " + size_str + " - run " + string(current_run)
@@ -214,7 +215,7 @@ case 7:
 case 8:
     // == LM optimized ==
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "LMoptimBandwidth" + fname_suffix_output,
     /*use_script*/    draw_some_graph_11bandwidth,
     /*display_name*/  computer_name + " - LM optim, débit - " + size_str + " - run " + string(current_run)
@@ -236,7 +237,7 @@ case 9:
     // == sumReadSpeed ==
     // Compare read speeds with USM host, device and shared
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "sumReadSpeed" + fname_suffix_output,
     /*use_script*/    draw_some_graph_14throughput,
     /*display_name*/  computer_name + " - L fixé, repeat variable - " + size_str + " - run " + string(current_run)
@@ -257,7 +258,7 @@ case 10:
     // == sumReadSpeed ==
     // Compare read speeds with USM host, device and shared
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "sumReadSpeedBandwidth" + fname_suffix_output,
     /*use_script*/    draw_some_graph_14throughputBandwidth,
     /*display_name*/  computer_name + " - L fixé, repeat variable - " + size_str + " - run " + string(current_run)
@@ -278,7 +279,7 @@ case 11:
     // == cacheSize ==
     // Compare read speeds with USM host, device and shared
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "cacheSize" + fname_suffix_output,
     /*use_script*/    draw_some_graph_15cacheSize,
     /*display_name*/  computer_name + " - L variable, repeat fixé - " + size_str + " - run " + string(current_run)
@@ -299,7 +300,7 @@ case 12:
     // == cacheSizeBandwidth ==
     // Compare read speeds with USM host, device and shared
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "cacheSizeBandwidth" + fname_suffix_output,
     /*use_script*/    draw_some_graph_15cacheSizeBandwidth,
     /*display_name*/  computer_name + " - L variable, repeat fixé - " + size_str + " - run " + string(current_run)
@@ -319,7 +320,7 @@ case 12:
 case 13:
     // == DMA full infos ==
     var graph = batch_add_graph(
-    /*output_path*/   common_path,
+    /*output_path*/   common_path_out,
     /*output_fname*/  fname_prefix_output + "dmaFull" + fname_suffix_output,
     /*use_script*/    draw_some_graph_13dbg,
     /*display_name*/  computer_name + " - DMA (full) - " + size_str + " - run " + string(current_run)

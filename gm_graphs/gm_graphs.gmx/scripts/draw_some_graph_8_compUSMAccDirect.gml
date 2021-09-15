@@ -29,14 +29,21 @@ for (var col = 0; col < max_color; col += color_step) {
     ds_list_add(colors, merge_color(c_blue, c_black, col));
 }*/
 
+
+/*g_display_device = ;
+g_display_shared = ;
+g_display_host   = ;*/
+
+
 var merge_cfactor = 0.3;
+var merge_cfactor_videoproj = 0;
 
-ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
-ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
+ds_list_add(colors, merge_colour(c_green, c_black, merge_cfactor_videoproj)); // device
+ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor_videoproj)); // shared
+ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor_videoproj));  // host
 
-ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
-ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
 ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
+ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
 
 
 ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
@@ -44,14 +51,45 @@ var current_color_index = 0;
 
 g_iteration_count = 0;
 
+var do_job_index = ds_list_create();
+
+ds_list_add(do_job_index, 4, 3, 5, 2, -1, 0);//1, 3, 4, 0, 2);
+
+if ( ! g_display_shared ) ds_list_replace(do_job_index, 5, -1);
+if ( ! g_display_host )   ds_list_replace(do_job_index, 3, -1);
+
+
+/*for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
+    ds_list_add(do_job_index, -1);
+}*/
+
+//for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
 for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
 
-    var j = ds_list_find_value(ctrl.jobs_fixed_list, ij);
+    var new_jindex = ds_list_find_value(do_job_index, ij);
+    if (new_jindex == -1) continue;
+    //show_message("ij = " + string(ij) + "  new = " + string(new_jindex) + "  len = " + string(ds_list_size(ctrl.jobs_fixed_list)));
+
+    var j = ds_list_find_value(ctrl.jobs_fixed_list, new_jindex);
     //show_message("ij index = " + string(ij));
     
+    
     // ingore when copy strategy is glibc and on device (no glibc on device)
-    if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 1 ) continue;
+    //if ( j.MEMCOPY_IS_SYCL == 1 && j.MEMORY_LOCATION == 1 ) continue;
     //if ( j.MEMORY_LOCATION == 2 ) continue; // located on host
+    
+    var must_be_ignored = false;
+    
+    if (j.MEMCOPY_IS_SYCL == 0)  {
+        if ( ( ! g_display_shared ) && ( j.MEMORY_LOCATION == 0 ) ) must_be_ignored = true;
+        if ( ( ! g_display_device ) && ( j.MEMORY_LOCATION == 1 ) ) must_be_ignored = true;
+        if ( ( ! g_display_host )   && ( j.MEMORY_LOCATION == 2 ) ) must_be_ignored = true;
+    }
+    
+    
+    /*case 0 : return "shared";
+    case 1 : return "device";
+    case 2 : return "host";*/
     
     
     for (var ids = 0; ids < ds_list_size(j.datasets); ++ids) {
@@ -82,23 +120,17 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
             //gp = find_or_create_graph_points_ext(graph_list, "Nb. élems = " + string(total_item_count), ids); /// "nb. workitems = " + split_thousands(j.PARALLEL_FOR_SIZE)
             var memcopy_name = "non connue";
             var memcopy_short_name = "nc";
-            if (j.MEMCOPY_IS_SYCL == 1 /*|| j.MEMORY_LOCATION == 1*/) { // copy strategy SYCL or mem on device (no glibc on device)
-                memcopy_name = ", copie SYCL";
-                memcopy_short_name = "";
+            if ((j.MEMCOPY_IS_SYCL == 1) /*|| j.MEMORY_LOCATION == 1*/) { // copy strategy SYCL or mem on device (no glibc on device)
+                memcopy_name = "";
+                memcopy_short_name = ""; //  || (j.MEMORY_LOCATION == 1)
             } else {
-                memcopy_name = ", copie glibc";
-                memcopy_short_name = "g";
+                memcopy_name = ", direct";
+                memcopy_short_name = "_d";
             }
             
             var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + memcopy_short_name;
             
             var gpname = "" + mem_location_to_str(j.MEMORY_LOCATION) + memcopy_name + " (" + gpshort_name + ")";
-            
-            
-            
-            
-            
-            
             
             
             // MEMCOPY_IS_SYCL
@@ -108,6 +140,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 ++current_color_index;
             }
             
+            if ( ! must_be_ignored )
             for (var i_iteration = 0; i_iteration < lsize; ++i_iteration) {
                 //if (i_iteration <= 1) continue;
                 var iter = ds_list_find_value(used_iteration_list, i_iteration);
@@ -129,7 +162,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "SYCL alloc"; //split_thousands(j.PARALLEL_FOR_SIZE);
+                pt.xlabel = "alloc SYCL"; //split_thousands(j.PARALLEL_FOR_SIZE);
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -140,7 +173,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "copie SYCL ou glibc";
+                pt.xlabel = "copie/accès SYCL";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -151,7 +184,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "kernel";
+                pt.xlabel = "calculs GPU";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -162,7 +195,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "lecture SYCL";
+                pt.xlabel = "lecture depuis SYCL";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -173,7 +206,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 var pt = instance_create(0, 0, graph_single_point);
                 pt.xx = as_x;
                 pt.yy = as_y;
-                pt.xlabel = "free";
+                pt.xlabel = "libération";
                 pt.ylabel = split_thousands(as_y);
                 pt.color = gp.color; // <- debug only
                 ds_list_add(gp.points, pt);
@@ -185,105 +218,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
         }
     }
 }
-/*
-// For each graph_points instance, group points with the same x
-for (var i = 0; i < ds_list_size(graph_list); ++i) {
-    var gp = ds_list_find_value(graph_list, i);
-    gp.xgroups = ds_list_create(); //instance_create(0, 0, graph_single_point_xgroup);
-    var lptlen = ds_list_size(gp.points);
-    
-    for (var ipt = 0; ipt < lptlen; ++ipt) {
-        var pt = ds_list_find_value(gp.points, ipt);
-        var xglen = ds_list_size(gp.xgroups);
-        var found_xgroup = false;
-        
-        for (var ixg = 0; ixg < xglen; ++ixg) {
-            var xgroup = ds_list_find_value(gp.xgroups, ixg);
-            if (xgroup.xx == pt.xx) {
-                ds_list_add(xgroup.points, pt);
-                found_xgroup = true;
-                break;
-            }
-        }
-        
-        if ( ! found_xgroup ) {
-            var xgroup = instance_create(0, 0, graph_single_point_xgroup);
-            ds_list_add(gp.xgroups, xgroup);
-            xgroup.xx = pt.xx;
-            xgroup.xlabel = pt.xlabel;
-            xgroup.points = ds_list_create();
-            ds_list_add(xgroup.points, pt);
-        }
-    }
-}
 
-var strange_value_factor = 6; // normal : 1.5, inclusive : 6
-
-var delete_strange_values = true;
-
-var deleted_points_count = 0;
-
-if (delete_strange_values) {
-    // Delete strange values
-    // TODO : finir la suppression des valeurs aberrantes
-    for (var i = 0; i < ds_list_size(graph_list); ++i) {
-        var gp = ds_list_find_value(graph_list, i);
-        var xgroups_len = ds_list_size(gp.xgroups);
-        
-        for (var ig = 0; ig < xgroups_len; ++ig) {
-            var xgroup = ds_list_find_value(gp.xgroups, ig);
-            var ptlen = ds_list_size(xgroup.points);
-            xgroup.deleted_strange_points = 0;
-            
-            if (ptlen <= 4) continue; // no median etc.
-            
-            // sort and delete strange values
-            var ysort = ds_list_create();
-            
-            for (var ipt = 0; ipt < ptlen; ++ipt) {
-                var pt = ds_list_find_value(xgroup.points, ipt);
-                ds_list_add(ysort, pt.yy);
-            }
-            
-            var quartils = compute_quartiles(ysort);
-            var q1 = lfind(quartils, 0);
-            var q2 = lfind(quartils, 1);
-            var q3 = lfind(quartils, 2);
-            
-            var strange_threshold = strange_value_factor * (q3 - q1);
-            
-            
-            var ipt = 0;
-            for (var iuseless = 0; iuseless < ptlen; ++iuseless) {
-                var pt = ds_list_find_value(xgroup.points, ipt);
-                if ( abs(pt.yy - q2)  > strange_threshold ) {
-                    // delete the point in gp list
-                    for (var i2pt = 0; i2pt < ds_list_size(gp.points); ++i2pt) {
-                        if (pt == ds_list_find_value(gp.points, i2pt)) {
-                            ds_list_delete(gp.points, i2pt);
-                            ++deleted_points_count;
-                            //show_message("deleted item");
-                            break; // only one instance in this list
-                        }
-                    }
-                    with (pt) instance_destroy();
-                    ds_list_delete(xgroup.points, ipt);
-                    ++xgroup.deleted_strange_points;
-                } else {
-                    ++ipt;
-                }
-            }
-        }
-        
-    }
-}
-
-var total_point_count = 0;
-for (var i = 0; i < ds_list_size(graph_list); ++i) {
-    var gp = ds_list_find_value(graph_list, i);
-    total_point_count += ds_list_size(gp.points);
-}
-*/
 draw_some_graph_shared_code(graph_list);
 
 //show_message("total pts = " + string(total_point_count) + "  deleted = " + string(deleted_points_count) + "  : "
@@ -328,7 +263,7 @@ for (var i = 0; i <= 2; ++i) {
     ds_list_add(sorted_glist, ds_list_find_value(graph_list, 3 + i));
 }
 
-draw_graph_objs(graph_list, 20, 20, "", "Temps pris en microsecondes", 0, -1, -1, -1);
+draw_graph_objs(graph_list, 20, 20, "", "Temps pris en microsecondes", 0, g_ymax_impose, -1, -1);
 
 ds_list_destroy(graph_list);
 ds_list_destroy(sorted_glist);

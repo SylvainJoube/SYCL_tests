@@ -1,4 +1,4 @@
-/// draw_graph_objs();
+/// draw_graph_objs(graph_list, x_space_left, y_space_left, xlabel, ylabel, ymin, ymax, xmin, xmax);
 
 return draw_graph_objs_v2(
 argument0, 

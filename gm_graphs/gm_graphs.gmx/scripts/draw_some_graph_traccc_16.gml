@@ -185,7 +185,7 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
 
 draw_some_graph_shared_code(graph_list);
 
-draw_graph_objs(graph_list, 20, 20, "Grandeur mesurée", "Temps pris en microsecondes", 0, -1, -1, -1);
+draw_graph_objs(graph_list, 20, 20, "", "Temps en microsecondes", 0, -1, -1, -1);
 
 ds_list_destroy(graph_list);
 ds_list_destroy(colors);
