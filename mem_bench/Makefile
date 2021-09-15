@@ -62,6 +62,22 @@ run_test_LM_optim :
     	done \
     done
 
+run_test_DMA :
+	for runCount in 1 2 ; do \
+		for testID in 2 ; do \
+        	echo run $$runCount testid $$testID ; \
+			./$(RUN_EXE_NAME) $$testID $$runCount ; \
+    	done \
+    done
+
+run_test_alloc :
+	for runCount in 1 2 ; do \
+		for testID in 4 ; do \
+        	echo run $$runCount testid $$testID ; \
+			./$(RUN_EXE_NAME) $$testID $$runCount ; \
+    	done \
+    done
+
 #./$(RUN_EXE_NAME) 1 1
 
 # 
