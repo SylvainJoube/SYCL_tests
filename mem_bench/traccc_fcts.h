@@ -1890,7 +1890,7 @@ namespace traccc {
         // Tests to compare against, to check graphs validity
         //int test_runs_count = runs_count;
         for (uint irun = 1; irun <= runs_count; ++irun) {
-            for (uint itest = 1; itest <= 6; ++itest) {
+            for (uint itest = 1; itest <= 4; ++itest) { // --> 6 pour prendre en compte sparsity
                 run_single_test_generic_traccc(computer_name, itest, irun);
             }
         }

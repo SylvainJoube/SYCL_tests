@@ -18,6 +18,7 @@ enum sycl_mode {shared_USM, device_USM, host_USM, accessors, glibc};
 
 unsigned long long PARALLEL_FOR_SIZE;// = 1024 * 32 * 8;// = M ; work items number
 unsigned long long VECTOR_SIZE_PER_ITERATION;// = 1; // = L ; vector size per workitem (i.e. parallel_for task) = nb itérations internes par work item
+unsigned long long BASE_VECTOR_SIZE_PER_ITERATION; // updated in list_devices()
 
 sycl_mode CURRENT_MODE = sycl_mode::device_USM;
 
@@ -74,6 +75,9 @@ std::string DEVICE_NAME_ON_MSI_INTEL  = "???";
 std::string DEVICE_NAME_ON_MSI_NVIDIA = "NVIDIA GeForce GTX 960M";
 std::string DEVICE_NAME_ON_SANDOR     = "Quadro RTX 5000";
 
+std::string DEVICE_NAME_ON_BLOP_INTEL  = "???";
+std::string DEVICE_NAME_ON_BLOP_NVIDIA = "NVIDIA GeForce GTX 780";
+
 //std::string BENCHMARK_VERSION = "v06D";
 std::string BENCHMARK_VERSION = "v05"; // Sandor compatible
 std::string BENCHMARK_VERSION_TRACCC = "acts06";
@@ -89,6 +93,8 @@ const unsigned int traccc_repeat_load_count_ON_MSI_INTEL = 1;
 const unsigned int traccc_repeat_load_count_ON_MSI_NVIDIA = 10;
 const unsigned int traccc_repeat_load_count_ON_SANDOR = 10;
 const unsigned int traccc_repeat_load_count_ON_THINKPAD = 1;
+const unsigned int traccc_repeat_load_count_ON_BLOP_INTEL = 1;
+const unsigned int traccc_repeat_load_count_ON_BLOP_NVIDIA = 1;
 
 int traccc_SPARSITY_MIN = 0;
 int traccc_SPARSITY_MAX = 100000;
@@ -123,6 +129,7 @@ std::string OUTPUT_FILE_NAME = "thinkpad_dma_1GiB_O2.t";
 //const long long total_elements = 1024L * 1024L * 256L * 8L; // 8 GiB
 //const long long total_elements = 1024L * 1024L * 256L * 6L; // 6 GiB
 long long total_elements = 1024L * 1024L * 256L; // 1 GiB
+std::string g_size_str = "0MiB";
 //const long long total_elements = 1024L * 1024L * 128L; // 512 MiB
 // 256 => 1 GiB 
 // 128 => 512 MiB ; 
@@ -155,23 +162,134 @@ std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); 
 #define INPUT_DATA_SIZE INPUT_DATA_LENGTH * sizeof(DATA_TYPE)
 #define OUTPUT_DATA_SIZE OUTPUT_DATA_LENGTH * sizeof(DATA_TYPE)
 
-std::string get_computer_name(int computer_id) {
-    switch (computer_id) {
+
+
+struct s_computer {
+    std::string fullName, toFileName, deviceName;
+    uint repeat_load_count = 0;
+    long long total_elements = 0;
+    std::string size_str = "0MiB";
+    uint L = 1;
+};
+
+
+const uint g_computer_count = 6;
+s_computer g_computers[g_computer_count];
+
+void init_computers() {
+    s_computer * c;
+    uint ci = 0;
+
+    // 1
+    c = &g_computers[ci++];
+    c->fullName   = "Thinkpad";
+    c->toFileName = "thinkpad";
+    c->deviceName = "Intel(R) UHD Graphics 620 [0x5917]";
+    c->repeat_load_count = 1;
+    c->total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
+    c->size_str = "512MiB";
+    c->L = 128;
+
+    // 2
+    c = &g_computers[ci++];
+    c->fullName   = "MSI_Intel";
+    c->toFileName = "msiIntel";
+    c->deviceName = "???";
+    c->repeat_load_count = 1;
+    c->total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
+    c->size_str = "512MiB";
+    c->L = 128;
+
+
+    // 3
+    c = &g_computers[ci++];
+    c->fullName   = "MSI_Nvidia";
+    c->toFileName = "msiNvidia";
+    c->deviceName = "NVIDIA GeForce GTX 960M";
+    c->repeat_load_count = 1;
+    c->total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
+    c->size_str = "512MiB";
+    c->L = 128;
+
+
+    // 4
+    c = &g_computers[ci++];
+    c->fullName   = "Sandor";
+    c->toFileName = "sandor";
+    c->deviceName = "Quadro RTX 5000";
+    c->repeat_load_count = 1;
+    c->total_elements = 1024L * 1024L * 256L * 6L; // 256 milions elements * 4 bytes => 1 GiB ; *6 => 6 GiB
+    c->size_str = "6GiB";
+    c->L = 128;
+
+
+    // 5
+    c = &g_computers[ci++];
+    c->fullName   = "Blop_Intel";
+    c->toFileName = "blopIntel";
+    c->deviceName = "????";
+    c->repeat_load_count = 1;
+    c->total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
+    c->size_str = "512MiB";
+    c->L = 128;
+
+    // 6
+    c = &g_computers[ci++];
+    c->fullName   = "Blop_Nvidia";
+    c->toFileName = "blopNvidia";
+    c->deviceName = "NVIDIA GeForce GTX 780";
+    c->repeat_load_count = 1;
+    c->total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
+    c->size_str = "512MiB";
+    c->L = 128;
+
+}
+
+std::string get_computer_name(uint computer_id) {
+    if ( (computer_id > g_computer_count) || (computer_id == 0) )
+        return "unknown_computer_id" + std::to_string(computer_id);
+    
+    return g_computers[computer_id - 1].fullName;
+    
+    /*switch (computer_id) {
     case 1 : return "Thinkpad";
     case 2 : return "MSI_Intel";
     case 3 : return "MSI_Nvidia";
     case 4 : return "Sandor";
-    default : return "unknown computer";
-    }
+    case 5 : return "Blop_Intel";
+    case 6 : return "Blop_Nvidia";
+    default : return "unknown_computer";
+    }*/
 }
 
 /// For output file name.
-std::string get_computer_name_ofile(int computer_id) {
-    switch (computer_id) {
+std::string get_computer_name_ofile(uint computer_id) {
+    if ( (computer_id > g_computer_count) || (computer_id == 0) )
+        return "unknownComputerId" + std::to_string(computer_id);
+    
+    return g_computers[computer_id - 1].toFileName;
+
+    /*switch (computer_id) {
     case 1 : return "thinkpad";
     case 2 : return "msiIntel";
     case 3 : return "msiNvidia";
     case 4 : return "sandor";
+    case 5 : return "blopIntel";
+    case 6 : return "blopNvidia";
     default : return "unknownComputer";
-    }
+    }*/
+}
+
+std::string get_computer_device_name(uint computer_id) {
+    if ( (computer_id > g_computer_count) || (computer_id == 0) )
+        return "unknown_device_name_computer_id" + std::to_string(computer_id);
+    
+    return g_computers[computer_id - 1].deviceName;
+}
+
+uint get_computer_repeat_load_count(uint computer_id) {
+    if ( (computer_id > g_computer_count) || (computer_id == 0) )
+        return 0;
+    
+    return g_computers[computer_id - 1].repeat_load_count;
 }

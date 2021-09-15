@@ -445,7 +445,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
 void bench_smid_modes(std::ofstream& myfile) {
 
     //unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
-    VECTOR_SIZE_PER_ITERATION = 128;
+    VECTOR_SIZE_PER_ITERATION = BASE_VECTOR_SIZE_PER_ITERATION;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     int imode;
@@ -482,7 +482,7 @@ void bench_smid_modes(std::ofstream& myfile) {
 void bench_mem_alloc_modes(std::ofstream& myfile) {
 
     //unsigned int total_elements = 1024 * 1024 * 256; // 256 * bytes = 1 GiB.
-    VECTOR_SIZE_PER_ITERATION = 128;
+    VECTOR_SIZE_PER_ITERATION = BASE_VECTOR_SIZE_PER_ITERATION;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     // how many times main_sequence will be run
@@ -520,7 +520,7 @@ void bench_mem_alloc_modes(std::ofstream& myfile) {
 
 void bench_host_copy_buffer(std::ofstream& myfile) {
 
-    VECTOR_SIZE_PER_ITERATION = 128;
+    VECTOR_SIZE_PER_ITERATION = BASE_VECTOR_SIZE_PER_ITERATION;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
 
     // how many times main_sequence will be run
@@ -1182,7 +1182,7 @@ void profiling_run_test(std::string size_prefix, std::string computer_name,
 
     // profiler shared : copie glibc vs sycl
 
-    VECTOR_SIZE_PER_ITERATION = 128;
+    VECTOR_SIZE_PER_ITERATION = BASE_VECTOR_SIZE_PER_ITERATION;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
     
     // host sycl
@@ -1322,6 +1322,7 @@ void run_all_test_on_msiNvidia() {
 int main(int argc, char *argv[])
 {
 
+    init_computers();
     log("========~~~~~~~ VERSION " + DISPLAY_VERSION + " ~~~~~~~========");
     log("argc = " + std::to_string(argc));
     list_devices(exception_handler); // print the list of avaliable devices
@@ -1342,9 +1343,10 @@ int main(int argc, char *argv[])
 
     //total_elements = 1024L * 1024L * 256L;   // 256 milions elements * 4 bytes => 1 GiB
     //std::string size_str = "1GiB";
-    total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
-    std::string size_str = "512MiB";
-
+    //total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
+    //std::string size_str = "512MiB";
+    
+    // g_size_str and total_elements are defined in list_devices()
 
     // Run all tests at once
     if (argc == 2) {
@@ -1373,7 +1375,7 @@ int main(int argc, char *argv[])
 
 
         if (arg.compare("profile_alloc") == 0) {
-            profiling_run_test(size_str, computerName + "_AT", 1, 1);
+            profiling_run_test(g_size_str, computerName + "_AT", 1, 1);
             return 0;
         }
 
@@ -1387,7 +1389,7 @@ int main(int argc, char *argv[])
         log("=> Run all  SYCL_MEM  tests at once, runCount(" + runCount + ") <=");
 
         // AT stands for All Tests
-        run_all_test_generic(size_str, computerName + "_AT", std::stoi(runCount));
+        run_all_test_generic(g_size_str, computerName + "_AT", std::stoi(runCount));
 
         /*
         case 1 : return "T580";
@@ -1414,7 +1416,7 @@ int main(int argc, char *argv[])
     if (argc == 3) {
 
         if (std::string(argv[1]).compare("profile_alloc") == 0) {
-            profiling_run_test(size_str, computerName + "_AT", std::stoi(argv[2]), 1);
+            profiling_run_test(g_size_str, computerName + "_AT", std::stoi(argv[2]), 1);
             return 0;
         }
 
@@ -1446,7 +1448,7 @@ int main(int argc, char *argv[])
 
         // not useful... std::string deviceIndex = argv[4]; // For MSI only, for Intel and AMD GPU
         // ST for "single test"
-        run_single_test_generic(size_str, computerName + "_ST", std::stoi(testID), std::stoi(runCount));
+        run_single_test_generic(g_size_str, computerName + "_ST", std::stoi(testID), std::stoi(runCount));
 
 
     }

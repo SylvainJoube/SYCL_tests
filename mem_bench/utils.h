@@ -356,7 +356,24 @@ public:
 
         log(" - score " + std::to_string(defaultScore));
 
-        if (devName.compare(DEVICE_NAME_ON_THINKPAD) == 0) {
+        for (uint ic = 0; ic < g_computer_count; ++ic) {
+            s_computer * c = & g_computers[ic];
+            //log("Compare : " + devName + " <-> " + c->deviceName);
+            if (devName.compare(c->deviceName) == 0) {
+                currently_running_on_computer_id = ic + 1;
+                MUST_RUN_ON_DEVICE_NAME = c->deviceName;
+                base_traccc_repeat_load_count = c->repeat_load_count;
+
+                total_elements = c->total_elements;
+                g_size_str = c->size_str;
+                BASE_VECTOR_SIZE_PER_ITERATION = c->L;
+
+                log("==> Setting L(" + std::to_string(c->L) + ") total_elements(" + std::to_string(total_elements) + ") g_size_str(" + g_size_str + ")");
+                break;
+            }
+        }
+
+        /*if (devName.compare(DEVICE_NAME_ON_THINKPAD) == 0) {
             currently_running_on_computer_id = 1; // 1 Thinkpad
             MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_THINKPAD;
             base_traccc_repeat_load_count = traccc_repeat_load_count_ON_THINKPAD;
@@ -375,7 +392,7 @@ public:
             currently_running_on_computer_id = 4; // 4 Sandor
             MUST_RUN_ON_DEVICE_NAME = DEVICE_NAME_ON_SANDOR;
             base_traccc_repeat_load_count = traccc_repeat_load_count_ON_SANDOR;
-        }
+        }*/
 
         // Return the default device score
         return defaultScore;

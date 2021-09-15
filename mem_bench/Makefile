@@ -14,6 +14,8 @@ RUN_EXE_NAME = bin/$(FILE_NAME)
 # Affiche uniquement la liste des devices dispo
 all: build run
 
+everything : build run_all_tests run_traccc
+
 # Build and run all tests in a single program
 all_tests: build run_all_tests
 
@@ -51,6 +53,16 @@ run:
 run_all_tests:
 	./$(RUN_EXE_NAME) 1
 # 4 runs for every tests
+
+run_test_LM_optim :
+	for runCount in 1 2 ; do \
+		for testID in 1 ; do \
+        	echo run $$runCount testid $$testID ; \
+			./$(RUN_EXE_NAME) $$testID $$runCount ; \
+    	done \
+    done
+
+#./$(RUN_EXE_NAME) 1 1
 
 # 
 run_each_test:
