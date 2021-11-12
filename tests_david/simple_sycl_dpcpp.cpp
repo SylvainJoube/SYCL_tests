@@ -6,7 +6,7 @@
 using namespace cl::sycl;
 
 // build and execute with :
-// dpcpp -O2 -std=c++17 -o simple_sycl simple_sycl.cpp && ./simple_sycl
+// dpcpp -O2 -std=c++17 -o simple_sycl_dpcpp simple_sycl_dpcpp.cpp && ./simple_sycl_dpcpp
 
 // Je suis en cours de débug la version hipSYCL...
 // syclcc -O2 -std=c++17 -o simple_sycl simple_sycl.cpp && ./simple_sycl
@@ -32,20 +32,25 @@ int main() {
   buffer b_data(data) ;
   buffer b_results(results) ;
 
+  // Optionnel, un device_selector automatique qu'il est possible de remplacer
+  // The default device selector will select the most performant device.
+  //cl::sycl::default_selector d_selector;
+
   // Compute
-  queue myQueue;
+  queue myQueue/*(d_selector)*/;
+  //queue myQueue; // fonctionne également, utilise aussi un selector automatique
 
   myQueue.submit([&](handler &h) {
 
     // Initialisation via le constructeur des accesseurs
     accessor a_data(b_data, h, read_only);
     accessor a_results(b_results, h, write_only, noinit);
-      
+    
+    // ou alors :
     // Initialisation via la méthode get_access des buffers
     auto a_data_bis    = b_data.get_access<access::mode::read>(h);
     auto a_results_bis = b_results.get_access<access::mode::discard_write>(h);
     // L'argument "h" n'est même pas réellement nécessaire ici
-
 
     h.parallel_for(range<1>(size), [=](auto i) {
         uint index = i[0];
