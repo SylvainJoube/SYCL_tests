@@ -5,7 +5,7 @@
 
 using namespace cl::sycl;
 
-// ========== Version avec dpc++ ==========
+// ========== Version simplifiée avec dpc++ ==========
 
 // dpcpp -O2 -std=c++17 -o simple_sycl_dpcpp simple_sycl_dpcpp.cpp && ./simple_sycl_dpcpp
 
@@ -20,22 +20,15 @@ int main() {
   std::vector<double> data(size) ;
   std::vector<double> results(size) ;
 
-  // Initialize data
-  for (uint i = 0; i < size; ++i) {
-      data[i] = i;
-  }
+  // Initialize data ...
 
-  // Device buffers
+  // Buffers
   buffer b_data(data) ;
   buffer b_results(results) ;
 
-  // Optionnel, un device_selector automatique qu'il est possible de remplacer
-  // The default device selector will select the most performant device.
-  //cl::sycl::default_selector d_selector;
-
-  // Compute
-  queue myQueue/*(d_selector)*/;
-  //queue myQueue; // fonctionne également, utilise aussi un selector automatique
+  // Queue creation :
+  // with a default device selector that will select the most performant device.
+  queue myQueue;
 
   myQueue.submit([&](handler &h) {
 
@@ -61,20 +54,7 @@ int main() {
   // - soit via la méthode suivante :
   b_results.get_access<access::mode::read>();
 
-  // Check the results
-  bool failure = false;
-  for (uint i = 0; i < size; ++i) {
-      double expected = data[i] * data[i];
-      double found = results[i];
-      if ( expected != found ) {
-        failure = true;
-        std::cout << "Wrong value, expected " << expected << " but found"
-                  << found << std::endl;
-      }
-  }
-  if ( ! failure ) {
-      std::cout << "Success !!" << std::endl;
-  }
+  // Process results ...
 
   // Je n'ai pas trop étudié les command_group, mais :
   // myQueue.submit encapsule visiblement un command_group
