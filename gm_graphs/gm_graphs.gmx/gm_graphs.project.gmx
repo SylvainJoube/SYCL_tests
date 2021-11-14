@@ -35,6 +35,7 @@
       <script>scripts\run_batch_msi_1_old.gml</script>
       <script>scripts\run_batch_thinkpad_1.gml</script>
       <script>scripts\run_batch_job_prez_simple.gml</script>
+      <script>scripts\run_batch_job_davidPrez_simple.gml</script>
       <script>scripts\run_batch_job_ACTSprez_simple.gml</script>
       <script>scripts\run_batch_job_prez_traccc.gml</script>
       <script>scripts\run_batch_job_ACTSprez_traccc.gml</script>
@@ -160,6 +161,7 @@
   </fonts>
   <objects name="objects">
     <object>objects\ctrl_batch_ACTSprez_simple</object>
+    <object>objects\ctrl_batch_davidPrez</object>
     <object>objects\ctrl_batch_traccc_ACTSprez</object>
     <object>objects\ctrl_batch_traccc_prez</object>
     <object>objects\ctrl_batch_prez_simple</object>
@@ -186,8 +188,9 @@
     <object>objects\ctrl_test_var</object>
   </objects>
   <rooms name="rooms">
-    <room>rooms\rm_ACTSprez_traccc</room>
+    <room>rooms\rm_davidPrez_simple</room>
     <room>rooms\rm_ACTSprez_simple</room>
+    <room>rooms\rm_ACTSprez_traccc</room>
     <room>rooms\rm_betaGraphs</room>
     <room>rooms\rm_batch_traccc</room>
     <room>rooms\rm_batch</room>

@@ -34,22 +34,54 @@ var do_job_index = ds_list_create();
 
 //ds_list_add(do_job_index, 0, 1, 2, 3, 4, 5);
 
-ds_list_add(do_job_index, -1, -1, -1, 4, 3, 5);//1, 3, 4, 0, 2);
+ds_list_add(do_job_index, -1, -1, -1, 4, 3, 5, 6);//1, 3, 4, 0, 2);
+
+// device, shared, host en copie SYCL
+// mem copy pas sycl
+// 0 usm shared copie directe
+// 1 usm device copie sycl (1/2)
+// 2 usm host   copie directe
+// --- (pas accessors) ---
+// mem copy sycl
+// 3 usm shared copie sycl
+// 4 usm device copie sycl (2/2)
+// 5 usm host   copie sycl
+// 6 accessors  (copie sycl)
+/*
+for (int imcp = 0; imcp <= 1; ++imcp) {
+        MEMCOPY_IS_SYCL = imcp;
+
+        for (int imode = 0; imode <= 3; ++imode) {
+            
+            switch (imode) {
+            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
+            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
+            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            case 3: CURRENT_MODE = sycl_mode::accessors; break;
+            default : break;
+            }
+        }
+    }
+*/
+
 
 if ( ! g_display_shared ) ds_list_replace(do_job_index, 4, -1);
 if ( ! g_display_host )   ds_list_replace(do_job_index, 5, -1);
+if ( ! g_display_accessors )   ds_list_replace(do_job_index, 6, -1);
 
 
 
 var merge_cfactor = 0.3;
 
-ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
-ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
-ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
+ds_list_add(colors, merge_colour(c_green, c_black, 0));  // device copie sycl
+ds_list_add(colors, merge_colour(c_blue, c_black, 0));   // shared  copie sycl
+ds_list_add(colors, merge_colour(c_red, c_black, 0));    // host    copie sycl
+ds_list_add(colors, merge_colour(c_maroon, c_black, 0)); // accessors (copie sycl)
 
+// vvv Inutilisé vvv
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
-ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
-
+ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor));  // host (no device)
+// -----------------
 
 ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
 var current_color_index = 0;

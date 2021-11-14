@@ -38,9 +38,10 @@ g_display_host   = ;*/
 var merge_cfactor = 0.3;
 var merge_cfactor_videoproj = 0;
 
-ds_list_add(colors, merge_colour(c_green, c_black, merge_cfactor_videoproj)); // device
-ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor_videoproj)); // shared
-ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor_videoproj));  // host
+ds_list_add(colors, merge_colour(c_green, c_black, 0));  // device copie sycl
+ds_list_add(colors, merge_colour(c_blue, c_black, 0));   // shared  copie sycl
+ds_list_add(colors, merge_colour(c_red, c_black, 0));    // host    copie sycl
+ds_list_add(colors, merge_colour(c_maroon, c_black, 0)); // accessors (copie sycl)
 
 ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
@@ -53,10 +54,11 @@ g_iteration_count = 0;
 
 var do_job_index = ds_list_create();
 
-ds_list_add(do_job_index, 4, 3, 5, 2, -1, 0);//1, 3, 4, 0, 2);
+ds_list_add(do_job_index, 4, 3, 5, 6, 2, -1, 0);//1, 3, 4, 0, 2);
 
-if ( ! g_display_shared ) ds_list_replace(do_job_index, 5, -1);
-if ( ! g_display_host )   ds_list_replace(do_job_index, 3, -1);
+if ( ! g_display_shared ) ds_list_replace(do_job_index, 6, -1);
+if ( ! g_display_host )   ds_list_replace(do_job_index, 4, -1);
+//if ( ! g_display_accessors )   ds_list_replace(do_job_index, 3, -1);
 
 
 /*for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
