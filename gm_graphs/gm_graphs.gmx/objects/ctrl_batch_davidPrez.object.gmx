@@ -37,7 +37,7 @@ draw_every_x_frames = 4; // draw every x frames
 done_images = 0;
 
 tests_per_run = 2; 
-run_number = 1;
+run_number = 2;
 total_iterations = tests_per_run * run_number;
 
 //current_computer_name = "thinkpad_AT";//"msiNvidia_ST";

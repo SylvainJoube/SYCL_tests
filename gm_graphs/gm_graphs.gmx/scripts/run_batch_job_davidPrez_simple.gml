@@ -16,6 +16,8 @@ if ( step >= total_iterations) return -1;
 current_run = floor(step / tests_per_run); // 0..3
 current_test = step - current_run * tests_per_run; // 0..3
 
+show_message("current_run(" + string(current_run) + ") current_test(" + string(current_test) + ")");
+
 ++current_run;  // 1..4
 ++current_test; // 1..5
 
@@ -25,7 +27,7 @@ common_path = "H:\SYNCTHING\data_sync\academique\These\SYCL_tests\mem_bench\outp
 
 // v08_alloc_thinkpad_ST_512MiB_O2_RUN2
 
-size_str = "512MiB";
+size_str = "6GiB";//"512MiB";
 
 bench_version = "v08";
 bench_test_nb = "200"; // 007
@@ -86,8 +88,8 @@ case 1: // b010_v05_alloc_msiNvidia_AT_512MiB_O2_RUN2fact1-5
             g_display_accessors = true;
             suff = "04";
         }
-        current_run = 1;
-        computer_name = "thinkpad_ST";
+        //current_run = 1;
+        computer_name = "sandor_ST"; // thinkpad_ST
         simple_refresh_output_name();    // == Alloc (glibc vs sycl) ==
         var graph = batch_add_graph(
         /*output_path*/   common_path,
@@ -127,8 +129,8 @@ case 2: // return 0; // b010_v05_alloc_msiNvidia_AT_512MiB_O2_RUN2fact1-5
             suff = "06";
         }
         
-        current_run = 1;
-        computer_name = "thinkpad_ST";
+        //current_run = 1;
+        computer_name = "sandor_ST";
         simple_refresh_output_name();    // == Alloc (glibc vs sycl) ==
         var graph = batch_add_graph(
         /*output_path*/   common_path,

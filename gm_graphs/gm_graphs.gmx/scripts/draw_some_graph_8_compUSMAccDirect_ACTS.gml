@@ -41,7 +41,7 @@ var merge_cfactor_videoproj = 0;
 ds_list_add(colors, merge_colour(c_green, c_black, 0));  // device copie sycl
 ds_list_add(colors, merge_colour(c_blue, c_black, 0));   // shared  copie sycl
 ds_list_add(colors, merge_colour(c_red, c_black, 0));    // host    copie sycl
-ds_list_add(colors, merge_colour(c_maroon, c_black, 0)); // accessors (copie sycl)
+ds_list_add(colors, merge_colour(c_maroon, c_black, 0.5)); // accessors (copie sycl)
 
 ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared

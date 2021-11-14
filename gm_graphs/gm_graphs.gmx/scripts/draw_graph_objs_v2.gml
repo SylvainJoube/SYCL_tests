@@ -88,7 +88,7 @@ draw_set_font(ft_base);
 
 
 var plabel_xmin = 160;
-var plabel_width = graph_width - xorig - 20;
+var plabel_width = graph_width - 10; // - xorig
 var plabel_ymin = graph_label_ystart;
 var plabel_cx = plabel_xmin; // current x, y
 var plabel_cy = plabel_ymin;
