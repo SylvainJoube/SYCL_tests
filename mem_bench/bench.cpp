@@ -17,6 +17,8 @@
 #include "utils.h"
 #include "constants.h"
 #include "traccc_fcts.h"
+#include "sycl_helloworld.h"
+
 
 
 // Comparison of various USM flavours
@@ -215,10 +217,8 @@ void generic_USM_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_
             //timer.t_sycl_host_free = 0;
         }
     }
-
     // TODO : also copy data from dataset to shared memory.
 }
-
 
 
 
@@ -233,6 +233,151 @@ void generic_USM_free(cl::sycl::queue &sycl_q, host_dataset* dataset, gpu_timer&
     dataset->device_input = nullptr;
     dataset->device_output = nullptr;
 }
+
+
+
+void generic_accessors_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset, gpu_timer& timer, sycl_mode mode) {
+    stime_utils chrono;
+    chrono.start();
+    timer.t_allocation = chrono.reset();
+
+    // TODO : réussir à créer le buffer puis à le remplir ensuite et ne pas
+    //        faire les deux en même temps comme c'est le cas actuellement.
+    
+    //std::cout << ver_prefix + " - ALLOC MODE = " + mode_to_string(mode) << std::endl;
+    switch (mode) {
+    case sycl_mode::accessors :
+        dataset->buffer_input  = new cl::sycl::buffer<data_type, 1>(dataset->data_input, cl::sycl::range<1>(INPUT_DATA_LENGTH));
+        dataset->buffer_output = new cl::sycl::buffer<data_type, 1>(dataset->data_output, cl::sycl::range<1>(OUTPUT_DATA_LENGTH));
+        //dataset->device_input = static_cast<data_type *> (cl::sycl::malloc_device(INPUT_DATA_SIZE, sycl_q));
+        //dataset->device_output = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
+        break;
+    default : break; // TODO : add buffers/accessors
+    }
+    
+    sycl_q.wait_and_throw();
+    timer.t_copy_to_device = chrono.reset();
+}
+
+
+
+void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
+                               gpu_timer& timer, sycl_mode mode) {
+    stime_utils chrono;
+    chrono.start();
+
+    cl::sycl::buffer<data_type, 1> *buffer_input  = dataset->buffer_input;
+    cl::sycl::buffer<data_type, 1> *buffer_output = dataset->buffer_output;
+
+    //  data_type* ddata_input, data_type* ddata_output,
+    data_type* ddata_input = dataset->device_input;
+    data_type* ddata_output = dataset->device_output;
+
+    //data_type* ddata_output_verif = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
+
+    // SYCL kernel needs const variables
+    const unsigned int local_VECTOR_SIZE_PER_ITERATION = VECTOR_SIZE_PER_ITERATION;
+    const unsigned int local_PARALLEL_FOR_SIZE = PARALLEL_FOR_SIZE;
+    const unsigned int local_REPEAT_COUNT_SUM = REPEAT_COUNT_SUM;
+
+    // Sandor does not support anonymous kernels.
+
+    
+    //class MyKernel_ab;
+
+    if (SIMD_FOR_LOOP == 0) {
+        //logs(" -NOT simd- ");
+        // Starts a kernel - traditional for loop
+
+        sycl_q.submit([&](cl::sycl::handler &h) {
+
+            // Initialisation via le constructeur des accesseurs
+            cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
+            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // noinit non supporté par hipsycl visiblement
+            
+            h.parallel_for/*<class MyKernel_aa>*/(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) { //cl::sycl::id<1>
+                int cindex = chunk_index[0];
+                int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
+                int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
+                data_type sum = 0;
+
+                // Repeat data access REPEAT_COUNT_SUM times
+                for (int rp = 0; rp < local_REPEAT_COUNT_SUM; ++rp) {
+                    for (int i = start_index; i < stop_index; ++i) {
+                        sum += a_input[i];
+                    }
+                }
+
+                a_output[cindex] = sum;
+            });
+
+        }).wait_and_throw();
+    } else {
+        //logs(" -IS simd- ");
+        // Starts a kernel - SIMD optimized for loop
+
+        sycl_q.submit([&](cl::sycl::handler &h) {
+
+            // Initialisation via le constructeur des accesseurs
+            cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
+            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // noinit non supporté par hipsycl visiblement
+
+            // cl::sycl::id<1>
+            h.parallel_for/*<class MyKernel_ab>*/(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) {
+
+                int cindex = chunk_index[0];
+                data_type sum = 0;
+
+                // Repeat data access REPEAT_COUNT_SUM times
+                for (int rp = 0; rp < local_REPEAT_COUNT_SUM; ++rp) {
+                    for (int it = 0; it < local_VECTOR_SIZE_PER_ITERATION; ++it) {
+                        int iindex = cindex + it * local_PARALLEL_FOR_SIZE;
+                        sum += a_input[iindex];
+                    }
+                }
+
+                a_output[cindex] = sum;
+            });
+
+        }).wait_and_throw();
+    }
+
+    sycl_q.wait_and_throw();
+    timer.t_parallel_for = chrono.reset();
+
+    (*buffer_output).get_access<cl::sycl::access::mode::read>();
+
+    data_type sum_simd_check_cpu = 0;
+
+    // Value verification
+    data_type total_sum = 0;
+    for (int i = 0; i < OUTPUT_DATA_LENGTH; ++i) {
+        total_sum += dataset->data_output[i]; //ddata_output_verif[i];//dataset->data_output[i];
+    }
+
+    timer.t_read_from_device = chrono.reset();
+
+    if ( total_sum == (dataset->final_result_verif * REPEAT_COUNT_SUM) ) {
+        //log("VALID - Right data size ! (" + std::to_string(total_sum) + ")", 1);
+    } else {
+        log("ERROR on compute - expected size " + std::to_string(dataset->final_result_verif * REPEAT_COUNT_SUM)
+            + " but found " + std::to_string(total_sum) + ". (REPEAT_COUNT_SUM(" + std::to_string(REPEAT_COUNT_SUM) + ")", 1);
+    }
+}
+
+void generic_accessors_free(cl::sycl::queue &sycl_q, host_dataset* dataset, gpu_timer& timer, sycl_mode mode) {
+    stime_utils chrono;
+    chrono.start();
+    //std::cout << ver_prefix + " - FREE MODE = " + mode_to_string(mode) << std::endl;
+    delete dataset->buffer_input;
+    delete dataset->buffer_output;
+    sycl_q.wait_and_throw();
+    timer.t_free_gpu = chrono.reset();
+    dataset->buffer_input = nullptr;
+    dataset->buffer_output = nullptr;
+}
+
+
 
 
 
@@ -272,6 +417,12 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
         sycl_allocation = generic_USM_allocation;
         sycl_compute = generic_USM_compute;
         sycl_free = generic_USM_free;
+        break;
+
+    case sycl_mode::accessors :
+        sycl_allocation = generic_accessors_allocation;
+        sycl_compute = generic_accessors_compute;
+        sycl_free = generic_accessors_free;
         break;
 
     default : break; // TODO : add buffers/accessors
@@ -501,14 +652,19 @@ void bench_mem_alloc_modes(std::ofstream& myfile) {
     for (int imcp = 0; imcp <= 1; ++imcp) {
         MEMCOPY_IS_SYCL = imcp;
 
-        for (int imode = 0; imode <= 2; ++imode) {
+        for (int imode = 0; imode <= 3; ++imode) {
             
             switch (imode) {
             case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
             case 1: CURRENT_MODE = sycl_mode::device_USM; break;
             case 2: CURRENT_MODE = sycl_mode::host_USM; break;
+            case 3: CURRENT_MODE = sycl_mode::accessors; break;
             default : break;
             }
+
+            // No "non-sycl copy" for buffers-accessors. (not yet at least)
+            if ( (CURRENT_MODE == sycl_mode::accessors) && (MEMCOPY_IS_SYCL == 0) ) continue;
+
             log("Mode(" + mode_to_string(CURRENT_MODE) + ")  MEMCOPY_IS_SYCL(" + std::to_string(MEMCOPY_IS_SYCL) + ")");
             //log("============    - L = VECTOR_SIZE_PER_ITERATION = " + std::to_string(VECTOR_SIZE_PER_ITERATION));
             
@@ -1355,6 +1511,11 @@ int main(int argc, char *argv[])
 
         if (arg.compare("mem") == 0) {
             bench_sycl_glibc_mem_speed();
+            return 0;
+        }
+
+        if (arg.compare("helloworld") == 0) {
+            sycl_hello_main();
             return 0;
         }
 

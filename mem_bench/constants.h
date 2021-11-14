@@ -79,7 +79,7 @@ std::string DEVICE_NAME_ON_BLOP_INTEL  = "???";
 std::string DEVICE_NAME_ON_BLOP_NVIDIA = "NVIDIA GeForce GTX 780";
 
 //std::string BENCHMARK_VERSION = "v06D";
-std::string BENCHMARK_VERSION = "v05"; // Sandor compatible
+std::string BENCHMARK_VERSION = "v08"; // Sandor compatible  v05
 std::string BENCHMARK_VERSION_TRACCC = "acts06";
 std::string DISPLAY_VERSION = BENCHMARK_VERSION_TRACCC + " - TRACCC-015";
 

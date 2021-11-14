@@ -33,8 +33,13 @@ mem: build run_mem
 
 traccc : build run_traccc
 
+helloworld: build run_helloworld
+
 run_mem:
 	./$(RUN_EXE_NAME) mem
+
+run_helloworld:
+	./$(RUN_EXE_NAME) helloworld
 
 run_traccc:
 	./$(RUN_EXE_NAME) traccc

@@ -131,9 +131,13 @@ struct host_dataset {
     data_type *data_output;
     data_type final_result_verif = 0;
     unsigned int seed;
-    // Memory allocated on the device
+    // Memory allocated on the device : USM only
     data_type *device_input = nullptr;
     data_type *device_output = nullptr;
+    // Buffers on the device for accessors-buffers
+    // Those are pointers to be created during the allocation phase
+    cl::sycl::buffer<data_type, 1> *buffer_input = nullptr;
+    cl::sycl::buffer<data_type, 1> *buffer_output = nullptr;
 };
 unsigned int global_t_data_generation_and_ram_allocation = 0;
 
