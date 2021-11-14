@@ -293,7 +293,7 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
             // Initialisation via le constructeur des accesseurs
             cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
-            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::noinit); // noinit non supporté par hipsycl visiblement
+            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // noinit non supporté par hipsycl visiblement
             
             h.parallel_for<class MyKernel_aa>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) { //cl::sycl::id<1>
                 int cindex = chunk_index[0];
@@ -320,7 +320,7 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
             // Initialisation via le constructeur des accesseurs
             cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
-            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::noinit); // noinit non supporté par hipsycl visiblement
+            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // noinit non supporté par hipsycl visiblement
 
             // cl::sycl::id<1>
             h.parallel_for<class MyKernel_ab>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) {
