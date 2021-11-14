@@ -1,4 +1,22 @@
 
 .vscode
+vtune/
 
 bin/
+
+mem_benck/
+
+*.txt
+*.temp
+
+teplate_examples/
+mem_bench/montrer-26-07-2021/
+mem_bench/output_png/
+mem_bench/output_bench/temp
+mem_bench/output_bench/archives
+mem_bench/output_bench/*
+!mem_bench/output_bench/*.t
+
+montrer-05-08-2021/
+
+ancien_travail/
