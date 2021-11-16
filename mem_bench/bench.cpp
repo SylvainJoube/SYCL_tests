@@ -1501,9 +1501,9 @@ int main(int argc, char *argv[])
     FORCE_EXECUTION_ON_NAMED_DEVICE = true;
     //MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]";
     //REPEAT_COUNT_REALLOC = 12;
-    REPEAT_COUNT_REALLOC = 12;
+    REPEAT_COUNT_REALLOC = 120;
 
-    REPEAT_COUNT_ONLY_PARALLEL = 12;
+    REPEAT_COUNT_ONLY_PARALLEL = 120;
 
     //total_elements = 1024L * 1024L * 256L;   // 256 milions elements * 4 bytes => 1 GiB
     //std::string size_str = "1GiB";
