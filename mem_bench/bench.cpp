@@ -534,26 +534,34 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
             
             host_dataset* dataset = &hdata[ids];
             write_file << dataset->seed << "\n";
+            
+
 
             log("------- DATASET SEED " + std::to_string(dataset->seed) + " -------\n", 2);
             sycl_allocation(sycl_q, dataset, gtimer, mode);
 
-            // Allocation and free on device, for each iteration
-            for (int rpt = 0; rpt < REPEAT_COUNT_ONLY_PARALLEL; ++rpt) {
-                log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(REPEAT_COUNT_ONLY_PARALLEL), 2);
-                
-                sycl_compute(sycl_q, dataset, gtimer, mode);
-                
-                write_file << gtimer.t_parallel_for << " " 
-                            << gtimer.t_read_from_device << " "
-                            << "\n";
+            if (REPEAT_COUNT_ONLY_PARALLEL != 0) {
+                // Allocation and free on device, for each iteration
+                int total_iteration_count = REPEAT_COUNT_ONLY_PARALLEL + REPEAT_COUNT_ONLY_PARALLEL_WARMUP_COUNT;
+                for (int rpt = 0; rpt < total_iteration_count; ++rpt) {
+                    log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(total_iteration_count), 2);
+                    
+                    sycl_compute(sycl_q, dataset, gtimer, mode);
+                    
+                    // Only write result if not a warmup
+                    if ( rpt >= REPEAT_COUNT_ONLY_PARALLEL_WARMUP_COUNT ) {
+                        write_file << gtimer.t_parallel_for << " " 
+                                    << gtimer.t_read_from_device << " "
+                                    << "\n";
+                    }
 
-                // A new line for each repeat count :
-                // t_allocation t_copy_to_device t_parallel_for t_read_from_device t_free_gpu
-                print_timer_iter(gtimer);
+                    // A new line for each repeat count :
+                    // t_allocation t_copy_to_device t_parallel_for t_read_from_device t_free_gpu
+                    print_timer_iter(gtimer);
 
-                ++current_iteration_count;
-                print_total_progress();
+                    ++current_iteration_count;
+                    print_total_progress();
+                }
             }
             sycl_free(sycl_q, dataset, gtimer, mode);
 
@@ -637,7 +645,7 @@ void bench_mem_alloc_modes(std::ofstream& myfile) {
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     // how many times main_sequence will be run
-    total_main_seq_runs = 2 * 3;
+    total_main_seq_runs = 2 * 4 - 1;
 
     int imode;
     //MEMCOPY_IS_SYCL = 1;
@@ -1495,7 +1503,7 @@ int main(int argc, char *argv[])
     //REPEAT_COUNT_REALLOC = 12;
     REPEAT_COUNT_REALLOC = 12;
 
-    REPEAT_COUNT_ONLY_PARALLEL = 0;
+    REPEAT_COUNT_ONLY_PARALLEL = 12;
 
     //total_elements = 1024L * 1024L * 256L;   // 256 milions elements * 4 bytes => 1 GiB
     //std::string size_str = "1GiB";
