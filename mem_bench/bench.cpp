@@ -1501,9 +1501,9 @@ int main(int argc, char *argv[])
     FORCE_EXECUTION_ON_NAMED_DEVICE = true;
     //MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]";
     //REPEAT_COUNT_REALLOC = 12;
-    REPEAT_COUNT_REALLOC = 30;
+    REPEAT_COUNT_REALLOC = 12;
 
-    REPEAT_COUNT_ONLY_PARALLEL = 30;
+    REPEAT_COUNT_ONLY_PARALLEL = 12;
 
     //total_elements = 1024L * 1024L * 256L;   // 256 milions elements * 4 bytes => 1 GiB
     //std::string size_str = "1GiB";
@@ -1537,6 +1537,20 @@ int main(int argc, char *argv[])
             //unsigned int microseconds = 10000000;
             //usleep(microseconds);
             traccc::run_all_traccc_benchs(computerName + "_AT", std::stoi(runCount));
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
+            return 0;
+        }
+
+
+        if (arg.compare("traccc_acat") == 0) {
+            std::string runCount = "1";
+            log("=> Run all -ACAT- TRACCC  tests at once, runCount(" + runCount + ") <=");
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //log("Will now sleep.");
+            //unsigned int microseconds = 10000000;
+            //usleep(microseconds);
+            traccc::run_all_traccc_acat_benchs(computerName + "_AT", std::stoi(runCount));
             //traccc::traccc_bench(sycl_mode::glibc);
             //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
             return 0;

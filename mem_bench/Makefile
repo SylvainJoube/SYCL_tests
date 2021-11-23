@@ -43,6 +43,10 @@ run_helloworld:
 
 run_traccc:
 	./$(RUN_EXE_NAME) traccc
+
+run_traccc_acat:
+	./$(RUN_EXE_NAME) traccc_acat
+
 run_traccc_sparse:
 	./$(RUN_EXE_NAME) traccc sparse
 

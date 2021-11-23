@@ -259,6 +259,14 @@ namespace traccc {
     unsigned int read_source() {
         return all_data[i_all_data++];
     }
+    
+    void inc_source_counter() {
+        ++i_all_data;
+    }
+    void reset_source_counter() {
+        i_all_data = 0;
+    }
+
 
     int traccc_last_SPARSITY_MIN = -1;
     int traccc_last_SPARSITY_MAX = -1;
@@ -607,7 +615,7 @@ namespace traccc {
         // alloc et fill sont utiles en flatten uniquement, 
         // ça n'a pas grand sens en graphe de ponteur
         // (vu que la structure change)
-        uint t_alloc_fill, t_flatten_alloc, t_flatten_fill, t_copy_kernel, t_read, t_free_mem;
+        uint t_alloc_fill, t_flatten_alloc, t_flatten_fill, t_copy_kernel, t_read, t_free_mem, t_alloc_only, t_fill_only;
     };
 
     class bench_variables {
@@ -634,8 +642,9 @@ namespace traccc {
 
     void alloc_and_fill(bench_variables & b) {
         if (TRACCC_LOG_LEVEL >= 2) log("Alloc & fill...");
-        stime_utils chrono, chrono_flatten;
+        stime_utils chrono, chrono_flatten, chrono_ptr_detailed;
 
+        reset_source_counter();
         
         //sycl_mode mode = bench.mode;
         //traccc::implicit_input_module  * implicit_modules_in  = bench.implicit_modules_in;
@@ -652,8 +661,12 @@ namespace traccc {
 
         if (b.mstrat == pointer_graph) {
             
+            chrono_ptr_detailed.reset();
+            
             b.chres.t_flatten_alloc = 0;
             b.chres.t_flatten_fill = 0;
+            b.chres.t_alloc_only = 0; // nouveau
+            b.chres.t_fill_only = 0; // nouveau
 
             // Graphe de pointeurs
             // Lecture + fill
@@ -697,8 +710,24 @@ namespace traccc {
                             b.sycl_q.wait_and_throw();
                         }
                         
+                        uint inc_amount = module->cell_count * 2;
+                        i_all_data += inc_amount;
+                        
+                    }
+                    b.chres.t_alloc_only = chrono_ptr_detailed.reset();
+
+                    reset_source_counter(); // i_all_data = 0;
+
+                    // Allocation des modules, les uns après les autres
+                    for (uint im = 0; im < total_module_count; ++im) {
+                        traccc::implicit_module  * module  = &b.implicit_modules[im];
+                        unsigned int cell_count = read_source();
+                        if (cell_count != module->cell_count) {
+                            log("ERREUR @ alloc_and_fille : cell_count("+std::to_string(cell_count)+") != module->cell_count("+std::to_string(module->cell_count)+")");
+                        }
+
                         // Remplissage des cellules
-                        for (uint ic = 0; ic < cell_count; ++ic) {
+                        for (uint ic = 0; ic < module->cell_count; ++ic) {
                             implicit_cell * cell = &module->cells[ic];
                             unsigned int c0 = read_source();
                             unsigned int c1 = read_source();
@@ -708,6 +737,8 @@ namespace traccc {
                         }
                         //if (im < 10) log("");
                     }
+                    b.chres.t_fill_only = chrono_ptr_detailed.reset();
+
                 } else {
                     // Utilisation des modules in/out
 
@@ -753,7 +784,19 @@ namespace traccc {
                             b.sycl_q.wait_and_throw();
                             module_out->cluster_count = 0;
                         }
+
+                        uint inc_amount = module_in->cell_count * 2;
+                        i_all_data += inc_amount;
+
+                    }
+
+                    b.chres.t_alloc_only = chrono_ptr_detailed.reset();
+
+                    reset_source_counter();
                         
+                    for (uint im = 0; im < total_module_count; ++im) {
+                        traccc::implicit_input_module  * module_in  = &b.implicit_modules_in[im];
+                        traccc::implicit_output_module * module_out = &b.implicit_modules_out[im];
                         /*if (im < 10) {
                             log("Module " + std::to_string(im)
                                 + " cell_count(" + std::to_string(cell_count) + ")"
@@ -761,9 +804,13 @@ namespace traccc {
 
                             logs("cells : ");
                         }*/
+                        unsigned int cell_count = read_source();
+                        if (cell_count != module_in->cell_count) {
+                            log("ERREUR @ alloc_and_fille : cell_count("+std::to_string(cell_count)+") != module_in->cell_count("+std::to_string(module_in->cell_count)+")");
+                        }
 
                         // Remplissage des cellules
-                        for (uint ic = 0; ic < cell_count; ++ic) {
+                        for (uint ic = 0; ic < module_in->cell_count; ++ic) {
                             unsigned int c0 = read_source();
                             unsigned int c1 = read_source();
                             module_in->cells[ic].channel0 = c0;
@@ -772,6 +819,9 @@ namespace traccc {
                         }
                         //if (im < 10) log("");
                     }
+
+                    b.chres.t_fill_only = chrono_ptr_detailed.reset();
+
                 }
             }
         } else { // flatten
@@ -810,6 +860,7 @@ namespace traccc {
 
             //if (ignore_allocation_times) chrono.reset();
             b.chres.t_flatten_alloc = chrono_flatten.reset();
+            b.chres.t_alloc_only = b.chres.t_flatten_alloc;
 
             // Fill
             unsigned int global_cell_index = 0;
@@ -833,6 +884,7 @@ namespace traccc {
                 //if (im < 10) log("");
             }
             b.chres.t_flatten_fill = chrono_flatten.reset();
+            b.chres.t_fill_only = b.chres.t_flatten_fill;
         }
 
         b.sycl_q.wait_and_throw();
@@ -1649,18 +1701,23 @@ namespace traccc {
 
             cres = traccc_bench(mode, mstrat);
 
+            
+            logs("cres.t_alloc_only : " + std::to_string(cres.t_alloc_only));
+            log(" - cres.t_fill_only : " + std::to_string(cres.t_fill_only));
 
             write_file
             // RIen n'est utile jusqu'aux nouveaux champs
-            << gtimer.t_allocation << " "
+            << /*gtimer.t_allocation*/ cres.t_alloc_only << " " // nouveau raccourci acat
             << gtimer.t_sycl_host_alloc << " " // v6
             << gtimer.t_sycl_host_copy << " " // v6
-            << gtimer.t_copy_to_device << " "
+            << /*gtimer.t_copy_to_device*/ cres.t_fill_only << " " // nouveau raccourci acat
             << gtimer.t_sycl_host_free << " " // v6
             // TODO : do the same with alloc/cpy only once
             << gtimer.t_parallel_for << " " 
             << gtimer.t_read_from_device << " "
             << gtimer.t_free_gpu << " "
+
+
 
             // Nouveaux champs
             << cres.t_alloc_fill << " "
@@ -1891,6 +1948,18 @@ namespace traccc {
         //int test_runs_count = runs_count;
         for (uint irun = 1; irun <= runs_count; ++irun) {
             for (uint itest = 1; itest <= 4; ++itest) { // --> 6 pour prendre en compte sparsity
+                run_single_test_generic_traccc(computer_name, itest, irun);
+            }
+        }
+    }
+
+    void run_all_traccc_acat_benchs(std::string computer_name, int runs_count = 4) {
+
+        // Tests to compare against, to check graphs validity
+        //int test_runs_count = runs_count;
+        for (uint irun = 1; irun <= runs_count; ++irun) {
+            // 1 et 2 seulement
+            for (uint itest = 1; itest <= 2; ++itest) { // --> 6 pour prendre en compte sparsity
                 run_single_test_generic_traccc(computer_name, itest, irun);
             }
         }
