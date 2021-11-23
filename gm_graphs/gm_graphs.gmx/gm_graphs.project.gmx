@@ -88,7 +88,9 @@
       <script>scripts\draw_some_graph_8_compUSM.gml</script>
       <script>scripts\draw_some_graph_8_compUSMAccDirect.gml</script>
       <script>scripts\draw_some_graph_8_compUSM_ACTS.gml</script>
+      <script>scripts\draw_some_graph_8_compUSM_david.gml</script>
       <script>scripts\draw_some_graph_8_compUSMAccDirect_ACTS.gml</script>
+      <script>scripts\draw_some_graph_8_compUSMAccDirect_david.gml</script>
       <script>scripts\draw_some_graph_9.gml</script>
       <script>scripts\draw_some_graph_10.gml</script>
       <script>scripts\draw_some_graph_10b.gml</script>

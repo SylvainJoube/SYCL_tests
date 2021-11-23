@@ -193,7 +193,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 for (var iter_type = 0; iter_type <= 1; ++iter_type) {
                     var uiter, ugp;
                     if (iter_type == 0) { uiter = iter; ugp = gp; }
-                    if (iter_type == 1) { uiter = iter_par; ugp = gp_par; }
+                    if (iter_type == 1) { uiter = iter_par; ugp = gp; } // gp_par
                     
                     if ( iter_type == 0 ) {
                         // allocation
@@ -222,32 +222,32 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                     }
                     
                     // t_parallel_for
-                    var as_x = 20 + gxoffset;
+                    var as_x = 20 + gxoffset + iter_type * 10;
                     var as_y = uiter.t_parallel_for;
                     if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
                     var pt = instance_create(0, 0, graph_single_point);
                     pt.xx = as_x;
                     pt.yy = as_y;
-                    pt.xlabel = "GPU kernel";
+                    pt.xlabel = "GPU kernel " + string(iter_type + 1);
                     pt.ylabel = split_thousands_time(as_y);
                     pt.color = ugp.color; // <- debug only
                     ds_list_add(ugp.points, pt);
                     
-                    // t_read_from_device
-                    var as_x = 30 + gxoffset;
-                    var as_y = uiter.t_read_from_device;
-                    if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
-                    var pt = instance_create(0, 0, graph_single_point);
-                    pt.xx = as_x;
-                    pt.yy = as_y;
-                    pt.xlabel = "read from SYCL";
-                    pt.ylabel = split_thousands_time(as_y);
-                    pt.color = ugp.color; // <- debug only
-                    ds_list_add(ugp.points, pt);
-                    
-                    if ( iter_type == 0 ) {
-                        // t_free_gpu
+                    if ( (iter_type == 0) && false ) {
+                        // t_read_from_device
                         var as_x = 40 + gxoffset;
+                        var as_y = uiter.t_read_from_device;
+                        if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
+                        var pt = instance_create(0, 0, graph_single_point);
+                        pt.xx = as_x;
+                        pt.yy = as_y;
+                        pt.xlabel = "read from SYCL";
+                        pt.ylabel = split_thousands_time(as_y);
+                        pt.color = ugp.color; // <- debug only
+                        ds_list_add(ugp.points, pt);
+                        
+                        // t_free_gpu
+                        var as_x = 50 + gxoffset;
                         var as_y = uiter.t_free_gpu; //t_free_gpu
                         if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
                         var pt = instance_create(0, 0, graph_single_point);

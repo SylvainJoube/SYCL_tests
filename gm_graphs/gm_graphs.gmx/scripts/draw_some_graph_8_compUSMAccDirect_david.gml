@@ -18,7 +18,7 @@ var echelle_log = false;
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
 
-var gp;
+var gp, gp_par;
 var graph_list = ds_list_create();
 var colors = ds_list_create();
 
@@ -30,84 +30,64 @@ for (var col = 0; col < max_color; col += color_step) {
 }*/
 
 
-var do_job_index = ds_list_create();
-
-//ds_list_add(do_job_index, 0, 1, 2, 3, 4, 5);
-
-ds_list_add(do_job_index, -1, -1, -1, 4, 3, 5, 6);//1, 3, 4, 0, 2);
-
-// device, shared, host en copie SYCL
-// mem copy pas sycl
-// 0 usm shared copie directe
-// 1 usm device copie sycl (1/2)
-// 2 usm host   copie directe
-// --- (pas accessors) ---
-// mem copy sycl
-// 3 usm shared copie sycl
-// 4 usm device copie sycl (2/2)
-// 5 usm host   copie sycl
-// 6 accessors  (copie sycl)
-/*
-for (int imcp = 0; imcp <= 1; ++imcp) {
-        MEMCOPY_IS_SYCL = imcp;
-
-        for (int imode = 0; imode <= 3; ++imode) {
-            
-            switch (imode) {
-            case 0: CURRENT_MODE = sycl_mode::shared_USM; break;
-            case 1: CURRENT_MODE = sycl_mode::device_USM; break;
-            case 2: CURRENT_MODE = sycl_mode::host_USM; break;
-            case 3: CURRENT_MODE = sycl_mode::accessors; break;
-            default : break;
-            }
-        }
-    }
-*/
-
-
-if ( ! g_display_shared ) ds_list_replace(do_job_index, 4, -1);
-if ( ! g_display_host )   ds_list_replace(do_job_index, 5, -1);
-if ( ! g_display_accessors )   ds_list_replace(do_job_index, 6, -1);
-
+/*g_display_device = ;
+g_display_shared = ;
+g_display_host   = ;*/
 
 
 var merge_cfactor = 0.3;
+var merge_cfactor_videoproj = 0;
 
 ds_list_add(colors, merge_colour(c_green, c_black, 0));  // device copie sycl
 ds_list_add(colors, merge_colour(c_blue, c_black, 0));   // shared  copie sycl
 ds_list_add(colors, merge_colour(c_red, c_black, 0));    // host    copie sycl
 ds_list_add(colors, merge_colour(c_maroon, c_black, 0.5)); // accessors (copie sycl)
 
-// vvv Inutilisé vvv
+ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
-ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor));  // host (no device)
-// -----------------
+
 
 ds_list_add(colors, c_black, c_aqua, c_blue, c_navy, c_lime, c_green, c_olive, c_yellow, c_orange, c_maroon, c_fuchsia, c_red, c_black);
 var current_color_index = 0;
 
 g_iteration_count = 0;
 
+var do_job_index = ds_list_create();
+
+ds_list_add(do_job_index, 4, 3, 5, 6, 2, -1, 0);//1, 3, 4, 0, 2);
+
+if ( ! g_display_shared ) ds_list_replace(do_job_index, 6, -1);
+if ( ! g_display_host )   ds_list_replace(do_job_index, 4, -1);
+//if ( ! g_display_accessors )   ds_list_replace(do_job_index, 3, -1);
+
+
+/*for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
+    ds_list_add(do_job_index, -1);
+}*/
+
+//for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
 for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
-    //show_message("ij index = " + string(ij) + " size = " + string(ds_list_size(ctrl.jobs_fixed_list)));
-    
+
     var new_jindex = ds_list_find_value(do_job_index, ij);
     if (new_jindex == -1) continue;
-    
+    //show_message("ij = " + string(ij) + "  new = " + string(new_jindex) + "  len = " + string(ds_list_size(ctrl.jobs_fixed_list)));
+
     var j = ds_list_find_value(ctrl.jobs_fixed_list, new_jindex);
-    //
+    //show_message("ij index = " + string(ij));
+    
     
     // ingore when copy strategy is glibc and on device (no glibc on device)
-    //if ( j.MEMCOPY_IS_SYCL == 0 && j.MEMORY_LOCATION == 1 ) continue;
+    //if ( j.MEMCOPY_IS_SYCL == 1 && j.MEMORY_LOCATION == 1 ) continue;
     //if ( j.MEMORY_LOCATION == 2 ) continue; // located on host
     
     var must_be_ignored = false;
     
-    /*if ( ( ! g_display_shared ) && ( j.MEMORY_LOCATION == 0 ) ) must_be_ignored = true;
-    if ( ( ! g_display_device ) && ( j.MEMORY_LOCATION == 1 ) ) must_be_ignored = true;
-    if ( ( ! g_display_host )   && ( j.MEMORY_LOCATION == 2 ) ) must_be_ignored = true;
+    if (j.MEMCOPY_IS_SYCL == 0)  {
+        if ( ( ! g_display_shared ) && ( j.MEMORY_LOCATION == 0 ) ) must_be_ignored = true;
+        if ( ( ! g_display_device ) && ( j.MEMORY_LOCATION == 1 ) ) must_be_ignored = true;
+        if ( ( ! g_display_host )   && ( j.MEMORY_LOCATION == 2 ) ) must_be_ignored = true;
+    }
     
-    if (j.MEMCOPY_IS_SYCL == 0) continue;*/
     
     /*case 0 : return "shared";
     case 1 : return "device";
@@ -142,12 +122,12 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
             //gp = find_or_create_graph_points_ext(graph_list, "Nb. élems = " + string(total_item_count), ids); /// "nb. workitems = " + split_thousands(j.PARALLEL_FOR_SIZE)
             var memcopy_name = "non connue";
             var memcopy_short_name = "nc";
-            if (j.MEMCOPY_IS_SYCL == 1 /*|| j.MEMORY_LOCATION == 1*/) { // copy strategy SYCL or mem on device (no glibc on device)
+            if ((j.MEMCOPY_IS_SYCL == 1) /*|| j.MEMORY_LOCATION == 1*/) { // copy strategy SYCL or mem on device (no glibc on device)
                 memcopy_name = "";
-                memcopy_short_name = "";
+                memcopy_short_name = ""; //  || (j.MEMORY_LOCATION == 1)
             } else {
-                memcopy_name = "";
-                memcopy_short_name = "g";
+                memcopy_name = ", direct";
+                memcopy_short_name = "_d";
             }
             
             var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + memcopy_short_name;
@@ -169,7 +149,6 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 gp_par.color = gp.color;
                 gp_par.hide_label = true;
             }
-            
             
             if ( ! must_be_ignored )
             for (var i_iteration = 0; i_iteration < lsize; ++i_iteration) {
@@ -193,7 +172,8 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 for (var iter_type = 0; iter_type <= 1; ++iter_type) {
                     var uiter, ugp;
                     if (iter_type == 0) { uiter = iter; ugp = gp; }
-                    if (iter_type == 1) { uiter = iter_par; ugp = gp_par; }
+                    //if (iter_type == 1) { uiter = iter; ugp = gp; }
+                    if (iter_type == 1) { uiter = iter_par; ugp = gp; } // gp_par
                     
                     if ( iter_type == 0 ) {
                         // allocation
@@ -215,37 +195,37 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                         var pt = instance_create(0, 0, graph_single_point);
                         pt.xx = as_x;
                         pt.yy = as_y;
-                        pt.xlabel = "copy to SYCL";
+                        pt.xlabel = "copy/access to SYCL";
                         pt.ylabel = split_thousands_time(as_y);
                         pt.color = ugp.color; // <- debug only
                         ds_list_add(ugp.points, pt);
                     }
                     
                     // t_parallel_for
-                    var as_x = 20 + gxoffset;
+                    var as_x = 20 + gxoffset + iter_type * 10;
                     var as_y = uiter.t_parallel_for;
                     if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
                     var pt = instance_create(0, 0, graph_single_point);
                     pt.xx = as_x;
                     pt.yy = as_y;
-                    pt.xlabel = "GPU kernel";
+                    pt.xlabel = "GPU kernel " + string(iter_type + 1);
                     pt.ylabel = split_thousands_time(as_y);
                     pt.color = ugp.color; // <- debug only
                     ds_list_add(ugp.points, pt);
                     
-                    // t_read_from_device
-                    var as_x = 30 + gxoffset;
-                    var as_y = uiter.t_read_from_device;
-                    if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
-                    var pt = instance_create(0, 0, graph_single_point);
-                    pt.xx = as_x;
-                    pt.yy = as_y;
-                    pt.xlabel = "read from SYCL";
-                    pt.ylabel = split_thousands_time(as_y);
-                    pt.color = ugp.color; // <- debug only
-                    ds_list_add(ugp.points, pt);
-                    
-                    if ( iter_type == 0 ) {
+                    if ( (iter_type == 0) && false ) {
+                        // t_read_from_device
+                        var as_x = 30 + gxoffset;
+                        var as_y = uiter.t_read_from_device;
+                        if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
+                        var pt = instance_create(0, 0, graph_single_point);
+                        pt.xx = as_x;
+                        pt.yy = as_y;
+                        pt.xlabel = "read from SYCL";
+                        pt.ylabel = split_thousands_time(as_y);
+                        pt.color = ugp.color; // <- debug only
+                        ds_list_add(ugp.points, pt);
+                        
                         // t_free_gpu
                         var as_x = 40 + gxoffset;
                         var as_y = uiter.t_free_gpu; //t_free_gpu
@@ -258,9 +238,7 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                         pt.color = ugp.color; // <- debug only
                         ds_list_add(ugp.points, pt);
                     }
-                    
                 }
-                
                 
                 
                 //show_message("ij index = " + string(ij) + " ds index = " + string(ids) + "  pt index = " + string(i_iteration) + "  pt size = " + string(ds_list_size(gp.points)));

@@ -20,6 +20,7 @@ for (var i = 0; i < lsize; ++i) {
 var gp = instance_create(0, 0, graph_points);
 ds_list_add(graph_list, gp);
 gp.newly_created = true;
+gp.hide_label = false; // true to display the curve but not the label
 gp.points = ds_list_create(); // list of graph_single_point instances
 //gp.xlabels = ds_list_create();
 //gp.ylabels = ds_list_create();

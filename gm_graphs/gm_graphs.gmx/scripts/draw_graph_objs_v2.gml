@@ -99,6 +99,7 @@ var DRAW_LABEL_ON_GRAPH = true;
 // Draw the points labels
 for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
     var gp = ds_list_find_value(graph_list, igp);
+    if (gp.hide_label) continue; // do not show a hidden label
     var drawn_text = gp.name;
     draw_set_halign(fa_left);
     draw_set_valign(fa_center);
