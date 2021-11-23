@@ -6,6 +6,7 @@
 var file = argument0;
 
 var delimiter = " ";
+//show_message("load_data_v105");
 
 var limit_iterations = g_limit_iterations;
 
@@ -120,12 +121,18 @@ while ( ! file_text_eof(file) ) {
             ds_list_add(d.iterations, iter);
             var values = list_to_real(split_string(values_str, " "));
             iter.t_allocation = ds_list_find_value(values, 0);
+            
+            iter.t_alloc_only = iter.t_allocation; // raccourci acat
+            
             // used if USE_HOST_SYCL_BUFFER = true
             iter.t_sycl_host_alloc = ds_list_find_value(values, 1); // new in v6
             iter.t_sycl_host_copy = ds_list_find_value(values, 2); // new in v6
             // if USE_HOST_SYCL_BUFFER, this is malloc_host -> shared/device/host
             // otherwise this is (classic buffer alocated with new) -> shared/device/host
             iter.t_copy_to_device = ds_list_find_value(values, 3);
+            
+            iter.t_fill_only = iter.t_copy_to_device; // raccourci acat
+            
             iter.t_sycl_host_free = ds_list_find_value(values, 4); // new in v6
             iter.t_parallel_for = ds_list_find_value(values, 5);
             iter.t_read_from_device = ds_list_find_value(values, 6);
@@ -138,6 +145,7 @@ while ( ! file_text_eof(file) ) {
             iter.t_free_mem = ds_list_find_value(values, 11);
             iter.t_flatten_alloc = ds_list_find_value(values, 12);
             iter.t_flatten_fill = ds_list_find_value(values, 13);
+            // + nouvelles variables acat : iter.t_alloc_only et iter.t_fill_only 
         }
         
     }

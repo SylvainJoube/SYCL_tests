@@ -39,6 +39,7 @@
       <script>scripts\run_batch_job_ACTSprez_simple.gml</script>
       <script>scripts\run_batch_job_prez_traccc.gml</script>
       <script>scripts\run_batch_job_ACTSprez_traccc.gml</script>
+      <script>scripts\run_batch_job_ACATprez_traccc.gml</script>
       <script>scripts\run_batch_job_rapport_simple.gml</script>
       <script>scripts\run_batch_job_rapport_traccc.gml</script>
       <script>scripts\run_batch_job_traccc.gml</script>
@@ -110,6 +111,7 @@
       <script>scripts\draw_some_graph_traccc_17.gml</script>
       <script>scripts\draw_some_graph_traccc_17_prez.gml</script>
       <script>scripts\draw_some_graph_traccc_17_ACTSprez.gml</script>
+      <script>scripts\draw_some_graph_traccc_17_ACATprez.gml</script>
       <script>scripts\draw_some_graph_traccc_18.gml</script>
       <script>scripts\draw_test_qualtiles.gml</script>
       <script>scripts\mem_location_to_str.gml</script>
@@ -162,6 +164,9 @@
     <font>fonts\ft_very_small_number</font>
   </fonts>
   <objects name="objects">
+    <objects name="ACAT">
+      <object>objects\ctrl_batch_traccc_ACAT_prez</object>
+    </objects>
     <object>objects\ctrl_batch_ACTSprez_simple</object>
     <object>objects\ctrl_batch_davidPrez</object>
     <object>objects\ctrl_batch_traccc_ACTSprez</object>
@@ -190,6 +195,7 @@
     <object>objects\ctrl_test_var</object>
   </objects>
   <rooms name="rooms">
+    <room>rooms\rm_ACATprez_traccc</room>
     <room>rooms\rm_davidPrez_simple</room>
     <room>rooms\rm_ACTSprez_simple</room>
     <room>rooms\rm_ACTSprez_traccc</room>
