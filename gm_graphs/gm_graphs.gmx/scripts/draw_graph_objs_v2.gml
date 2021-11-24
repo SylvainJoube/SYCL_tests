@@ -64,18 +64,19 @@ draw_text(xcenter_surface, 20, g_graph_display_name);
 draw_set_halign(fa_right);
 var dstr = "";
 
+g_display_LM = false; // acat
 draw_set_font(ft_LM);
 if (g_display_LM) {
     dstr =
       split_thousands(g_VECTOR_SIZE_PER_ITERATION_common) + " = L" + chr(10)
       + split_thousands(g_PARALLEL_FOR_SIZE_common) + " = M" + chr(10)
       //+ split_thousands(g_iteration_count) + " pts" + chr(10)
-      + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio" + chr(10)
-      + "out " + split_thousands(round(g_output_data_size / 1024)) + " kio";
+      + "in " + split_thousands(round(g_input_data_size / (1024*1024))) + " MiB" + chr(10)
+      + "out " + split_thousands(round(g_output_data_size / (1024*1024))) + " MiB";
 } else {
     dstr = "" //split_thousands(g_iteration_count) + " pts" + chr(10)
-      + "in " + split_thousands(round(g_input_data_size / 1024)) + " kio" + chr(10)
-      + "out " + split_thousands(round(g_output_data_size / 1024)) + " kio";
+      + "in " + split_thousands(round(g_input_data_size / (1024*1024))) + " MiB" + chr(10)
+      + "out " + split_thousands(round(g_output_data_size / (1024*1024))) + " MiB";
 }
 
 if (g_display_REPEAT_COUNT_SUM && (g_REPEAT_COUNT_SUM_common != -1)) {
@@ -83,12 +84,12 @@ if (g_display_REPEAT_COUNT_SUM && (g_REPEAT_COUNT_SUM_common != -1)) {
 }        
 
 
-draw_text(graph_width + xorig - x_space_left + 100, 60, dstr);
+draw_text(graph_width + xorig - x_space_left + 60, 60, dstr);
 draw_set_font(ft_base);
 
 
-var plabel_xmin = 160;
-var plabel_width = graph_width - 10; // - xorig
+var plabel_xmin = g_xorig - 20; //160;
+var plabel_width = graph_width + 80; // - xorig
 var plabel_ymin = graph_label_ystart;
 var plabel_cx = plabel_xmin; // current x, y
 var plabel_cy = plabel_ymin;
@@ -552,7 +553,7 @@ for (var igp = 0; igp < ds_list_size(graph_list); ++igp) {
         // Dessin des liens entre les paquets de points regroupés en xgroup
         // pour une courbe donnée
         if ( (gp_xdraw_old != -1) ) {
-            draw_set_alpha(0.4);
+            draw_set_alpha(g_line_between_points_alpha);
             draw_line_width(gp_xdraw_old, gp_ydraw_old, xdraw, median_ydraw, g_line_pts_link_width);
         }
         

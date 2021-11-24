@@ -27,17 +27,22 @@ var draw_flatten = g_traccc_draw_flatten;
 
 var merge_fact = 0.3;
 
-//ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
+// Device
+ds_list_add(colors, merge_colour(c_green, c_black, 0)); // device
     
 // Shared
 //if (g_traccc_ptrVsFlat_memLocation == 0) {
-    ds_list_add(colors, merge_colour(c_blue, c_black, merge_fact)); // shared
+    //ds_list_add(colors, merge_colour(c_blue, c_black, merge_fact)); // shared
     ds_list_add(colors, merge_colour(c_blue, c_black, 0)); // shared
 //}
+
+// Accessors
+ds_list_add(colors, merge_colour(c_maroon, c_black, 0.6));
+
 // Host
 //if (g_traccc_ptrVsFlat_memLocation == 2) {
-    ds_list_add(colors, merge_colour(c_red, c_black, merge_fact));  // host
-    ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
+    //ds_list_add(colors, merge_colour(c_red, c_black, merge_fact));  // host
+    //ds_list_add(colors, merge_colour(c_red, c_black, 0));  // host
 //}
 
 // CPU
@@ -53,11 +58,12 @@ var merge_fact = 0.3;
 var do_job_index = ds_list_create();
 //ds_list_add(do_job_index, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 //ds_list_add(do_job_index, 0, 1, 2, 3, 4, 5, 6);
-ds_list_add(do_job_index, 0, 4, 2, 6, -1, -1, -1);
+//ds_list_add(do_job_index, 0, 4, 2, 6, -1, -1, -1);
+ds_list_add(do_job_index, 3, 0, 4, -1, -1, -1, -1, -1, -1);
 
 //ds_list_add(do_job_index, 0, -1, 2, -1, 4, -1, 6);
 
-// shared 0 4 host 2 6 device 3
+// shared 0 5 host 2 7 device 3 accessors 4
 
 // ACAT : dessin de shared et host sur le même graphique
 /*
@@ -106,7 +112,7 @@ if (g_traccc_ptrVsFlat_memLocation == 20) {
 }*/
 
 
-var do_job_index2 = ds_list_create();
+/*var do_job_index2 = ds_list_create();
 ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 4));
 ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 5));
 ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 6));
@@ -117,7 +123,7 @@ ds_list_add(do_job_index2, ds_list_find_value(do_job_index, 3));
 
 var tt = do_job_index;
 do_job_index = do_job_index2;
-ds_list_destroy(tt);
+ds_list_destroy(tt);*/
 
 //if ( ! g_display_shared ) ds_list_replace(do_job_index, 4, -1);
 //if ( ! g_display_host )   ds_list_replace(do_job_index, 5, -1);
@@ -166,7 +172,7 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
             }
             if (j.MEMORY_STRATEGY == 2) {
                 gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "";
-                gpname = mem_location_to_str(j.MEMORY_LOCATION) + ", flat (" + gpshort_name + ")";
+                gpname = mem_location_to_str(j.MEMORY_LOCATION) + " (" + gpshort_name + ")";
             }
             //var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + mem_strategy_to_name_prefix(j.MEMORY_STRATEGY);
             //                   //+ ignore_alloc_time_to_name_prefix(j.IGNORE_ALLOC_TIME);
@@ -174,6 +180,8 @@ for (var loop_ij = 0; loop_ij < ds_list_size(ctrl.jobs_fixed_list); ++loop_ij) {
             //var gpname = "" + "" + mem_strategy_to_name(j.MEMORY_STRATEGY)
                          //+ ", " + ignore_alloc_time_to_name(j.IGNORE_ALLOC_TIME)
             //             +  " (" + gpshort_name + ")";
+            
+            //show_message("j.MEMORY_LOCATION = " + string(j.MEMORY_LOCATION));
             
             gp = find_or_create_graph_points_ext(graph_list, gpname, gpshort_name);
             if (gp.newly_created) {

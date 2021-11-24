@@ -52,15 +52,16 @@ switch (current_test) {
 // ===== Comparaison de chaque type USM : graphe ptr vs flatten =====
 case 1: // A_acts06_ptrVsFlat_mem20_sandor_AT_ld10_RUN1_q1
     
-    computer_name = "thinkpad_AT"; // sandor_AT
+    computer_name = "sandor_AT"; // thinkpad_AT
     traccc_repeat_load_count_base = 1;
     g_graph_yoffset = 90;
-    g_graph_height = 190;
-    g_graph_width = 640;
-    g_yorig = g_graph_height + g_graph_yoffset;
-    var new_surf_height = g_graph_height + g_graph_yoffset + 20; // 70
-    g_surface_height = new_surf_height;
-    g_surface_width = g_graph_width + g_xorig + 100;
+    g_graph_height = 190;//190;
+    g_graph_width = 400;//640;
+    //g_yorig = g_graph_height + g_graph_yoffset;
+    //var new_surf_height = g_graph_height + g_graph_yoffset + 20; // 70
+    //g_surface_height = new_surf_height;
+    //g_surface_width = g_graph_width + g_xorig + 100;
+    refresh_dimensions();
     
     
     g_ymax_impose = -1;
@@ -74,6 +75,7 @@ case 1: // A_acts06_ptrVsFlat_mem20_sandor_AT_ld10_RUN1_q1
     traccc_repeat_load_count = traccc_repeat_load_count_base;
     
     traccc_refresh_output_name();
+    g_ymax_impose = 900;
         
     var graph = batch_add_graph(
     /*output_path*/   common_path,
@@ -97,6 +99,7 @@ case 1: // A_acts06_ptrVsFlat_mem20_sandor_AT_ld10_RUN1_q1
     );
     load_draw_save_graph(graph);
     ++g_citer;
+    g_ymax_impose = -1;
     
 
     
@@ -122,9 +125,56 @@ case 1: // A_acts06_ptrVsFlat_mem20_sandor_AT_ld10_RUN1_q1
     }*/
     break;
 
+case 2: // A_acts06_ptrVsFlat_mem20_sandor_AT_ld10_RUN1_q1
+    
+    computer_name = "thinkpad_AT"; //  sandor_AT
+    traccc_repeat_load_count_base = 1;
+    g_graph_yoffset = 90;
+    g_graph_height = 190;//190;
+    g_graph_width = 400;//640;
+    //g_yorig = g_graph_height + g_graph_yoffset;
+    //var new_surf_height = g_graph_height + g_graph_yoffset + 20; // 70
+    //g_surface_height = new_surf_height;
+    //g_surface_width = g_graph_width + g_xorig + 100;
+    refresh_dimensions();
+    
+    g_ymax_impose = -1;
+    
+    g_multiple_xaxis = true;
+    g_xgroup_has_own_scale = false;
+    g_traccc_draw_graph_ptr = true;
+    g_traccc_draw_flatten = true;
+    // g_traccc_ptrVsFlat_memLocation = mem_location;
+    //g_traccc_ignore_allocation_time = false;
+    traccc_repeat_load_count = traccc_repeat_load_count_base;
+    
+    traccc_refresh_output_name();
+    g_ymax_impose = -1;
+        
+    var graph = batch_add_graph(
+    /*output_path*/   common_path,
+    /*output_fname*/  fname_prefix_output_short + "_ACAT_flatMem" + fname_suffix_output_traccc,
+    /*use_script*/    draw_some_graph_traccc_17_ACATprez_flat, 
+    /*display_name*/  "SparseCCL - flat arrays" //mem_location_to_str(mem_location) + " memory"
+    );
+    batch_add_file(
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    bvt + "generalFlatten" + fname_suffix_input_traccc,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    load_draw_save_graph(graph);
+    ++g_citer;
+    g_ymax_impose = -1;
+    
+    break;
+
+    
+    
 // ===== Comparaison des USM en flatten =====
 // -> ça serait bien de l'avoir aussi en without host
-case 2: return 0;
+case 20: return 0;
     // device + shared + host
     computer_name = "sandor_AT";
     traccc_repeat_load_count_base = 10;

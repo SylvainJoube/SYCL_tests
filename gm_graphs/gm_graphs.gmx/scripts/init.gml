@@ -17,10 +17,12 @@ g_display_error_list = ds_list_create();
 g_graph_object = -1;
 g_display_error_list = ds_list_create();
 
+g_line_between_points_alpha = 0.2;
+
 // Dimensions du graphe
 //g_graph_yoffset = 160;
 g_graph_yoffset = 90;
-g_graph_label_ystart = 70;
+g_graph_label_ystart = 62; // 70 acat
 g_origin_arrow_size = 15;
 //g_graph_height = 700;
 //g_graph_width = 800;
@@ -29,10 +31,7 @@ g_graph_width = 800; // 600 x 360 dans rapport de base
 
 g_line_pts_link_width = 1;
 
-g_xorig = 136;
-g_yorig = g_graph_height + g_graph_yoffset;
-g_surface_width = g_graph_width + g_xorig + 100;
-g_surface_height = g_graph_height + g_graph_yoffset + 70;
+refresh_dimensions();
 
 // Distance minimale entre deux labels dessinés
 g_same_xgroup_min_label_distance = 12; // 12
