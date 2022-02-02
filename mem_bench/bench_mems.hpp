@@ -234,6 +234,8 @@ static auto r_exception_handler = [](cl::sycl::exception_list e_list) {
 };
 
 class bench_mem_alloc_free {
+
+public:
     // Bench mem USM shared, device, host and libstd memory.
     // Steps to track :
     // 1) allocation time (input buffer 100 times larger that the output buffer)
@@ -273,11 +275,11 @@ class bench_mem_alloc_free {
 
     // Etape 6 : libération des ressources du programme (dont étape 0)
 
-    const size_t INPUT_INT_COUNT = 1024L * 1024L * 512L; // 4 MiB * 512 = 2 GiB
-    const size_t INPUT_OUTPUT_FACTOR = 1024L;
-    const size_t OUTPUT_INT_COUNT = INPUT_INT_COUNT / INPUT_OUTPUT_FACTOR; // 2 MiB donc pas mal de kernels tout de même
+    static const size_t INPUT_INT_COUNT = 1024L * 1024L * 512L; // 4 MiB * 512 = 2 GiB
+    static const size_t INPUT_OUTPUT_FACTOR = 1024L;
+    static const size_t OUTPUT_INT_COUNT = INPUT_INT_COUNT / INPUT_OUTPUT_FACTOR; // 2 MiB donc pas mal de kernels tout de même
 
-    enum mem_type {STDL, SYCL_HOST, SYCL_SHARED, SYCL_DEVICE};
+    enum mem_type {STDL, SYCL_HOST, SYCL_SHARED, SYCL_DEVICE, UNKNOWN};
 
     using data_type = unsigned int;
 
@@ -345,6 +347,11 @@ class bench_mem_alloc_free {
                 COMPUTE_INPUT  = cl::sycl::malloc_device<data_type>(INPUT_INT_COUNT, sycl_q);
                 COMPUTE_OUTPUT = cl::sycl::malloc_device<data_type>(OUTPUT_INT_COUNT, sycl_q);
                 break;
+
+            case UNKNOWN:
+                COMPUTE_INPUT  = nullptr;
+                COMPUTE_OUTPUT = nullptr;
+                break;
             // pas de default, tous les cas doivent être pris en compte ici.
         }
     }
@@ -361,8 +368,13 @@ class bench_mem_alloc_free {
 
     // Etape 3 : sommes partielles device / CPU
     void step3(cl::sycl::queue& sycl_q) {
+
+
         if ( (MEM_TYPE == SYCL_HOST) || (MEM_TYPE == SYCL_DEVICE) || (MEM_TYPE == SYCL_SHARED) ) {
             
+            data_type* cp_input  = COMPUTE_INPUT;
+            data_type* cp_output = COMPUTE_OUTPUT;
+
             sycl_q.parallel_for<class some_kernel>(cl::sycl::range<1>(OUTPUT_INT_COUNT), [=](cl::sycl::id<1> chunk_index) {
                 auto cindex = chunk_index.get(0);
                 data_type partial_sum = 0;
@@ -372,10 +384,10 @@ class bench_mem_alloc_free {
                 // pour l'exécution en lockstep des threads sur GPU.
                 for (size_t it = 0; it < INPUT_OUTPUT_FACTOR; ++it) {
                     size_t ind = cindex + it * OUTPUT_INT_COUNT;
-                    partial_sum += COMPUTE_INPUT[ind];
+                    partial_sum += cp_input[ind];
                 }
 
-                COMPUTE_OUTPUT[cindex] = partial_sum;
+                cp_output[cindex] = partial_sum;
             }).wait();
         }
         if ( MEM_TYPE == STDL ) {
@@ -396,10 +408,10 @@ class bench_mem_alloc_free {
     // Etape 4 : copie (explicite) vers la mémoire stdlib host
     void step4(cl::sycl::queue& sycl_q) {
         if ( (MEM_TYPE == SYCL_HOST) || (MEM_TYPE == SYCL_DEVICE) || (MEM_TYPE == SYCL_SHARED) ) {
-            sycl_q.memcpy(HOST_OUTPUT, COMPUTE_OUTPUT, INPUT_INT_COUNT * sizeof(data_type)).wait();
+            sycl_q.memcpy(HOST_OUTPUT, COMPUTE_OUTPUT, OUTPUT_INT_COUNT * sizeof(data_type)).wait();
         }
         if ( MEM_TYPE == STDL ) {
-            memcpy(HOST_OUTPUT, COMPUTE_OUTPUT, INPUT_INT_COUNT * sizeof(data_type));
+            memcpy(HOST_OUTPUT, COMPUTE_OUTPUT, OUTPUT_INT_COUNT * sizeof(data_type));
         }
     }
 
@@ -427,7 +439,14 @@ class bench_mem_alloc_free {
     }
 
     void main_sequence() {
+        stime_utils chrono;
+        chrono.start();
+        timerv2 timer_stdlib("stdlib"), timer_host("sycl_host"), timer_shared("sycl_shared"), timer_device("sycl_device");
+        log("Step0...");
+        log("INPUT DATA SIZE  = " + std::to_string((sizeof(data_type) * INPUT_INT_COUNT) / (1024UL*1024UL)) + " MiB");
+        log("OUTPUT DATA SIZE = " + std::to_string((sizeof(data_type) * OUTPUT_INT_COUNT) / (1024UL*1024UL)) + " MiB");
         step0();
+        log("Starting the loop.");
 
         try {
             // The default device selector will select the most performant device.
@@ -436,16 +455,77 @@ class bench_mem_alloc_free {
             cl::sycl::queue sycl_q(d_selector, exception_handler);
             sycl_q.wait_and_throw();
 
-            MEM_TYPE = mem_type::STDL;
-            step1(sycl_q);
+            
+            timerv2* ptimer;
+            timer_stdlib.print_header();
 
+            for (uint i = 0; i < 4; ++i) {
+                switch (i) {
+                    case 0:
+                        ptimer = &timer_stdlib;
+                        MEM_TYPE = mem_type::STDL;
+                        break;
+                    case 1:
+                        ptimer = &timer_host;
+                        MEM_TYPE = mem_type::SYCL_HOST;
+                        break;
+                    case 2:
+                        ptimer = &timer_shared;
+                        MEM_TYPE = mem_type::SYCL_SHARED;
+                        break;
+                    case 3:
+                        ptimer = &timer_device;
+                        MEM_TYPE = mem_type::SYCL_DEVICE;
+                        break;
+                    default:
+                        ptimer = nullptr;
+                        MEM_TYPE = mem_type::UNKNOWN;
+                        break;
+                }
+                //log("step1 start...");
+                chrono.reset();
+                step1(sycl_q); // alloc
+                //log("step1 OK");
+                ptimer->step_time[1] = chrono.reset();
+                step2(sycl_q); // copie
+                //log("step2 OK");
+                ptimer->step_time[2] = chrono.reset();
+                step3(sycl_q); // sommes partielles
+                //log("step3 OK");
+                ptimer->step_time[3] = chrono.reset();
+                step4(sycl_q); // copie
+                //log("step4 OK");
+                ptimer->step_time[4] = chrono.reset();
+                step5(sycl_q); // libération
+                //log("step5 OK");
+                ptimer->step_time[5] = chrono.reset();
+                ptimer->print();
+            }
 
+            for (uint i = 0; i < 4; ++i) {
+                
+            }
+            
+
+            // TODO :
+            // - timer
+            // - exécution, affichage du timer
+            // - comparer les exécutions lorsque c'est réutilisé ?
+            // - comparer les résultats obtenus avec les résultats de mon papier
+            //   et agir en conséquence...
+
+            // Puis :
+            // - tester push Attila
+            // - 
 
         } catch (cl::sycl::exception const &e) {
             std::cout << "SYCL HELLOWORLD ERROR : An exception has been caught while processing SyCL code.\n";
         }
 
+        log("Loop successfully finished.");
+
         step6();
+        log("Byyye.");
     }
 
 

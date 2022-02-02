@@ -30,6 +30,7 @@ traccc_sparse: build run_traccc_sparse
 #	$(CXX) $(CXXFLAGS) -o bin/memory_benchmark memory_benchmark.cpp
 
 mem: build run_mem
+mem2: build run_mem2
 
 traccc : build run_traccc
 
@@ -37,6 +38,8 @@ helloworld: build run_helloworld
 
 run_mem:
 	./$(RUN_EXE_NAME) mem
+run_mem2:
+	./$(RUN_EXE_NAME) mem2
 
 run_helloworld:
 	./$(RUN_EXE_NAME) helloworld
