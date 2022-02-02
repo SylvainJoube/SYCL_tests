@@ -35,7 +35,7 @@ draw_every_x_frames = 4; // draw every x frames
 done_images = 0;
 
 
-traccc_tests_per_run = 2;
+traccc_tests_per_run = 3;
 traccc_run_number = 1;
 traccc_total_iterations = traccc_tests_per_run * traccc_run_number;
 // Et répété deux fois : pour repeat_count = 1 et 10.

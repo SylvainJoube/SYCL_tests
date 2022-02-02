@@ -41,6 +41,9 @@ g_surface_height = g_graph_height + g_graph_yoffset + 70;
 
 g_line_pts_link_width = 2;
 
+bench_version = "v08";
+bench_test_nb = "200";
+
 
 switch (current_test) {
 // TRACCC land
@@ -61,6 +64,7 @@ case 1: // A_acts06_ptrVsFlat_mem20_sandor_AT_ld10_RUN1_q1
     //var new_surf_height = g_graph_height + g_graph_yoffset + 20; // 70
     //g_surface_height = new_surf_height;
     //g_surface_width = g_graph_width + g_xorig + 100;
+    g_xorig = 88;
     refresh_dimensions();
     
     
@@ -127,15 +131,17 @@ case 1: // A_acts06_ptrVsFlat_mem20_sandor_AT_ld10_RUN1_q1
 
 case 2: // A_acts06_ptrVsFlat_mem20_sandor_AT_ld10_RUN1_q1
     
-    computer_name = "thinkpad_AT"; //  sandor_AT
-    traccc_repeat_load_count_base = 1;
+    computer_name = "sandor_AT"; // thinkpad_AT 
+    traccc_repeat_load_count_base = 100;
     g_graph_yoffset = 90;
     g_graph_height = 190;//190;
     g_graph_width = 400;//640;
+    g_acat_temp_host_is_disabled = true;
     //g_yorig = g_graph_height + g_graph_yoffset;
     //var new_surf_height = g_graph_height + g_graph_yoffset + 20; // 70
     //g_surface_height = new_surf_height;
     //g_surface_width = g_graph_width + g_xorig + 100;
+    g_xorig = 88;
     refresh_dimensions();
     
     g_ymax_impose = -1;
@@ -169,7 +175,54 @@ case 2: // A_acts06_ptrVsFlat_mem20_sandor_AT_ld10_RUN1_q1
     g_ymax_impose = -1;
     
     break;
+    
+// SIMPLE (not traccc)
+case 3: // b010_v05_alloc_msiNvidia_AT_512MiB_O2_RUN2fact1-5
+    
+    computer_name = "sandor_ST";
+    size_str = "6GiB";//"512MiB";
+    
+    g_ymax_impose = -1;
+    g_display_device = false;
+    g_display_host = false;
+    g_display_shared = false;
+    g_display_accessors = false;
+    current_run = 2;
+    var suff = "";
+    
+    g_display_host = true;
+    g_display_shared = true;
+    suff = "07";
+    
+    g_graph_yoffset = 90;
+    g_graph_height = 190;//190;
+    g_graph_width = 840;//640;
+    g_xorig = 118;
+    refresh_dimensions();
+    g_label_xoffset = 30;
+    
+    //current_run = 1;
+    //computer_name = cccomputer_name;
+    simple_refresh_output_name();    // == Alloc (glibc vs sycl) ==
+    var graph = batch_add_graph(
+    /*output_path*/   common_path,
+    /*output_fname*/  fname_prefix_output + "alloc-" + suff + fname_suffix_output,
+    /*use_script*/   draw_some_graph_8_compUSMAccDirect_ACAT,
+    /*display_name*/ "USM device, shared, host, accessors + direct access to SYCL mem" //computer_name + " - alloc glibc vs sycl - " + size_str + " - run " + string(current_run)
+    );
+    batch_add_file(
+    /*graph*/       graph,
+    /*in_path*/     common_path,
+    /*in_fname*/    fname_prefix_input + "alloc" + fname_suffix_input,
+    /*curve_name*/  "aucun nom", // nom de la courbe associée
+    /*computer_id*/ 1 // 1 Thinkpad, 2 MSI Intel, 3 MSI Nvidia, 4 Sandor
+    );
+    g_multiple_xaxis = true;
+    load_draw_save_graph(graph);
+    ++g_citer;
+    break;
 
+    
     
     
 // ===== Comparaison des USM en flatten =====

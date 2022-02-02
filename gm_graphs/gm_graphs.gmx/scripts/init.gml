@@ -21,8 +21,8 @@ g_line_between_points_alpha = 0.2;
 
 // Dimensions du graphe
 //g_graph_yoffset = 160;
-g_graph_yoffset = 90;
-g_graph_label_ystart = 62; // 70 acat
+g_graph_yoffset = 80;
+g_graph_label_ystart = 64; // 62 70 acat
 g_origin_arrow_size = 15;
 //g_graph_height = 700;
 //g_graph_width = 800;
@@ -31,6 +31,7 @@ g_graph_width = 800; // 600 x 360 dans rapport de base
 
 g_line_pts_link_width = 1;
 
+g_xorig = 88;
 refresh_dimensions();
 
 // Distance minimale entre deux labels dessinés

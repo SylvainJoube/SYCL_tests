@@ -84,12 +84,12 @@ if (g_display_REPEAT_COUNT_SUM && (g_REPEAT_COUNT_SUM_common != -1)) {
 }        
 
 
-draw_text(graph_width + xorig - x_space_left + 60, 60, dstr);
+draw_text(graph_width + xorig - x_space_left + 60, 60 + 30, dstr);
 draw_set_font(ft_base);
 
 
-var plabel_xmin = g_xorig - 20; //160;
-var plabel_width = graph_width + 80; // - xorig
+var plabel_xmin = g_xorig + g_label_xoffset; //160; (g_label_xoffset dans refresh_dimensions)
+var plabel_width = graph_width + 60 - g_label_xoffset; // - xorig
 var plabel_ymin = graph_label_ystart;
 var plabel_cx = plabel_xmin; // current x, y
 var plabel_cy = plabel_ymin;

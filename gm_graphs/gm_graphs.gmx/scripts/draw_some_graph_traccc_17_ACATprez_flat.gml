@@ -59,7 +59,10 @@ var do_job_index = ds_list_create();
 //ds_list_add(do_job_index, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 //ds_list_add(do_job_index, 0, 1, 2, 3, 4, 5, 6);
 //ds_list_add(do_job_index, 0, 4, 2, 6, -1, -1, -1);
-ds_list_add(do_job_index, 3, 0, 4, -1, -1, -1, -1, -1, -1);
+if (g_acat_temp_host_is_disabled)
+    ds_list_add(do_job_index, 2, 0, 3, -1, -1, -1, -1, -1, -1);
+else
+    ds_list_add(do_job_index, 3, 0, 4, -1, -1, -1, -1, -1, -1);
 
 //ds_list_add(do_job_index, 0, -1, 2, -1, 4, -1, 6);
 
