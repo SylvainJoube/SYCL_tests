@@ -17,7 +17,8 @@
 #include "utils.h"
 #include "constants.h"
 #include "traccc_fcts.h"
-#include "sycl_helloworld.h"
+//#include "sycl_helloworld.h"
+#include "bench_mems.hpp"
 
 
 
@@ -293,7 +294,7 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
             // Initialisation via le constructeur des accesseurs
             cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
-            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // noinit non supporté par hipsycl visiblement
+            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::noinit); // noinit non supporté par hipsycl visiblement
             
             h.parallel_for<class MyKernel_aa>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) { //cl::sycl::id<1>
                 int cindex = chunk_index[0];
@@ -320,7 +321,7 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
             // Initialisation via le constructeur des accesseurs
             cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
-            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // noinit non supporté par hipsycl visiblement
+            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::noinit); // noinit non supporté par hipsycl visiblement
 
             // cl::sycl::id<1>
             h.parallel_for<class MyKernel_ab>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) {
@@ -889,196 +890,9 @@ void bench_choose_L_M(std::ofstream& myfile) {
 
 
 
-class bench_sycl_glibc_mem_speed_run {
-public :
-    uint64_t min_time, max_time;
-    uint64_t count; // number of runs
-    uint64_t total_time;
-    void init() {
-        min_time = 0;
-        max_time = 0;
-        count = 0;
-        total_time = 0;
-    }
-    void add(uint64_t time) {
-        if (count == 0) { // init
-            min_time = time;
-            max_time = time;
-        } else {
-            if (min_time > time) min_time = time;
-            if (max_time < time) max_time = time;
-        }
-        ++count;
-        total_time += time;
-    }
-    void print(std::string name) {
-        uint64_t moy = total_time / count;
-        uint64_t div = 1000;
-        uint64_t tolerate_fact = 140;
-        if (min_time * tolerate_fact / 100 >= max_time) {
-            log("   " + name + "   " + std::to_string(moy / div));
-        } else {
-            log("   " + name + "   " + std::to_string(min_time / div)
-            + " -> " + std::to_string(max_time / div)
-            + " : " + std::to_string(moy / div));
-        }
-    }
-
-};
-
-class bench_sycl_glibc_mem_speed_main {
-
-private :
-    const uint64_t ecount = 1024L * 1024L * 128L * 4L;
-    const std::string size_str = "512MiB";
-    uint run_count = 3;
-
-    const uint64_t size = ecount * sizeof(DATA_TYPE); // 128 milions elements * 4 bytes => 512 MiB
-    custom_device_selector d_selector;
-    uint mem_type_src, mem_type_dest;
-    bench_sycl_glibc_mem_speed_run t_alloc_src, t_alloc_dest, t_fill, t_copy, t_free_src, t_free_dest;
 
 
-public :
-    void init() {
-        
 
-    }
-
-    uint sum(DATA_TYPE* mem) {
-        DATA_TYPE s = 0;
-        for (uint i = 0; i < ecount; ++i) {
-            s += mem[i];
-        }
-        return s;
-    }
-
-    DATA_TYPE* alloc(uint mem_type, cl::sycl::queue sycl_q) {
-        switch (mem_type) {
-        case 1: return new DATA_TYPE[ecount]; // glibc
-        case 2: return static_cast<data_type *> (cl::sycl::malloc_host(INPUT_DATA_SIZE, sycl_q)); // sycl
-        default : return nullptr;
-        }
-    }
-
-    void fill(DATA_TYPE* mem) {
-        for (uint i = 0; i < ecount; ++i) {
-            mem[i] = i;
-        }
-    }
-
-    void freemem(uint mem_type, DATA_TYPE* mem, cl::sycl::queue sycl_q) {
-        switch (mem_type) {
-        case 1: delete[] mem; break; // glibc
-        case 2: cl::sycl::free(mem, sycl_q); break; // sycl
-        default : break;
-        }
-    }
-
-    void init_timers() {
-        t_alloc_src.init();
-        t_fill.init();
-        t_alloc_dest.init();
-        t_copy.init();
-        t_free_src.init();
-        t_free_dest.init();
-    }
-
-    void run(uint mem_type_src, uint mem_type_dest, uint cpy_type, cl::sycl::queue sycl_q) {
-
-        /*log("run src" + std::to_string(mem_type_src) + " - dest" + std::to_string(mem_type_src)
-            + " - ecount" + std::to_string(ecount)
-            + " - size" + std::to_string(size)
-            );*/
-
-        stime_utils chrono;
-        chrono.reset(); //t_start = get_ms();
-
-        DATA_TYPE* mem_src = alloc(mem_type_src, sycl_q);
-        t_alloc_src.add(chrono.reset());
-
-        fill(mem_src);
-        t_fill.add(chrono.reset());
-
-        DATA_TYPE* mem_dest = alloc(mem_type_dest, sycl_q);
-        t_alloc_dest.add(chrono.reset());
-
-        // On a vu que temps de copie SYCL = temps de copie glibc pour host
-        
-        if (cpy_type == 1) memcpy(mem_dest, mem_src, size);
-        if (cpy_type == 2) sycl_q.memcpy(mem_dest, mem_src, size);
-        t_copy.add(chrono.reset());
-
-        logs("    s" + std::to_string(sum(mem_dest)));
-
-        freemem(mem_type_src, mem_src, sycl_q);
-        t_free_src.add(chrono.reset());
-
-        freemem(mem_type_dest, mem_dest, sycl_q);
-        t_free_dest.add(chrono.reset());
-
-
-    }
-
-    void multiple_runs(uint mem_type_src, uint mem_type_dest, uint cpy_type, cl::sycl::queue sycl_q) {
-
-        init_timers();
-
-        for (uint ir = 0; ir < run_count; ++ir) {
-                run(1, 1, 1, sycl_q);
-            }
-            // print result timer(min, max, moy)
-            t_alloc_src .print(" alloc src");
-            t_fill      .print("      fill");
-            t_alloc_dest.print("alloc dest");
-            t_copy      .print("      copy");
-            t_free_src  .print("  free src");
-            t_free_dest .print(" free dest");
-            log("\n");
-    }
-
-    void main() {
-        // 1) Allocation de la mémoire (src) sycl / glibc
-        // 2) Remplissage de la mémoire avec des nombres aléatoires (ou toujours le même nombre)
-        // 3) Allocation de la mémoire (dest) sycl/glibc
-        // 4) Copie de src vers dest
-        // 5) Libération de la mémoire src
-        // 6) Libération de la mémoire dest
-
-        
-        try {
-            
-            cl::sycl::queue sycl_q(d_selector, exception_handler);
-            sycl_q.wait_and_throw();
-
-            logs("glibc -> glibc (copie glibc)");
-            multiple_runs(1, 1, 1, sycl_q);
-
-            logs("sycl -> sycl : (copie glibc)");
-            multiple_runs(2, 2, 1, sycl_q);
-
-            logs("sycl -> sycl : (copie sycl)");
-            multiple_runs(2, 2, 2, sycl_q);
-
-            logs("glibc -> sycl : (copie glibc)");
-            multiple_runs(1, 2, 1, sycl_q);
-
-            logs("glibc -> sycl : (copie sycl)");
-            multiple_runs(1, 2, 2, sycl_q);
-
-            logs("sycl -> glibc : (copie glibc)");
-            multiple_runs(2, 1, 1, sycl_q);
-
-            logs("sycl -> glibc : (copie sycl)");
-            multiple_runs(2, 1, 2, sycl_q);
-
-        } catch (cl::sycl::exception const &e) {
-            std::cout << "An exception has been caught while processing SyCL code.\n";
-            std::terminate();
-        }
-    }
-
-};
 
 
 
