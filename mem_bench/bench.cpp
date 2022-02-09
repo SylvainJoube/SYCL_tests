@@ -1495,13 +1495,11 @@ int main(int argc, char *argv[])
     if (argc == 6) {
          if (std::string(argv[1]).compare("traccc_acat") == 0) {
 
-            int a_runs_count = 10;
-            log("RUN UBENCH tests, run_count = " + std::to_string(a_runs_count));
-
-            for (uint irun = 1; irun <= a_runs_count; ++irun) {
-                run_single_test_generic(g_size_str, computerName + "_ST", 4, irun);
-            }
-            
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
 
             std::string start_test_index = argv[2];
             std::string stop_test_index  = argv[3];
@@ -1538,6 +1536,12 @@ int main(int argc, char *argv[])
             //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
 
             
+            int a_runs_count = 20;
+            log("RUN UBENCH tests, run_count = " + std::to_string(a_runs_count));
+
+            for (uint irun = 1; irun <= a_runs_count; ++irun) {
+                run_single_test_generic(g_size_str, computerName + "_ST", 4, irun);
+            }
             
 
             return 0;
