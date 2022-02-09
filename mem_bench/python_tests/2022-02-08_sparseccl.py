@@ -11,7 +11,7 @@ import statistics as stat
 ## ============ CHARGEMENT ============
 
 #FLAT_ARRAYS = False
-FLAT_ONLY = False
+FLAT_ONLY = True
 tableau_horizontal = True # vertical pas encore géré
 
 # TODO affichage de la figure 4 et 3
@@ -109,10 +109,11 @@ def load_file(filepath, isFlatten, multiplyFactor):
 # Chargement des résultats en flatten
 # load_file('acts06_generalFlatten_blopNvidia_AT_ld100_RUN1.t', True)
 load_file('acts06_generalFlatten_sandor_AT_ld100_RUN1.t', True, 1)
+#load_file('acts06_generalFlatten_sandor_AT_ld100_RUN1_2021-11-24.t', True, 1)
 
 # Chargement des résultats en graphe de pointeurs
 # load_file('acts06_generalGraphPtr_uniqueModules_blopNvidia_AT_ld10_RUN1.t', False)
-load_file('acts06_generalGraphPtr_uniqueModules_sandor_AT_ld1_RUN1.t', False, 100)
+load_file('acts06_generalGraphPtr_uniqueModules_sandor_AT_ld10_RUN1.t', False, 10)
 
 
 ## ============ DESSIN ============
@@ -327,6 +328,8 @@ def draw_tab():
             print("device & " + draw_tab_item(y_median_device))
             print("\\hline")
             print("shared & " + draw_tab_item(y_median_shared_flat))
+            # print("\\hline")
+            # print("host & " + draw_tab_item(y_median_host_flat))
             print("\\hline")
             print("accessors & " + draw_tab_item(y_median_acc))
         else: # tableau flat vs graphe ptr
