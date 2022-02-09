@@ -226,7 +226,7 @@ void init_computers() {
     c->toFileName = "sandor";
     c->deviceName = "Quadro RTX 5000";
     c->repeat_load_count = 100; // TEMP ACAT
-    c->total_elements = 1024L * 1024L * 256L * 6L; // 256 milions elements * 4 bytes => 1 GiB ; *6 => 6 GiB
+    c->total_elements = 1024L /* 1024L*/ * 256L * 6L; // 256 milions elements * 4 bytes => 1 GiB ; *6 => 6 GiB
     c->size_str = "6GiB";
     c->L = 128;
 
