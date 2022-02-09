@@ -1477,11 +1477,53 @@ int main(int argc, char *argv[])
 
         traccc::run_single_test_generic_traccc(computerName + "_AT", std::stoi(testID), std::stoi(runCount));
     }
+
+    if (argc == 6) {
+         if (std::string(argv[1]).compare("traccc_acat") == 0) {
+
+            std::string start_test_index = argv[2];
+            std::string stop_test_index  = argv[3];
+            std::string run_count        = argv[4];
+            std::string ld_repeat        = argv[5];
+            if ( ! is_number(start_test_index) ) { log("ERROR, start_test_index(" + start_test_index + ") as argv[2] is not a number."); return 3; }
+            if ( ! is_number(stop_test_index) )  { log("ERROR, stop_test_index(" + stop_test_index + ") as argv[3] is not a number."); return 3; }
+            if ( ! is_number(run_count) )        { log("ERROR, run_count(" + run_count + ") as argv[4] is not a number."); return 3; }
+            if ( ! is_number(ld_repeat) )        { log("ERROR, ld_repeat(" + ld_repeat + ") as argv[5] is not a number."); return 3; }
+            
+            log("=> Run all -ACAT- TRACCC  tests at once <=");
+            log("start_test_index = " + start_test_index);
+            log("stop_test_index = " + stop_test_index);
+            log("run_count = " + run_count);
+            log("ld_repeat = " + ld_repeat);
+
+            s_computer* c = &g_computers[3];
+            uint previous_ld = c->repeat_load_count;
+            c->repeat_load_count = std::stoi(ld_repeat);
+
+            base_traccc_repeat_load_count = c->repeat_load_count;
+            log("Setting " + c->fullName + " repeat_load_count to " + std::to_string(c->repeat_load_count) + ". Previous value = " + std::to_string(previous_ld));
+            log("=====================================");
+
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //log("Will now sleep.");
+            //unsigned int microseconds = 10000000;
+            //usleep(microseconds);
+            traccc::run_all_traccc_acat_benchs(computerName + "_AT",
+                                               std::stoi(start_test_index),
+                                               std::stoi(stop_test_index),
+                                               std::stoi(run_count));
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
+            return 0;
+        }
+    }
     
     //run_all_test_on_msiNvidia();
     return 0;
 }
 
+// traccc testID runCount 
+// traccc 2 1
 
 // 
 

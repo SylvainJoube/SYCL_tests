@@ -34,6 +34,10 @@ mem2: build run_mem2
 
 traccc : build run_traccc
 
+traccc_acat : build run_traccc_acat
+
+# ACAT nouvelle version : 
+
 helloworld: build run_helloworld
 
 run_mem:

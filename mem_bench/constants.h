@@ -10,6 +10,11 @@
 #include <sys/time.h>
 #include <stdlib.h>
 
+const int ACAT_START_TEST_INDEX  = 1;
+const int ACAT_STOP_TEST_INDEX   = 2;
+const int ACAT_RUN_COUNT         = 1;
+const int ACAT_REPEAT_LOAD_COUNT = 100;
+
 #define DATA_TYPE unsigned int // TODO : try with unsigned int
 using data_type = DATA_TYPE;
 //using data_type_sum = unsigned long long;
@@ -93,11 +98,11 @@ std::string DISPLAY_VERSION = BENCHMARK_VERSION_TRACCC + " - TRACCC-015";
 unsigned int base_traccc_repeat_load_count = 1; // actualisé dans utils.h : selector_list_devices
 unsigned int traccc_repeat_load_count = 1;
 const unsigned int traccc_repeat_load_count_ON_MSI_INTEL = 1;
-const unsigned int traccc_repeat_load_count_ON_MSI_NVIDIA = 10;
-const unsigned int traccc_repeat_load_count_ON_SANDOR = 10;
+const unsigned int traccc_repeat_load_count_ON_MSI_NVIDIA = 100;
+const unsigned int traccc_repeat_load_count_ON_SANDOR = 100;
 const unsigned int traccc_repeat_load_count_ON_THINKPAD = 1;
 const unsigned int traccc_repeat_load_count_ON_BLOP_INTEL = 1;
-const unsigned int traccc_repeat_load_count_ON_BLOP_NVIDIA = 1;
+const unsigned int traccc_repeat_load_count_ON_BLOP_NVIDIA = 100;
 
 int traccc_SPARSITY_MIN = 0;
 int traccc_SPARSITY_MAX = 100000;
@@ -240,8 +245,8 @@ void init_computers() {
     c = &g_computers[ci++];
     c->fullName   = "Blop_Nvidia";
     c->toFileName = "blopNvidia";
-    c->deviceName = "NVIDIA GeForce GTX 780";
-    c->repeat_load_count = 1;
+    c->deviceName = "GeForce GTX 780";//"NVIDIA GeForce GTX 780";
+    c->repeat_load_count = 10; // benchs ACAT
     c->total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
     c->size_str = "512MiB";
     c->L = 128;

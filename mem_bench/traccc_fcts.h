@@ -1905,7 +1905,8 @@ namespace traccc {
             log(" - cres.t_fill_only : " + std::to_string(cres.t_fill_only));
 
             write_file
-            // RIen n'est utile jusqu'aux nouveaux champs
+            // Rien n'est utile jusqu'aux nouveaux champs pour gtimer.
+            // j'utilise cependant deux champs de cres parce que ça m'arrange !
             << /*gtimer.t_allocation*/ cres.t_alloc_only << " " // nouveau raccourci acat
             << gtimer.t_sycl_host_alloc << " " // v6
             << gtimer.t_sycl_host_copy << " " // v6
@@ -1923,8 +1924,8 @@ namespace traccc {
             << cres.t_copy_kernel << " "
             << cres.t_read << " " // TODO : faire la somme des labels trouvés, pour avoir une lecture complète
             << cres.t_free_mem << " "
-            << cres.t_flatten_alloc << " "
-            << cres.t_flatten_fill << " "
+            << cres.t_flatten_alloc << " " // = cres.t_alloc_only
+            << cres.t_flatten_fill << " "  // = cres.t_fill_only
 
             << "\n";
 
@@ -1989,9 +1990,8 @@ namespace traccc {
                 if (CURRENT_MODE == device_USM) continue;
                 if (CURRENT_MODE == accessors) continue;
             }
-            if (CURRENT_MODE == host_USM) continue; // TEMP ACAT
+            //if (CURRENT_MODE == host_USM) continue; // TEMP ACAT
             
-
             //ignore_allocation_times = (ignore_at == 1);
             
             log("\n");
@@ -1999,7 +1999,6 @@ namespace traccc {
             traccc_main_sequence(myfile, CURRENT_MODE, memory_strategy);
             log("");
         }
-    
     }
 
     int main_of_traccc(std::function<void(std::ofstream &)> bench_function) {
@@ -2137,8 +2136,6 @@ namespace traccc {
             // inutile ici implicit_use_unique_module = false;
             main_of_traccc(bench_mem_location_and_strategy);
         }
-
-
     }
 
     // Lancement de tous les tests traccc et écriture dans des fichiers
@@ -2158,11 +2155,32 @@ namespace traccc {
 
     void run_all_traccc_acat_benchs(std::string computer_name, int runs_count = 4) {
 
+        s_computer* c = &g_computers[3];
+        uint previous_ld = c->repeat_load_count;
+        c->repeat_load_count = ACAT_REPEAT_LOAD_COUNT;
+        base_traccc_repeat_load_count = c->repeat_load_count;
+        log("Setting " + c->fullName + " repeat_load_count to " + std::to_string(c->repeat_load_count) + ". Previous value = " + std::to_string(previous_ld));
+        log("=====================================");
+
         // Tests to compare against, to check graphs validity
         //int test_runs_count = runs_count;
         for (uint irun = 1; irun <= runs_count; ++irun) {
             // 1 et 2 seulement
-            for (uint itest = 1; itest <= 2; ++itest) { // --> 6 pour prendre en compte sparsity
+            // modifié en 2 seulement pour graphe ptr
+            for (uint itest = ACAT_START_TEST_INDEX; itest <= ACAT_STOP_TEST_INDEX; ++itest) { // --> 6 pour prendre en compte sparsity
+                run_single_test_generic_traccc(computer_name, itest, irun);
+            }
+        }
+    }
+
+    void run_all_traccc_acat_benchs(std::string computer_name, int start_text_index, int stop_test_index, int runs_count) {
+
+        // Tests to compare against, to check graphs validity
+        //int test_runs_count = runs_count;
+        for (uint irun = 1; irun <= runs_count; ++irun) {
+            // 1 et 2 seulement
+            // modifié en 2 seulement pour graphe ptr
+            for (uint itest = start_text_index; itest <= stop_test_index; ++itest) { // --> 6 pour prendre en compte sparsity
                 run_single_test_generic_traccc(computer_name, itest, irun);
             }
         }
