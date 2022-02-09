@@ -1423,6 +1423,20 @@ int main(int argc, char *argv[])
             return 0;
         }
 
+        // TEMP à suppr (acat, 2022-02-09 22h00)
+        // if (std::string(argv[1]).compare("acat_ubench") == 0) {
+
+        //     std::string start_run_count_id = argv[2]; // id de départ
+        //     std::string run_count          = argv[3]; // nombre de runs
+        //     std::string run_count        = argv[4];
+        //     std::string ld_repeat        = argv[5];
+        //     if ( ! is_number(start_test_index) ) { log("ERROR, start_test_index(" + start_test_index + ") as argv[2] is not a number."); return 3; }
+        //     run_single_test_generic(g_size_str, computerName + "_ST", std::stoi(testID), std::stoi(runCount));
+
+        //     profiling_run_test(g_size_str, computerName + "_AT", std::stoi(argv[2]), 1);
+        //     return 0;
+        // }
+
         if (std::string(argv[1]).compare("traccc") == 0) {
             if (std::string(argv[2]).compare("sparse") == 0) {
                 traccc::run_single_test_generic_traccc(computerName + "_AT", 5, 1);
@@ -1481,6 +1495,14 @@ int main(int argc, char *argv[])
     if (argc == 6) {
          if (std::string(argv[1]).compare("traccc_acat") == 0) {
 
+            int a_runs_count = 10;
+            log("RUN UBENCH tests, run_count = " + std::to_string(a_runs_count));
+
+            for (uint irun = 1; irun <= a_runs_count; ++irun) {
+                run_single_test_generic(g_size_str, computerName + "_ST", 4, irun);
+            }
+            
+
             std::string start_test_index = argv[2];
             std::string stop_test_index  = argv[3];
             std::string run_count        = argv[4];
@@ -1514,6 +1536,10 @@ int main(int argc, char *argv[])
                                                std::stoi(run_count));
             //traccc::traccc_bench(sycl_mode::glibc);
             //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
+
+            
+            
+
             return 0;
         }
     }
