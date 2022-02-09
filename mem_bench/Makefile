@@ -37,8 +37,8 @@ traccc : build run_traccc
 traccc_acat : build run_traccc_acat
 
 # ACAT nouvelle version : make build && \
-# ./bin/bench traccc_acat start_test_index stop_test_index run_count std::string ld_repeat
-# Example : ./bin/bench traccc_acat 
+# ./bin/bench traccc_acat start_test_index stop_test_index run_count ld_repeat
+# Example : ./bin/bench traccc_acat 2 2 1 1000
 
 helloworld: build run_helloworld
 
