@@ -1991,7 +1991,7 @@ namespace traccc {
                 if (CURRENT_MODE == device_USM) continue;
                 if (CURRENT_MODE == accessors) continue;
             }
-            //if (CURRENT_MODE == host_USM) continue; // TEMP ACAT
+            if (CURRENT_MODE == host_USM) continue; // TEMP ACAT : prend trooop de temps
             
             //ignore_allocation_times = (ignore_at == 1);
             
