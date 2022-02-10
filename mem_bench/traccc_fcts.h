@@ -859,8 +859,9 @@ namespace traccc {
             if ( b.mode == sycl_mode::device_USM ) {
                 b.flat_input.cells_device  = cl::sycl::malloc_device<input_cell>(total_cell_count,  b.sycl_q);
                 b.flat_output.cells_device = cl::sycl::malloc_device<output_cell>(total_cell_count, b.sycl_q);
-                b.flat_input.modules_device  = cl::sycl::malloc_host<flat_input_module>(total_module_count,  b.sycl_q);
-                b.flat_output.modules_device = cl::sycl::malloc_host<flat_output_module>(total_module_count, b.sycl_q);
+                // TODO : probablement qu'en fait c'est malloc_device ici et non malloc_host
+                b.flat_input.modules_device  = cl::sycl::malloc_device<flat_input_module>(total_module_count,  b.sycl_q);
+                b.flat_output.modules_device = cl::sycl::malloc_device<flat_output_module>(total_module_count, b.sycl_q);
             }
 
             if (b.mode == sycl_mode::shared_USM) {
