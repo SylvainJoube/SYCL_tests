@@ -840,7 +840,7 @@ namespace traccc {
             chrono_flatten.reset();
 
             // Alloc - b.mode == sycl_mode::device_USM était avec malloc_host avant
-            if ( (b.mode == sycl_mode::glibc) || (b.mode == sycl_mode::device_USM) ) {
+            if ( (b.mode == sycl_mode::glibc) ) {
                 b.flat_input.cells  = new input_cell[total_cell_count];
                 b.flat_output.cells = new output_cell[total_cell_count];
                 b.flat_input.modules = new flat_input_module[total_module_count];
@@ -848,7 +848,7 @@ namespace traccc {
             }
 
             // Host ou device, le device fera ensuite une allocation explicite
-            if ( (b.mode == sycl_mode::host_USM) ) {
+            if ( (b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::device_USM) ) {
                 b.flat_input.cells  = static_cast<input_cell *>  (cl::sycl::malloc_host(total_cell_count * sizeof(input_cell),  b.sycl_q));
                 b.flat_output.cells = static_cast<output_cell *> (cl::sycl::malloc_host(total_cell_count * sizeof(output_cell), b.sycl_q));
                 b.flat_input.modules  = static_cast<flat_input_module *>  (cl::sycl::malloc_host(total_module_count * sizeof(flat_input_module),  b.sycl_q));
