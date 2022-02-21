@@ -275,11 +275,36 @@ public:
 
     // Etape 6 : libération des ressources du programme (dont étape 0)
 
-    static const size_t INPUT_INT_COUNT = 1024L * 1024L * 512L; // 4 MiB * 512 = 2 GiB
-    static const size_t INPUT_OUTPUT_FACTOR = 1024L;
-    static const size_t OUTPUT_INT_COUNT = INPUT_INT_COUNT / INPUT_OUTPUT_FACTOR; // 2 MiB donc pas mal de kernels tout de même
+    static size_t INPUT_INT_COUNT; // 4 MiB * 512 = 2 GiB
+    static size_t INPUT_OUTPUT_FACTOR;
+    static size_t OUTPUT_INT_COUNT; // 2 MiB donc pas mal de kernels tout de même
+
+    void refresh_deduced_values() {
+        OUTPUT_INT_COUNT = INPUT_INT_COUNT / INPUT_OUTPUT_FACTOR; // 2 MiB donc pas mal de kernels tout de même
+    }
+
+    void make_default_values() {
+        INPUT_INT_COUNT = 1024L * 1024L * 512L; // 4 MiB * 512 = 2 GiB
+        INPUT_OUTPUT_FACTOR = 1024L;
+        refresh_deduced_values();
+    }
+
+    
+    bench_mem_alloc_free() {
+        make_default_values();
+    }
 
     enum mem_type {STDL, SYCL_HOST, SYCL_SHARED, SYCL_DEVICE, UNKNOWN};
+
+    std::string mem_type_to_str(mem_type mt) {
+        switch (mt) {
+            case STDL: return "stdlib";
+            case SYCL_HOST: return "sycl host";
+            case SYCL_SHARED: return "sycl shared";
+            case SYCL_DEVICE: return "sycl device";
+            case UNKNOWN: return "unknown";
+        }
+    }
 
     using data_type = unsigned int;
 
@@ -294,7 +319,7 @@ public:
     mem_type MEM_TYPE;
 
 
-    
+
 
 
 
@@ -460,46 +485,55 @@ public:
             timer_stdlib.print_header();
 
             for (uint i = 0; i < 4; ++i) {
-                switch (i) {
-                    case 0:
-                        ptimer = &timer_stdlib;
-                        MEM_TYPE = mem_type::STDL;
-                        break;
-                    case 1:
-                        ptimer = &timer_host;
-                        MEM_TYPE = mem_type::SYCL_HOST;
-                        break;
-                    case 2:
-                        ptimer = &timer_shared;
-                        MEM_TYPE = mem_type::SYCL_SHARED;
-                        break;
-                    case 3:
-                        ptimer = &timer_device;
-                        MEM_TYPE = mem_type::SYCL_DEVICE;
-                        break;
-                    default:
-                        ptimer = nullptr;
-                        MEM_TYPE = mem_type::UNKNOWN;
-                        break;
+
+                try {
+                    switch (i) {
+                        case 0:
+                            ptimer = &timer_stdlib;
+                            MEM_TYPE = mem_type::STDL;
+                            break;
+                        case 1:
+                            ptimer = &timer_host;
+                            MEM_TYPE = mem_type::SYCL_HOST;
+                            break;
+                        case 2:
+                            ptimer = &timer_shared;
+                            MEM_TYPE = mem_type::SYCL_SHARED;
+                            break;
+                        case 3:
+                            ptimer = &timer_device;
+                            MEM_TYPE = mem_type::SYCL_DEVICE;
+                            break;
+                        default:
+                            ptimer = nullptr;
+                            MEM_TYPE = mem_type::UNKNOWN;
+                            break;
+                    }
+
+                    log("Processing " + mem_type_to_str(MEM_TYPE) + "...");
+
+                    //log("step1 start...");
+                    chrono.reset();
+                    step1(sycl_q); // alloc
+                    //log("step1 OK");
+                    ptimer->step_time[1] = chrono.reset();
+                    step2(sycl_q); // copie
+                    //log("step2 OK");
+                    ptimer->step_time[2] = chrono.reset();
+                    step3(sycl_q); // sommes partielles
+                    //log("step3 OK");
+                    ptimer->step_time[3] = chrono.reset();
+                    step4(sycl_q); // copie
+                    //log("step4 OK");
+                    ptimer->step_time[4] = chrono.reset();
+                    step5(sycl_q); // libération
+                    //log("step5 OK");
+                    ptimer->step_time[5] = chrono.reset();
+                    ptimer->print();
+                    log("OK.");
+                } catch (cl::sycl::exception const &e) {
+                    log("SYCL exception with " + mem_type_to_str(MEM_TYPE) + ".");
                 }
-                //log("step1 start...");
-                chrono.reset();
-                step1(sycl_q); // alloc
-                //log("step1 OK");
-                ptimer->step_time[1] = chrono.reset();
-                step2(sycl_q); // copie
-                //log("step2 OK");
-                ptimer->step_time[2] = chrono.reset();
-                step3(sycl_q); // sommes partielles
-                //log("step3 OK");
-                ptimer->step_time[3] = chrono.reset();
-                step4(sycl_q); // copie
-                //log("step4 OK");
-                ptimer->step_time[4] = chrono.reset();
-                step5(sycl_q); // libération
-                //log("step5 OK");
-                ptimer->step_time[5] = chrono.reset();
-                ptimer->print();
             }
 
             for (uint i = 0; i < 4; ++i) {

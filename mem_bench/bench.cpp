@@ -1338,6 +1338,29 @@ int main(int argc, char *argv[])
 
         if (arg.compare("mem2") == 0) {
             bench_mem_alloc_free b;
+            b.make_default_values();
+            b.main_sequence();
+            return 0;
+        }
+
+        if (arg.compare("mem_test_18GB") == 0) {
+            bench_mem_alloc_free b;
+            b.make_default_values();
+
+            b.INPUT_INT_COUNT = 1024L * 1024L * 1024L * 18L; // 18 GiB
+            b.INPUT_OUTPUT_FACTOR = 1024L;
+            b.refresh_deduced_values();
+            b.main_sequence();
+            return 0;
+        }
+
+        if (arg.compare("mem_test_6GB") == 0) {
+            bench_mem_alloc_free b;
+            b.make_default_values();
+
+            b.INPUT_INT_COUNT = 1024L * 1024L * 1024L * 6L; // 18 GiB
+            b.INPUT_OUTPUT_FACTOR = 1024L;
+            b.refresh_deduced_values();
             b.main_sequence();
             return 0;
         }
@@ -1516,12 +1539,17 @@ int main(int argc, char *argv[])
             log("run_count = " + run_count);
             log("ld_repeat = " + ld_repeat);
 
-            s_computer* c = &g_computers[3];
-            uint previous_ld = c->repeat_load_count;
-            c->repeat_load_count = std::stoi(ld_repeat);
 
-            base_traccc_repeat_load_count = c->repeat_load_count;
-            log("Setting " + c->fullName + " repeat_load_count to " + std::to_string(c->repeat_load_count) + ". Previous value = " + std::to_string(previous_ld));
+            // uint previous_ld = g_computers[3].repeat_load_count;
+            // s_computer* c = &g_computers[3];
+            for (s_computer & c : g_computers) {
+                uint previous_ld = c.repeat_load_count;
+                c.repeat_load_count = std::stoi(ld_repeat);
+                log("Setting " + c.fullName + " repeat_load_count to " + std::to_string(c.repeat_load_count) + ". Previous value = " + std::to_string(previous_ld));
+            }
+
+            base_traccc_repeat_load_count = std::stoi(ld_repeat);
+            
             log("=====================================");
 
             //traccc::traccc_bench(sycl_mode::glibc);
