@@ -275,9 +275,9 @@ public:
 
     // Etape 6 : libération des ressources du programme (dont étape 0)
 
-    static size_t INPUT_INT_COUNT; // 4 MiB * 512 = 2 GiB
-    static size_t INPUT_OUTPUT_FACTOR;
-    static size_t OUTPUT_INT_COUNT; // 2 MiB donc pas mal de kernels tout de même
+    size_t INPUT_INT_COUNT; // 4 MiB * 512 = 2 GiB
+    size_t INPUT_OUTPUT_FACTOR;
+    size_t OUTPUT_INT_COUNT; // 2 MiB donc pas mal de kernels tout de même
 
     void refresh_deduced_values() {
         OUTPUT_INT_COUNT = INPUT_INT_COUNT / INPUT_OUTPUT_FACTOR; // 2 MiB donc pas mal de kernels tout de même
