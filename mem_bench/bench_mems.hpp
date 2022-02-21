@@ -514,16 +514,19 @@ public:
 
                     //log("step1 start...");
                     chrono.reset();
+                    log("Alloc...");
                     step1(sycl_q); // alloc
-                    //log("step1 OK");
                     ptimer->step_time[1] = chrono.reset();
+                    log("Copy...");
                     step2(sycl_q); // copie
-                    //log("step2 OK");
+                    log("Summing...");
                     ptimer->step_time[2] = chrono.reset();
                     step3(sycl_q); // sommes partielles
                     //log("step3 OK");
+                    log("Reading...");
                     ptimer->step_time[3] = chrono.reset();
                     step4(sycl_q); // copie
+                    log("Deallocation...");
                     //log("step4 OK");
                     ptimer->step_time[4] = chrono.reset();
                     step5(sycl_q); // libération

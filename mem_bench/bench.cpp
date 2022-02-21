@@ -1347,7 +1347,7 @@ int main(int argc, char *argv[])
             bench_mem_alloc_free b;
             b.make_default_values();
 
-            b.INPUT_INT_COUNT = 1024L * 1024L * 1024L * 18L; // 18 GiB
+            b.INPUT_INT_COUNT = 1024L * 1024L * 1024L * 18L / 4L; // 18 GiB (4L pour la taille d'un uint)
             b.INPUT_OUTPUT_FACTOR = 1024L;
             b.refresh_deduced_values();
             b.main_sequence();
@@ -1358,7 +1358,7 @@ int main(int argc, char *argv[])
             bench_mem_alloc_free b;
             b.make_default_values();
 
-            b.INPUT_INT_COUNT = 1024L * 1024L * 1024L * 6L; // 18 GiB
+            b.INPUT_INT_COUNT = 1024L * 1024L * 1024L * 4L / 4L; // 18 GiB
             b.INPUT_OUTPUT_FACTOR = 1024L;
             b.refresh_deduced_values();
             b.main_sequence();
