@@ -839,8 +839,15 @@ namespace traccc {
         } else { // flatten
             chrono_flatten.reset();
 
+            log("FLATTEN ===== SIZES :");
+            log("flat_input.cells = " + std::to_string(total_cell_count * sizeof(input_cell)));
+            log("flat_output.cells = " + std::to_string(total_cell_count * sizeof(output_cell)));
+            log("flat_input.modules = " + std::to_string(total_module_count * sizeof(flat_input_module)));
+            log("flat_output.modules = " + std::to_string(total_module_count * sizeof(flat_output_module)));
+            log("============================");
+
             // Alloc - b.mode == sycl_mode::device_USM était avec malloc_host avant
-            if ( (b.mode == sycl_mode::glibc) ) {
+            if ( b.mode == sycl_mode::glibc ) {
                 b.flat_input.cells  = new input_cell[total_cell_count];
                 b.flat_output.cells = new output_cell[total_cell_count];
                 b.flat_input.modules = new flat_input_module[total_module_count];
