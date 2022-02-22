@@ -65,6 +65,12 @@ run_profile_alloc:
 build:
 	$(CXX) $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
 
+syclcc:
+	syclcc $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
+
+dpcpp:
+	dpcpp $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
+
 run: 
 	./$(RUN_EXE_NAME)
 
