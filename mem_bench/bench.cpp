@@ -1441,6 +1441,22 @@ int main(int argc, char *argv[])
     // Run one single test
     if (argc == 3) {
 
+        std::string arg1 = argv[1];
+        std::string arg2 = argv[2]; // en GiB
+
+        if (arg1.compare("mem_test_XGB") == 0) {
+            bench_mem_alloc_free b;
+            b.make_default_values();
+
+            unsigned long long sz = stoll(arg2) * 1024L * 1024L * 1024L / sizeof(int); // car sizeof(int) = 4
+
+            b.INPUT_INT_COUNT = sz; //1024L * 1024L * 1024L * 18L / 4L; // 18 GiB (4L pour la taille d'un uint)
+            b.INPUT_OUTPUT_FACTOR = 1024L;
+            b.refresh_deduced_values();
+            b.main_sequence();
+            return 0;
+        }
+
         if (std::string(argv[1]).compare("profile_alloc") == 0) {
             profiling_run_test(g_size_str, computerName + "_AT", std::stoi(argv[2]), 1);
             return 0;
