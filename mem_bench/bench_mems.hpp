@@ -332,15 +332,17 @@ public:
         HOST_OUTPUT = new data_type[OUTPUT_INT_COUNT];
         srand( (unsigned int) 42 );
 
-        
+        log("sizeof(size_t) = " + std::to_string(sizeof(size_t)));
 
         std::random_device dev;
         std::mt19937 rng(dev());
         std::uniform_int_distribution<std::mt19937::result_type> dist6(1,10); // distribution in range [1, 6]
 
+        ulong ipal = 500000000L / sizeof(data_type);
+
         for (size_t i = 0; i < INPUT_INT_COUNT; ++i) {
             HOST_INPUT[i] = i;//dist6(rng);
-            if (i % 500000000L == 0) log(std::to_string(i / (1024*1024)) + " MiB allocated...");
+            if (i % ipal == 0) log(std::to_string(i * sizeof(data_type) / (1024*1024)) + " MiB allocated...");
         }
         for (size_t i = 0; i < OUTPUT_INT_COUNT; ++i) {
             HOST_OUTPUT[i] = 0; // just in case
