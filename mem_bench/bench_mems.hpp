@@ -294,7 +294,7 @@ public:
         make_default_values();
     }
 
-    enum mem_type {STDL, SYCL_HOST, SYCL_SHARED, SYCL_DEVICE, UNKNOWN};
+    enum mem_type {STDL, SYCL_HOST, SYCL_SHARED, SYCL_DEVICE, SYCL_ACCESSORS, UNKNOWN};
 
     std::string mem_type_to_str(mem_type mt) {
         switch (mt) {
@@ -302,6 +302,7 @@ public:
             case SYCL_HOST: return "sycl host";
             case SYCL_SHARED: return "sycl shared";
             case SYCL_DEVICE: return "sycl device";
+            case SYCL_ACCESSORS: return "sycl accessors";
             case UNKNOWN: return "unknown";
         }
     }
@@ -313,6 +314,9 @@ public:
 
     data_type* COMPUTE_INPUT;
     data_type* COMPUTE_OUTPUT;
+
+    cl::sycl::buffer<data_type, 1> *BUFFER_INPUT  = nullptr;
+    cl::sycl::buffer<data_type, 1> *BUFFER_OUTPUT = nullptr;
 
     data_type expected_sum;
 
@@ -363,6 +367,13 @@ public:
                 COMPUTE_OUTPUT = new data_type[OUTPUT_INT_COUNT];
                 break;
 
+            case SYCL_ACCESSORS:
+                COMPUTE_INPUT  = new data_type[INPUT_INT_COUNT];
+                COMPUTE_OUTPUT = new data_type[OUTPUT_INT_COUNT];
+                BUFFER_INPUT   = new cl::sycl::buffer<data_type, 1>(COMPUTE_INPUT, cl::sycl::range<1>(INPUT_INT_COUNT));
+                BUFFER_OUTPUT  = new cl::sycl::buffer<data_type, 1>(COMPUTE_OUTPUT, cl::sycl::range<1>(OUTPUT_INT_COUNT));
+                break;
+
             case SYCL_HOST:
                 COMPUTE_INPUT  = cl::sycl::malloc_host<data_type>(INPUT_INT_COUNT, sycl_q);
                 COMPUTE_OUTPUT = cl::sycl::malloc_host<data_type>(OUTPUT_INT_COUNT, sycl_q);
@@ -397,11 +408,11 @@ public:
         if ( MEM_TYPE == STDL ) {
             memcpy(COMPUTE_INPUT, HOST_INPUT, INPUT_INT_COUNT * sizeof(data_type));
         }
+        // Rien à faire dans le cas des accesseurs
     }
 
     // Etape 3 : sommes partielles device / CPU
     void step3(cl::sycl::queue& sycl_q) {
-
 
         if ( (MEM_TYPE == SYCL_HOST) || (MEM_TYPE == SYCL_DEVICE) || (MEM_TYPE == SYCL_SHARED) ) {
             
@@ -426,6 +437,44 @@ public:
                 cp_output[cindex] = partial_sum;
             }).wait();
         }
+        
+        if ( MEM_TYPE == SYCL_ACCESSORS ) {
+            
+            cl::sycl::buffer<data_type, 1> *buffer_input  = BUFFER_INPUT;
+            cl::sycl::buffer<data_type, 1> *buffer_output = BUFFER_OUTPUT;
+            
+            // data_type* cp_input  = COMPUTE_INPUT;
+            // data_type* cp_output = COMPUTE_OUTPUT;
+
+            const auto INPUT_OUTPUT_FACTOR_CST = INPUT_OUTPUT_FACTOR;
+            const auto OUTPUT_INT_COUNT_CST    = OUTPUT_INT_COUNT;
+
+
+            sycl_q.submit([&](cl::sycl::handler &h) {
+
+                // Initialisation via le constructeur des accesseurs
+                cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
+                cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // no_init non supporté par hipsycl visiblement
+
+                h.parallel_for<class MyKernel_abc>(cl::sycl::range<1>(OUTPUT_INT_COUNT_CST), [=](cl::sycl::id<1> chunk_index) {
+                    auto cindex = chunk_index.get(0);
+                    data_type partial_sum = 0;
+
+                    // Chaque kernel doit faire la somme de INPUT_OUTPUT_FACTOR éléments
+                    // Les éléments sont distants de OUTPUT_INT_COUNT indexes
+                    // pour l'exécution en lockstep des threads sur GPU.
+                    for (size_t it = 0; it < INPUT_OUTPUT_FACTOR_CST; ++it) {
+                        size_t ind = cindex + it * OUTPUT_INT_COUNT_CST;
+                        partial_sum += a_input[ind];
+                    }
+
+                    a_output[cindex] = partial_sum;
+                });
+
+            }).wait_and_throw();
+        }
+
+
         if ( MEM_TYPE == STDL ) {
             data_type sum = 0;
             // Pour chaque case du vecteur de sortie
@@ -449,6 +498,10 @@ public:
         if ( MEM_TYPE == STDL ) {
             memcpy(HOST_OUTPUT, COMPUTE_OUTPUT, OUTPUT_INT_COUNT * sizeof(data_type));
         }
+
+        if ( MEM_TYPE == SYCL_ACCESSORS ) {
+            (*BUFFER_OUTPUT).get_access<cl::sycl::access::mode::read>();
+        }
     }
 
 
@@ -464,6 +517,12 @@ public:
             delete[] COMPUTE_INPUT;
             delete[] COMPUTE_OUTPUT;
         }
+        if ( MEM_TYPE == SYCL_ACCESSORS ) {
+            delete[] COMPUTE_INPUT;
+            delete[] COMPUTE_OUTPUT;
+            BUFFER_INPUT = nullptr;
+            BUFFER_OUTPUT = nullptr;        
+        }
     }
 
 
@@ -477,7 +536,7 @@ public:
     void main_sequence() {
         stime_utils chrono;
         chrono.start();
-        timerv2 timer_stdlib("stdlib"), timer_host("sycl_host"), timer_shared("sycl_shared"), timer_device("sycl_device");
+        timerv2 timer_stdlib("stdlib"), timer_host("sycl_host"), timer_shared("sycl_shared"), timer_device("sycl_device"), timer_accessors("sycl_accessors");
         log("Step0...");
         log("INPUT DATA SIZE  = " + std::to_string((sizeof(data_type) * INPUT_INT_COUNT) / (1024UL*1024UL)) + " MiB");
         log("OUTPUT DATA SIZE = " + std::to_string((sizeof(data_type) * OUTPUT_INT_COUNT) / (1024UL*1024UL)) + " MiB");
@@ -495,7 +554,7 @@ public:
             timerv2* ptimer;
             timer_stdlib.print_header();
 
-            for (uint i = 0; i < 4; ++i) {
+            for (uint i = 0; i < 5; ++i) {
 
                 try {
                     switch (i) {
@@ -512,6 +571,10 @@ public:
                             MEM_TYPE = mem_type::SYCL_SHARED;
                             break;
                         case 3:
+                            ptimer = &timer_accessors;
+                            MEM_TYPE = mem_type::SYCL_ACCESSORS;
+                            break;
+                        case 4:
                             ptimer = &timer_device;
                             MEM_TYPE = mem_type::SYCL_DEVICE;
                             break;
