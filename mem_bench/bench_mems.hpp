@@ -366,6 +366,8 @@ public:
             case SYCL_HOST:
                 COMPUTE_INPUT  = cl::sycl::malloc_host<data_type>(INPUT_INT_COUNT, sycl_q);
                 COMPUTE_OUTPUT = cl::sycl::malloc_host<data_type>(OUTPUT_INT_COUNT, sycl_q);
+                log("SYCL host allocated :  INPUT_INT_COUNT=" + std::to_string(INPUT_INT_COUNT));
+                log("SYCL host allocated : OUTPUT_INT_COUNT=" + std::to_string(OUTPUT_INT_COUNT));
                 break;
 
             case SYCL_SHARED:
@@ -390,6 +392,7 @@ public:
     void step2(cl::sycl::queue& sycl_q) {
         if ( (MEM_TYPE == SYCL_HOST) || (MEM_TYPE == SYCL_DEVICE) || (MEM_TYPE == SYCL_SHARED) ) {
             sycl_q.memcpy(COMPUTE_INPUT, HOST_INPUT, INPUT_INT_COUNT * sizeof(data_type)).wait();
+            log("SYCL host done memcpy.");
         }
         if ( MEM_TYPE == STDL ) {
             memcpy(COMPUTE_INPUT, HOST_INPUT, INPUT_INT_COUNT * sizeof(data_type));
