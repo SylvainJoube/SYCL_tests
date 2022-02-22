@@ -499,19 +499,19 @@ public:
 
                 try {
                     switch (i) {
-                        case 3:
+                        case 0:
                             ptimer = &timer_stdlib;
                             MEM_TYPE = mem_type::STDL;
                             break;
-                        case 2:
+                        case 1:
                             ptimer = &timer_host;
                             MEM_TYPE = mem_type::SYCL_HOST;
                             break;
-                        case 1:
+                        case 2:
                             ptimer = &timer_shared;
                             MEM_TYPE = mem_type::SYCL_SHARED;
                             break;
-                        case 0:
+                        case 3:
                             ptimer = &timer_device;
                             MEM_TYPE = mem_type::SYCL_DEVICE;
                             break;
@@ -545,7 +545,7 @@ public:
                     ptimer->step_time[5] = chrono.reset();
                     ptimer->print();
                     log("OK.");
-                } catch (cl::sycl::exception const &e) {
+                } catch (std::exception const &e) {
                     log("SYCL exception with " + mem_type_to_str(MEM_TYPE) + ".");
                 }
             }
