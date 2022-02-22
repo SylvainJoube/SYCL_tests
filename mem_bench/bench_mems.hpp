@@ -408,15 +408,18 @@ public:
             data_type* cp_input  = COMPUTE_INPUT;
             data_type* cp_output = COMPUTE_OUTPUT;
 
-            sycl_q.parallel_for<class some_kernel>(cl::sycl::range<1>(OUTPUT_INT_COUNT), [=](cl::sycl::id<1> chunk_index) {
+            const auto INPUT_OUTPUT_FACTOR_CST = INPUT_OUTPUT_FACTOR;
+            const auto OUTPUT_INT_COUNT_CST    = OUTPUT_INT_COUNT;
+
+            sycl_q.parallel_for<class some_kernel>(cl::sycl::range<1>(OUTPUT_INT_COUNT_CST), [=](cl::sycl::id<1> chunk_index) {
                 auto cindex = chunk_index.get(0);
                 data_type partial_sum = 0;
 
                 // Chaque kernel doit faire la somme de INPUT_OUTPUT_FACTOR éléments
                 // Les éléments sont distants de OUTPUT_INT_COUNT indexes
                 // pour l'exécution en lockstep des threads sur GPU.
-                for (size_t it = 0; it < INPUT_OUTPUT_FACTOR; ++it) {
-                    size_t ind = cindex + it * OUTPUT_INT_COUNT;
+                for (size_t it = 0; it < INPUT_OUTPUT_FACTOR_CST; ++it) {
+                    size_t ind = cindex + it * OUTPUT_INT_COUNT_CST;
                     partial_sum += cp_input[ind];
                 }
 
@@ -496,19 +499,19 @@ public:
 
                 try {
                     switch (i) {
-                        case 0:
+                        case 3:
                             ptimer = &timer_stdlib;
                             MEM_TYPE = mem_type::STDL;
                             break;
-                        case 1:
+                        case 2:
                             ptimer = &timer_host;
                             MEM_TYPE = mem_type::SYCL_HOST;
                             break;
-                        case 2:
+                        case 1:
                             ptimer = &timer_shared;
                             MEM_TYPE = mem_type::SYCL_SHARED;
                             break;
-                        case 3:
+                        case 0:
                             ptimer = &timer_device;
                             MEM_TYPE = mem_type::SYCL_DEVICE;
                             break;
