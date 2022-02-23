@@ -2167,7 +2167,9 @@ namespace traccc {
             log("ERREUR : échec de l'ouverture du fichier en écriture.");
             return 10;
         }
-        log("");
+        log("\n");
+        log("Version du fichier : " + std::to_int(DATA_VERSION_TRACCC));
+        log("\n");
 
         myfile << DATA_VERSION_TRACCC << "\n";
 
