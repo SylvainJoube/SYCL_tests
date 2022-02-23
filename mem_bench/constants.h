@@ -33,6 +33,22 @@ constexpr int USE_NAMED_KERNEL = 1; // Sandor does not support anonymous kernels
 constexpr bool KEEP_SAME_DATASETS = true; 
 int USE_HOST_SYCL_BUFFER_DMA = 0; 
 
+#define DATA_VERSION 7
+#define DATA_VERSION_TRACCC 106 // 105
+
+// number of diffrent datasets
+#define DATASET_NUMBER 1
+
+#define CHECK_SIMD_CPU false
+
+
+#define INPUT_DATA_LENGTH PARALLEL_FOR_SIZE * VECTOR_SIZE_PER_ITERATION
+#define OUTPUT_DATA_LENGTH PARALLEL_FOR_SIZE
+
+
+#define INPUT_DATA_SIZE INPUT_DATA_LENGTH * sizeof(DATA_TYPE)
+#define OUTPUT_DATA_SIZE OUTPUT_DATA_LENGTH * sizeof(DATA_TYPE)
+
 // faire un repeat sur les mêmes données pour essayer d'utiliser le cache
 // hypothèse : les données sont évincées du cache avant de pouvoir y avoir accès
 // observation : j'ai l'impression d'être un peu en train de me perdre dans les explorations,
@@ -90,8 +106,8 @@ std::string DEVICE_NAME_ON_BLOP_INTEL  = "???";
 std::string DEVICE_NAME_ON_BLOP_NVIDIA = "NVIDIA GeForce GTX 780";
 
 //std::string BENCHMARK_VERSION = "v06D";
-std::string BENCHMARK_VERSION = "v08"; // Sandor compatible  v05
-std::string BENCHMARK_VERSION_TRACCC = "acts06";
+std::string BENCHMARK_VERSION = "ubench" + std::to_string(DATA_VERSION); // Sandor compatible  v05
+std::string BENCHMARK_VERSION_TRACCC = "sccl" + std::to_string(DATA_VERSION_TRACCC);
 std::string DISPLAY_VERSION = BENCHMARK_VERSION_TRACCC + " - TRACCC-015";
 
 // Not used anymore
@@ -157,21 +173,7 @@ std::string ver_indicator = std::string("13d");
 std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); // "X42"
 
 
-#define DATA_VERSION 7
-#define DATA_VERSION_TRACCC 106 // 105
 
-// number of diffrent datasets
-#define DATASET_NUMBER 1
-
-#define CHECK_SIMD_CPU false
-
-
-#define INPUT_DATA_LENGTH PARALLEL_FOR_SIZE * VECTOR_SIZE_PER_ITERATION
-#define OUTPUT_DATA_LENGTH PARALLEL_FOR_SIZE
-
-
-#define INPUT_DATA_SIZE INPUT_DATA_LENGTH * sizeof(DATA_TYPE)
-#define OUTPUT_DATA_SIZE OUTPUT_DATA_LENGTH * sizeof(DATA_TYPE)
 
 
 
