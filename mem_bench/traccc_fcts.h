@@ -631,7 +631,7 @@ namespace traccc {
 
         // Nouveau timer
         int t_alloc_native, t_alloc_sycl, t_fill, t_copy, t_read, t_dealloc_sycl, t_dealloc_native;
-        static const uint kernel_count = 4;
+        static const uint kernel_count = 2;
         int t_kernel[kernel_count];
     };
 
@@ -2141,7 +2141,7 @@ namespace traccc {
                 if (CURRENT_MODE == accessors) continue;
             }
 
-            if (CURRENT_MODE == host_USM) continue; // TEMP ACAT : prend trooop de temps
+            //if (CURRENT_MODE == host_USM) continue; // TEMP ACAT : prend trooop de temps
             
             //ignore_allocation_times = (ignore_at == 1);
             

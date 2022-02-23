@@ -35,7 +35,7 @@ constexpr bool KEEP_SAME_DATASETS = true;
 int USE_HOST_SYCL_BUFFER_DMA = 0; 
 
 #define DATA_VERSION 7
-#define DATA_VERSION_TRACCC 107 // 105
+#define DATA_VERSION_TRACCC 108 // 105
 
 // number of diffrent datasets
 #define DATASET_NUMBER 1
