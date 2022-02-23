@@ -884,19 +884,25 @@ namespace traccc {
             log("============================");
 
             // Alloc - b.mode == sycl_mode::device_USM était avec malloc_host avant
-            if ( b.mode == sycl_mode::glibc ) {
+            // Changement : mémoire USM device allouée via glibc
+            if ( (b.mode == sycl_mode::glibc)  ||  (b.mode == sycl_mode::device_USM) ) {
                 b.flat_input.cells  = new input_cell[total_cell_count];
                 b.flat_output.cells = new output_cell[total_cell_count];
                 b.flat_input.modules = new flat_input_module[total_module_count];
                 b.flat_output.modules = new flat_output_module[total_module_count];
+                b.chres.t_alloc_native = chrono_flatten.reset();
             }
 
             // Host ou device, le device fera ensuite une allocation explicite
-            if ( (b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::device_USM) ) {
+            if ( (b.mode == sycl_mode::host_USM) ) {
                 b.flat_input.cells  = static_cast<input_cell *>  (cl::sycl::malloc_host(total_cell_count * sizeof(input_cell),  b.sycl_q));
                 b.flat_output.cells = static_cast<output_cell *> (cl::sycl::malloc_host(total_cell_count * sizeof(output_cell), b.sycl_q));
                 b.flat_input.modules  = static_cast<flat_input_module *>  (cl::sycl::malloc_host(total_module_count * sizeof(flat_input_module),  b.sycl_q));
                 b.flat_output.modules = static_cast<flat_output_module *> (cl::sycl::malloc_host(total_module_count * sizeof(flat_output_module), b.sycl_q));
+                b.chres.t_alloc_sycl = chrono_flatten.reset();
+                // if (b.mode == sycl_mode::device_USM) { // je fais comme si c'était une allocation native
+                //     b.chres.t_alloc_native = chrono_flatten.reset();
+                // }
             }
 
             // Donc allocation host + allocation device
@@ -906,6 +912,7 @@ namespace traccc {
                 // TODO : probablement qu'en fait c'est malloc_device ici et non malloc_host
                 b.flat_input.modules_device  = cl::sycl::malloc_device<flat_input_module>(total_module_count,  b.sycl_q);
                 b.flat_output.modules_device = cl::sycl::malloc_device<flat_output_module>(total_module_count, b.sycl_q);
+                b.chres.t_alloc_sycl = chrono_flatten.reset();
             }
 
             if (b.mode == sycl_mode::shared_USM) {
@@ -913,14 +920,15 @@ namespace traccc {
                 b.flat_output.cells = static_cast<output_cell *> (cl::sycl::malloc_shared(total_cell_count * sizeof(output_cell), b.sycl_q));
                 b.flat_input.modules  = static_cast<flat_input_module *>  (cl::sycl::malloc_shared(total_module_count * sizeof(flat_input_module),  b.sycl_q));
                 b.flat_output.modules = static_cast<flat_output_module *> (cl::sycl::malloc_shared(total_module_count * sizeof(flat_output_module), b.sycl_q));
-            }
-
-
-            if (b.mode == sycl_mode::glibc) {
-                b.chres.t_alloc_native = chrono_flatten.reset();
-            } else {
                 b.chres.t_alloc_sycl = chrono_flatten.reset();
             }
+
+
+            // if (b.mode == sycl_mode::glibc) {
+            //     b.chres.t_alloc_native = chrono_flatten.reset();
+            // } else {
+            //     b.chres.t_alloc_sycl = chrono_flatten.reset();
+            // }
 
             //if (ignore_allocation_times) chrono.reset();
             // b.chres.t_flatten_alloc = chrono_flatten.reset();
@@ -1814,7 +1822,8 @@ namespace traccc {
 
         } else { // flatten
 
-            if (b.mode == sycl_mode::glibc) {
+            // Libérartion de la mémoire host aussi pour device USM
+            if ( (b.mode == sycl_mode::glibc) || (b.mode == sycl_mode::device_USM) ) {
                 delete[] b.flat_input.cells;
                 delete[] b.flat_output.cells;
                 delete[] b.flat_input.modules;
@@ -1843,21 +1852,21 @@ namespace traccc {
                 b.chres.t_dealloc_native = chrono.reset();
             }
 
-            if ((b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::shared_USM) || (b.mode == sycl_mode::device_USM)) {
+            if ((b.mode == sycl_mode::host_USM) || (b.mode == sycl_mode::shared_USM) ) { // || (b.mode == sycl_mode::device_USM)
                 cl::sycl::free(b.flat_input.cells, b.sycl_q);
                 cl::sycl::free(b.flat_output.cells, b.sycl_q);
                 cl::sycl::free(b.flat_input.modules, b.sycl_q);
                 cl::sycl::free(b.flat_output.modules, b.sycl_q);
-
-                if ((b.mode == sycl_mode::device_USM)) {
-                    // En plus pour le device, libération de la mémoire device
-                    // L'autre mémoire étant USM host, pour le flatten
-                    cl::sycl::free(b.flat_input.cells_device, b.sycl_q);
-                    cl::sycl::free(b.flat_output.cells_device, b.sycl_q);
-                    cl::sycl::free(b.flat_input.modules_device, b.sycl_q);
-                    cl::sycl::free(b.flat_output.modules_device, b.sycl_q);
-                }
-
+                b.chres.t_dealloc_sycl = chrono.reset();
+            }
+            
+            if (b.mode == sycl_mode::device_USM) {
+                // En plus pour le device, libération de la mémoire device
+                // L'autre mémoire étant host native (anciennement USM host), pour le flatten
+                cl::sycl::free(b.flat_input.cells_device, b.sycl_q);
+                cl::sycl::free(b.flat_output.cells_device, b.sycl_q);
+                cl::sycl::free(b.flat_input.modules_device, b.sycl_q);
+                cl::sycl::free(b.flat_output.modules_device, b.sycl_q);
                 b.chres.t_dealloc_sycl = chrono.reset();
             }
         }
