@@ -2168,7 +2168,7 @@ namespace traccc {
             return 10;
         }
         log("\n");
-        log("Version du fichier : " + std::to_int(DATA_VERSION_TRACCC));
+        log("Version du fichier : " + std::to_string(DATA_VERSION_TRACCC));
         log("\n");
 
         myfile << DATA_VERSION_TRACCC << "\n";
