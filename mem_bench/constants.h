@@ -47,6 +47,9 @@ int USE_HOST_SYCL_BUFFER_DMA = 0;
 // SEE main on bench.cpp
 // SEE main on bench.cpp
 
+// namespace cl::sycl {
+//     constexpr property::noinit no_init = cl::sycl::noinit;
+// };
 
 // number of iterations - no realloc to make it go faster
 int REPEAT_COUNT_REALLOC;// défini dans le main (3)
@@ -155,7 +158,7 @@ std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); 
 
 
 #define DATA_VERSION 7
-#define DATA_VERSION_TRACCC 105
+#define DATA_VERSION_TRACCC 106 // 105
 
 // number of diffrent datasets
 #define DATASET_NUMBER 1
