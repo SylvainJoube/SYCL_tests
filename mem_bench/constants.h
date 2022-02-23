@@ -9,6 +9,7 @@
 #include <array>
 #include <sys/time.h>
 #include <stdlib.h>
+#include "intel_noinit_fix.h"
 
 const int ACAT_START_TEST_INDEX  = 1;
 const int ACAT_STOP_TEST_INDEX   = 2;
@@ -63,9 +64,7 @@ int USE_HOST_SYCL_BUFFER_DMA = 0;
 // SEE main on bench.cpp
 // SEE main on bench.cpp
 
-// namespace cl::sycl {
-//     constexpr property::noinit no_init = cl::sycl::noinit;
-// };
+
 
 // number of iterations - no realloc to make it go faster
 int REPEAT_COUNT_REALLOC;// défini dans le main (3)
