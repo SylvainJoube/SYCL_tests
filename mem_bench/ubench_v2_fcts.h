@@ -23,7 +23,7 @@
 // Je n'ai pas changé les noms des variables, pour arriver plus vite au résultat voulu.
 namespace ubench_v2 {
 
-    #define UBENCH2_VERSION 1
+    #define UBENCH2_VERSION 2
     //#define UBENCH2_VERSION_STR "1"
     const std::string UBENCH2_VERSION_FILE_PREFIX = "ubench2_" + std::to_string(static_cast<int>(UBENCH2_VERSION));
 
@@ -239,6 +239,7 @@ namespace ubench_v2 {
             for (size_t i = 0; i < b_INPUT_DATA_LENGTH; ++i) {
                 b.sycl_input[i] = i % 20;
             }
+            b.sycl_q.wait_and_throw();
         }
         b.c.t_fill = chrono.reset();
     }
@@ -249,6 +250,7 @@ namespace ubench_v2 {
         chrono.start();
         if (need_explicit_copy(b)) {
             b.sycl_q.memcpy(b.sycl_input, b.native_input, b_INPUT_DATA_LENGTH * sizeof(data_type));
+            b.sycl_q.wait_and_throw();
             b.c.t_copy = chrono.reset();
         }
     }
@@ -380,6 +382,7 @@ namespace ubench_v2 {
             delete b.buffer_output;
             b.buffer_input  = nullptr;
             b.buffer_output = nullptr;
+            b.sycl_q.wait_and_throw();
             b.c.t_dealloc_sycl = chrono.reset();
         }
 
@@ -388,6 +391,7 @@ namespace ubench_v2 {
             cl::sycl::free(b.sycl_output, b.sycl_q);
             b.sycl_input  = nullptr;
             b.sycl_output = nullptr;
+            b.sycl_q.wait_and_throw();
             b.c.t_dealloc_sycl = chrono.reset();
         }
         if (be_verbose) log("Iteration OK.");
