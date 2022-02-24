@@ -3,7 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <chrono>
-#include <math>
+#include <cmath>
 
 // file
 #include <sys/stat.h>
@@ -28,6 +28,7 @@ namespace ubench_v2 {
     const std::string UBENCH2_VERSION_FILE_PREFIX = "ubench2_" + std::to_string(static_cast<int>(UBENCH2_VERSION));
 
     const bool check_results = false;
+    const bool be_verbose = false;
 
     /*
     - alloc native (device, accessors, shared copy)
@@ -164,7 +165,7 @@ namespace ubench_v2 {
 
     // Alloc native + alloc SYCL
     void allocation(bench_variables & b) {
-        log("allocation");
+        if (be_verbose) log("allocation");
         stime_utils chrono;
         //shared_USM, device_USM, host_USM, accessors, glibc};
 
@@ -225,7 +226,7 @@ namespace ubench_v2 {
     }
 
     void fill(bench_variables & b) {
-        log("fill");
+        if (be_verbose) log("fill");
         stime_utils chrono;
         chrono.start();
         if (is_using_native_memory(b)) {
@@ -243,7 +244,7 @@ namespace ubench_v2 {
     }
 
     void copy(bench_variables & b) {
-        log("copy");
+        if (be_verbose) log("copy");
         stime_utils chrono;
         chrono.start();
         if (need_explicit_copy(b)) {
@@ -320,14 +321,14 @@ namespace ubench_v2 {
     }
 
     void kernel(bench_variables & b) {
-        log("kernels");
+        if (be_verbose) log("kernels");
         for (uint kernel_id = 0; kernel_id < b.c.kernel_count; ++kernel_id) {
             kernel_iteration(b, kernel_id);
         }
     }
 
     data_type read(bench_variables & b) {
-        log("read");
+        if (be_verbose) log("read");
         stime_utils chrono;
         chrono.start();
 
@@ -338,25 +339,25 @@ namespace ubench_v2 {
 
         // Forcément mémoire USM si copie explicite
         if (need_explicit_copy(b)) {
-            log("read - explicit copy...");
+            if (be_verbose) log("read - explicit copy...");
             b.sycl_q.memcpy(b.native_output, b.sycl_output, b_OUTPUT_DATA_LENGTH * sizeof(data_type));
             b.sycl_q.wait_and_throw();
-            log("ok");
+            if (be_verbose) log("ok");
         }
 
         data_type sum = 0;
         if (is_using_native_memory(b)) {
-            log("read - use native memory, summing...");
+            if (be_verbose) log("read - use native memory, summing...");
             for (size_t i = 0; i < b_OUTPUT_DATA_LENGTH; ++i) {
                 sum += b.native_output[i];
             }
-            log("ok");
+            if (be_verbose) log("ok");
         } else {
-            log("read - use sycl memory, summing...");
+            if (be_verbose) log("read - use sycl memory, summing...");
             for (size_t i = 0; i < b_OUTPUT_DATA_LENGTH; ++i) {
                 sum += b.sycl_output[i];
             }
-            log("ok");
+            if (be_verbose) log("ok");
         }
         
         b.c.t_read = chrono.reset();
@@ -364,7 +365,7 @@ namespace ubench_v2 {
     }
 
     void dealloc(bench_variables & b) {
-        log("dealloc");
+        if (be_verbose) log("dealloc");
         stime_utils chrono;
         chrono.start();
 
@@ -389,7 +390,7 @@ namespace ubench_v2 {
             b.sycl_output = nullptr;
             b.c.t_dealloc_sycl = chrono.reset();
         }
-        log("Iteration OK.");
+        if (be_verbose) log("Iteration OK.");
     }
 
 
@@ -416,7 +417,7 @@ namespace ubench_v2 {
 
             if (sum != g_expected_sum) {
                 log("ERROR ERROR ERROR : sum(" + std::to_string(sum) + ") != expected_sum(" + std::to_string(g_expected_sum)
-                    + "  - dif = " + std::to_string(std::abs(g_expected_sum - sum)));
+                    + "  - dif = " + std::to_string(std::abs(static_cast<int>(g_expected_sum - sum))));
                 log("   ----> for " + mode_to_string(mode) + (explicit_copy ? " explicit_copy" : " auto_copy"));
                 if (ubench_v2::check_results) std::terminate();
             }
