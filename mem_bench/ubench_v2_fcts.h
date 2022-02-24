@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <fstream>
 #include <chrono>
+#include <math>
 
 // file
 #include <sys/stat.h>
@@ -25,6 +26,8 @@ namespace ubench_v2 {
     #define UBENCH2_VERSION 1
     //#define UBENCH2_VERSION_STR "1"
     const std::string UBENCH2_VERSION_FILE_PREFIX = "ubench2_" + std::to_string(static_cast<int>(UBENCH2_VERSION));
+
+    const bool check_results = false;
 
     /*
     - alloc native (device, accessors, shared copy)
@@ -412,9 +415,10 @@ namespace ubench_v2 {
             dealloc(bench);
 
             if (sum != g_expected_sum) {
-                log("ERROR ERROR ERROR : sum(" + std::to_string(sum) + ") != expected_sum(" + std::to_string(g_expected_sum));
+                log("ERROR ERROR ERROR : sum(" + std::to_string(sum) + ") != expected_sum(" + std::to_string(g_expected_sum)
+                    + "  - dif = " + std::to_string(std::abs(g_expected_sum - sum)));
                 log("   ----> for " + mode_to_string(mode) + (explicit_copy ? " explicit_copy" : " auto_copy"));
-                std::terminate();
+                if (ubench_v2::check_results) std::terminate();
             }
 
             return bench.c; // résultats chronométrés            
