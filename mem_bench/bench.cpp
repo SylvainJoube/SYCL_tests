@@ -1459,6 +1459,7 @@ int main(int argc, char *argv[])
         }
 
         if (arg1.compare("ubench2") == 0) {
+            log("sizeof(unsigned long) = " + std::to_string(sizeof(unsigned long)));
 
             if ( ! is_number(arg2) ) { log("ERROR, arg2(" + arg2 + ") as argv[2] is not a number."); return 3; }
             ubench_v2::run_ubench2_tests(computerName, stoi(arg2));

@@ -57,8 +57,8 @@ namespace ubench_v2 {
     // bool ignore_pointer_graph_benchmark;
     // bool ignore_flatten_benchmark;
 
-    const unsigned int in_total_size  = b_INPUT_DATA_LENGTH  * sizeof(data_type);
-    const unsigned int out_total_size = b_OUTPUT_DATA_LENGTH * sizeof(data_type);
+    const unsigned long in_total_size  = b_INPUT_DATA_LENGTH  * sizeof(data_type);
+    const unsigned long out_total_size = b_OUTPUT_DATA_LENGTH * sizeof(data_type);
 
     enum mem_strategy { pointer_graph, flatten };
 
