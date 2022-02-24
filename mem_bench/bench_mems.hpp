@@ -71,7 +71,7 @@ private :
 
     const uint64_t size = ecount * sizeof(DATA_TYPE); // 128 milions elements * 4 bytes => 512 MiB
     custom_device_selector d_selector;
-    uint mem_type_src, mem_type_dest;
+    //uint mem_type_src, mem_type_dest;
     bench_sycl_glibc_mem_speed_run t_alloc_src, t_alloc_dest, t_fill, t_copy, t_free_src, t_free_dest;
 
 
@@ -476,7 +476,7 @@ public:
 
 
         if ( MEM_TYPE == STDL ) {
-            data_type sum = 0;
+            //data_type sum = 0;
             // Pour chaque case du vecteur de sortie
             for (size_t i = 0; i < OUTPUT_INT_COUNT; ++i) {
                 size_t cindex = i * INPUT_OUTPUT_FACTOR;

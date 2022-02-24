@@ -71,7 +71,7 @@ int REPEAT_COUNT_REALLOC;// défini dans le main (3)
 int REPEAT_COUNT_ONLY_PARALLEL; // défini dans le main (0)
 // Warmup count : nombre d'itérations non comptabilisées pour ne pas mesurer
 // les évènements réalisés en lazy.
-int REPEAT_COUNT_ONLY_PARALLEL_WARMUP_COUNT = 4; // défini dans le main (0)
+int REPEAT_COUNT_ONLY_PARALLEL_WARMUP_COUNT = 0; // 4 défini dans le main (0)
 
 bool FORCE_EXECUTION_ON_NAMED_DEVICE = true;
 std::string MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]"; //std::string("s");

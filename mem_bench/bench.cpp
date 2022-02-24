@@ -19,6 +19,7 @@
 #include "traccc_fcts.h"
 //#include "sycl_helloworld.h"
 #include "bench_mems.hpp"
+#include "ubench_v2_fcts.h"
 
 
 
@@ -106,7 +107,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     //sycl_q.memcpy(dataset->data_output, ddata_output_verif, OUTPUT_DATA_SIZE);
     //sycl_q.wait_and_throw();
 
-    data_type sum_simd_check_cpu = 0;
+    //data_type sum_simd_check_cpu = 0;
 
     // Value verification
     data_type total_sum = 0;
@@ -271,8 +272,8 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     cl::sycl::buffer<data_type, 1> *buffer_output = dataset->buffer_output;
 
     //  data_type* ddata_input, data_type* ddata_output,
-    data_type* ddata_input = dataset->device_input;
-    data_type* ddata_output = dataset->device_output;
+    //data_type* ddata_input = dataset->device_input;
+    //data_type* ddata_output = dataset->device_output;
 
     //data_type* ddata_output_verif = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
 
@@ -348,7 +349,7 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
     (*buffer_output).get_access<cl::sycl::access::mode::read>();
 
-    data_type sum_simd_check_cpu = 0;
+    //data_type sum_simd_check_cpu = 0;
 
     // Value verification
     data_type total_sum = 0;
@@ -429,7 +430,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
     default : break; // TODO : add buffers/accessors
     }
 
-    uint64_t t_start, t_start2;
+    //uint64_t t_start, t_start2;
     gpu_timer gtimer;
 
     stime_utils chrono;
@@ -608,7 +609,7 @@ void bench_smid_modes(std::ofstream& myfile) {
     VECTOR_SIZE_PER_ITERATION = BASE_VECTOR_SIZE_PER_ITERATION;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
-    int imode;
+    //int imode;
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
@@ -648,7 +649,7 @@ void bench_mem_alloc_modes(std::ofstream& myfile) {
     // how many times main_sequence will be run
     total_main_seq_runs = 2 * 4 - 1;
 
-    int imode;
+    //int imode;
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
@@ -691,7 +692,7 @@ void bench_host_copy_buffer(std::ofstream& myfile) {
     // how many times main_sequence will be run
     total_main_seq_runs = 2 * 3;
 
-    int imode;
+    //int imode;
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
@@ -739,7 +740,7 @@ void bench_data_access_time_with_repeat(std::ofstream& myfile) {
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
 
 
-    int imode;
+    //int imode;
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
@@ -1317,7 +1318,7 @@ int main(int argc, char *argv[])
     //REPEAT_COUNT_REALLOC = 12;
     REPEAT_COUNT_REALLOC = 12;
 
-    REPEAT_COUNT_ONLY_PARALLEL = 12;
+    REPEAT_COUNT_ONLY_PARALLEL = 0;//12;
 
     //total_elements = 1024L * 1024L * 256L;   // 256 milions elements * 4 bytes => 1 GiB
     //std::string size_str = "1GiB";
@@ -1454,6 +1455,14 @@ int main(int argc, char *argv[])
             b.INPUT_OUTPUT_FACTOR = 1024L;
             b.refresh_deduced_values();
             b.main_sequence();
+            return 0;
+        }
+
+        if (arg1.compare("ubench2") == 0) {
+
+            if ( ! is_number(arg2) ) { log("ERROR, arg2(" + arg2 + ") as argv[2] is not a number."); return 3; }
+            ubench_v2::run_ubench2_tests(computerName, stoi(arg2));
+
             return 0;
         }
 

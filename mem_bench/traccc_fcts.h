@@ -844,7 +844,7 @@ namespace traccc {
                         
                     for (uint im = 0; im < total_module_count; ++im) {
                         traccc::implicit_input_module  * module_in  = &b.implicit_modules_in[im];
-                        traccc::implicit_output_module * module_out = &b.implicit_modules_out[im];
+                        //traccc::implicit_output_module * module_out = &b.implicit_modules_out[im];
                         /*if (im < 10) {
                             log("Module " + std::to_string(im)
                                 + " cell_count(" + std::to_string(cell_count) + ")"
@@ -894,7 +894,7 @@ namespace traccc {
             }
 
             // Host ou device, le device fera ensuite une allocation explicite
-            if ( (b.mode == sycl_mode::host_USM) ) {
+            if ( b.mode == sycl_mode::host_USM ) {
                 b.flat_input.cells  = static_cast<input_cell *>  (cl::sycl::malloc_host(total_cell_count * sizeof(input_cell),  b.sycl_q));
                 b.flat_output.cells = static_cast<output_cell *> (cl::sycl::malloc_host(total_cell_count * sizeof(output_cell), b.sycl_q));
                 b.flat_input.modules  = static_cast<flat_input_module *>  (cl::sycl::malloc_host(total_module_count * sizeof(flat_input_module),  b.sycl_q));
@@ -1365,8 +1365,8 @@ namespace traccc {
 
                         uint first_cindex = flat_modules_in_kern[module_index].cell_start_index;
                         uint cell_count = flat_modules_in_kern[module_index].cell_count;
-                        uint cell_index = first_cindex;
-                        uint stop_cindex = first_cindex + cell_count;
+                        // uint cell_index = first_cindex;
+                        // uint stop_cindex = first_cindex + cell_count;
 
                         // ...
 
@@ -1461,8 +1461,8 @@ namespace traccc {
                         
                         uint first_cindex = flat_modules_in_kern[module_index].cell_start_index;
                         uint cell_count = flat_modules_in_kern[module_index].cell_count;
-                        uint cell_index = first_cindex;
-                        uint stop_cindex = first_cindex + cell_count;
+                        // uint cell_index = first_cindex;
+                        // uint stop_cindex = first_cindex + cell_count;
 
                         // The very dirty part : statically allocate a buffer of the maximum pixel density per module...
                         uint L[max_cell_count_per_module];
@@ -1589,8 +1589,8 @@ namespace traccc {
 
                             uint first_cindex = a_input_modules[module_index].cell_start_index;
                             uint cell_count = a_input_modules[module_index].cell_count;
-                            uint cell_index = first_cindex;
-                            uint stop_cindex = first_cindex + cell_count;
+                            // uint cell_index = first_cindex;
+                            // uint stop_cindex = first_cindex + cell_count;
 
                             // ...
 
@@ -1972,7 +1972,7 @@ namespace traccc {
 
         // Tous les champs du timer sont initialisés à 0.
         // Aucun n'est réellement utile ici.
-        gpu_timer gtimer;
+        //gpu_timer gtimer;
 
         // Je laisse tous les champs pour que ça reste compatible avec ce qui existe déjà
         write_file 
@@ -2106,7 +2106,7 @@ namespace traccc {
 
         mem_strategy memory_strategy;
         
-        traccc_chrono_results cres;
+        //traccc_chrono_results cres;
 
         for (int imode = 0; imode <= 4; ++imode) 
         //for (int ignore_at = 0; ignore_at <= 1; ++ignore_at)
