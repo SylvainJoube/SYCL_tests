@@ -175,6 +175,8 @@ namespace ubench_v2 {
         if (is_using_native_memory(b)) {
             b.native_input  = new data_type[b_INPUT_DATA_LENGTH];
             b.native_output = new data_type[b_OUTPUT_DATA_LENGTH];
+            memset(b.native_input,  1, b_INPUT_DATA_LENGTH  * sizeof(data_type));
+            memset(b.native_output, 1, b_OUTPUT_DATA_LENGTH * sizeof(data_type));
             b.c.t_alloc_native = chrono.reset();
         }
 
