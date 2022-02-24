@@ -40,7 +40,7 @@ namespace ubench_v2 {
     const unsigned int microseconds = 0;
 
     // Nombre de data_type
-    const unsigned long b_INPUT_DATA_LENGTH   = 1L * 1024L * 1024L * 1024L / sizeof(data_type);
+    const unsigned long b_INPUT_DATA_LENGTH   = 12L * 1024L * 1024L * 1024L / sizeof(data_type);
     //const unsigned long b_INPUT_DATA_LENGTH   = 6L * 1024L * 1024L * 1024L / sizeof(data_type);
     const unsigned long b_INPUT_OUTPUT_FACTOR = 128; // taille des sommes partielles
     const unsigned long b_OUTPUT_DATA_LENGTH  = b_INPUT_DATA_LENGTH / b_INPUT_OUTPUT_FACTOR;
