@@ -585,7 +585,7 @@ namespace ubench_v2 {
     }
 
     void run_ubench2_single_test(std::string const computer_name, uint run_id) {
-        OUTPUT_FILE_NAME = UBENCH2_VERSION_FILE_PREFIX + "_" + input_size_to_str() + "_RUN" + std::to_string(run_id) + ".t";
+        OUTPUT_FILE_NAME = UBENCH2_VERSION_FILE_PREFIX + "_" + computer_name  + "_" + input_size_to_str() + "_RUN" + std::to_string(run_id) + ".t";
         log("OUTPUT_FILE_NAME = " + OUTPUT_FILE_NAME);
         main_of_bench_v2(OUTPUT_FILE_NAME);
     }
