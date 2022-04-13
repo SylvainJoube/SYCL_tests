@@ -4,32 +4,73 @@
 
 # Lancer le script : python3 ./2022-02-03_datastructures.py
 
-
 # Adapté pour le graphique 1 : microbenchmark version commune à explicite et direct
 
 import matplotlib.pyplot as plt
 import numpy as np
 import statistics as stat
 
-# MY_SIZE = 22
 
-# plt.rc('font', size=MY_SIZE)          # controls default text sizes
-# plt.rc('axes', titlesize=MY_SIZE)     # fontsize of the axes title
-# plt.rc('axes', labelsize=MY_SIZE)     # fontsize of the x and y labels
-# plt.rc('xtick', labelsize=MY_SIZE)    # fontsize of the tick labels
-# plt.rc('ytick', labelsize=MY_SIZE)    # fontsize of the tick labels
-# plt.rc('legend', fontsize=MY_SIZE)    # legend fontsize
-# plt.rc('figure', titlesize=MY_SIZE)   # fontsize of the figure title
-
-# plt.rcParams.update({'font.size': MY_SIZE})
 
 acces_direct = False
-tableau_horizontal = True
+tableau_horizontal = True # tableau vertical plus vraiment supporté (non testé en tout cas)
+
+
+# ============ NOM DES FICHIERS D'ENTRÉE ET DE SORTIE ============
+
+# filepath = 'v08_alloc_sandor_ST_6GiB_O2_RUN2_2021-11-16.t' #'acts06_generalFlatten_sandor_AT_ld100_RUN1.t'
+# utilisé dans le papier : RUN2 2021-11-16  (v08_alloc_sandor_ST_6GiB_O2_RUN2_2021)
+
+output_image_name_ver = "27_brouillon" # 25_d
+
+filepath = 'sandor_2022-02-09/v08_alloc_sandor_ST_6GiB_O2_RUN20.t'
+
+import sys
+
+if (len(sys.argv) == 2):
+    filepath = 'sandor_2022-02-09/v08_alloc_sandor_ST_6GiB_O2_RUN' + sys.argv[1] + '.t'
+    output_image_name_ver += "_v" + sys.argv[1]
+
+
+# ============= Gestion de la taille
+my_dpi = 96
+output_image_name = "le nom de ma belle image"
+
+image_width = 1280
+image_height = 1
+image_scale_factor = image_width / 640
+line_width = image_scale_factor * 1.5
+
+if acces_direct:
+    image_height = (image_width / 640) * 159 #213
+    plt.figure(figsize=(image_width/my_dpi, image_height/my_dpi) , dpi=my_dpi)
+    output_image_name = "ubench_write" + output_image_name_ver + ".png"
+else:
+    image_height = (image_width / 640) * 258 # 273
+    plt.figure(figsize=(image_width/my_dpi, image_height/my_dpi), dpi=my_dpi)
+    output_image_name = "ubench_copy" + output_image_name_ver + ".png"
+
+MY_SIZE = (10 * image_scale_factor)
+TITLE_SIZE = (12 * image_scale_factor)
+
+#plt.rc('font', size=MY_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=TITLE_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MY_SIZE)     # fontsize of the x and y labels
+plt.rc('xtick', labelsize=MY_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=MY_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=MY_SIZE)    # legend fontsize
+#plt.rc('figure', titlesize=MY_SIZE)   # fontsize of the figure title
+# plt.rcParams.update({'font.size': MY_SIZE})
+
+# fin gestion de la taille =============
+
 
 ## ============ CHARGEMENT ============
 
+
 # Lecture du fichier d'entrée
-filepath = 'v08_alloc_sandor_ST_6GiB_O2_RUN2.t' #'acts06_generalFlatten_sandor_AT_ld100_RUN1.t'
+# filepath = 'sandor_2022-02-09/v08_alloc_sandor_ST_6GiB_O2_RUN10.t' #'acts06_generalFlatten_sandor_AT_ld100_RUN1.t'
+
 
 # Tous les headers : a chaque header est associé une série de paramètres
 header_list = []
@@ -247,7 +288,7 @@ for header in header_list:
             x_list.append("copy")
         x_list.append("kernel 1")
         x_list.append("kernel 2")
-        x_list.append("free")
+        x_list.append("dealloc")
 
         # x_list.append("SYCL alloc") # SYCL alloc
         # x_list.append("copy/access to SYCL mem") # fill SYCL mem
@@ -297,36 +338,41 @@ def array_value_to_str(val):
     else:
         return str(round(val))
 
-def draw_tab_item(y_median_g):
-    st = ""
+def draw_tab_item(cname, y_median_g):
+    st = cname + " & "
+    ssum = 0
     for im in range(5): # de 0 à 4 compris
-        # val = y_median_g[im]
-        # if (val < 0.01):
-        #     st = st + str(round(val * 1000)/1000)
-        # elif (val < 0.1):
-        #     st = st + str(round(val * 100)/100)
-        # elif (val < 1):
-        #     st = st + str(round(val * 10)/10)
-        # else:
-        #     st = st + str(round(val))
+        ssum += round(y_median_g[im])
         st = st + array_value_to_str(y_median_g[im])
         if (im != 4):
             st = st + " & "
-        else:
-            st = st + " \\\\"
+        #else: # affichage du total et fin de ligne
+    
+    sum_str = array_value_to_str(ssum)
+    st = st + " & " + sum_str + " & " + cname + " \\\\"
     return st
 
-def draw_tab_item_vert(y_median_a, y_median_b, index):
+def draw_tab_item_vert2(y_median_a, y_median_b, index):
     return (
     array_value_to_str(y_median_a[index]) + " & "
     + array_value_to_str(y_median_b[index]) + " \\\\")
 
+# def draw_tab_sum_vert2(y_median_a, y_median_b, range_size):
+#     total_a = 0
+#     total_b = 0
+#     for im in range(range_size + 1): # de 0 à range_size
+#         total_a += y_median_a[im]
+#         total_b += y_median_b[im]
+
+
 def draw_tab_item_vert4(y_median_a, y_median_b, y_median_c, y_median_d, index):
+    summ = y_median_a[index] + y_median_b[index] + y_median_c[index] + y_median_d[index]
     return (
     array_value_to_str(y_median_a[index]) + " & "
     + array_value_to_str(y_median_b[index]) + " & "
     + array_value_to_str(y_median_c[index]) + " & "
     + array_value_to_str(y_median_d[index]) + " \\\\" )
+    # TODO : afficher le total et tester que c'est ok
 
 # TODO : stocker dans des listes distinctes les cas USM copie explicite et USM accès direct
 #        pour pouvoir les réutiliser ensuite dans le graphique.
@@ -335,56 +381,58 @@ def draw_tab_item_vert4(y_median_a, y_median_b, y_median_c, y_median_d, index):
 def draw_tab():
     print("\\begin{center}")
     if tableau_horizontal:
-        print("\\begin{tabular}{||c c c c c c||} ")
+        print("\\begin{tabular}{||c c c c c c c c||} ")
         print("\\hline")
         # accès direct
         if (acces_direct):
-            print("& alloc & copy/write & ker\\textsubscript{1} & ker\\textsubscript{2} & free \\\\ [0.5ex]")
+            print("& alloc & copy/write & ker\\textsubscript{1} & ker\\textsubscript{2} & dealloc & total & \\\\ [0.5ex]")
             print("\\hline\\hline")
-            print("s. direct & " + draw_tab_item(y_median_shared_direct))
+            print(draw_tab_item("s. direct", y_median_shared_direct))
             print("\\hline")
-            print("s. copy & " + draw_tab_item(y_median_shared_explicit))
+            print(draw_tab_item("s. copy", y_median_shared_explicit))
         else: # copie explicite
-            print("& alloc & copy & ker\\textsubscript{1} & ker\\textsubscript{2} & free \\\\ [0.5ex]")
+            print("& alloc & copy & ker\\textsubscript{1} & ker\\textsubscript{2} & dealloc & total & \\\\ [0.5ex]")
             print("\\hline\\hline")
-            print("device & " + draw_tab_item(y_median_device))
+            print(draw_tab_item("device", y_median_device))
             print("\\hline")
-            print("shared & " + draw_tab_item(y_median_shared_explicit))
+            print(draw_tab_item("shared", y_median_shared_explicit))
             print("\\hline")
-            print("host & " + draw_tab_item(y_median_host_explicit))
+            print(draw_tab_item("host", y_median_host_explicit))
             print("\\hline")
-            print("accessors & " + draw_tab_item(y_median_acc))
-    else:
-        # Tableau vertical
-        if (acces_direct):
-            print("\\begin{tabular}{||c c c||} ")
-            print("\\hline")
-            print("& s. direct & s. copy \\\\ [0.5ex]")
-            print("\\hline\\hline")
-            print("alloc & " + draw_tab_item_vert(y_median_shared_direct, y_median_shared_explicit, 0))
-            print("\\hline")
-            print("copy/write & " + draw_tab_item_vert(y_median_shared_direct, y_median_shared_explicit, 1))
-            print("\\hline")
-            print("ker\\textsubscript{1} & " + draw_tab_item_vert(y_median_shared_direct, y_median_shared_explicit, 2))
-            print("\\hline")
-            print("ker\\textsubscript{2} & " + draw_tab_item_vert(y_median_shared_direct, y_median_shared_explicit, 3))
-            print("\\hline")
-            print("free & " + draw_tab_item_vert(y_median_shared_direct, y_median_shared_explicit, 4))
-        else:
-            # Copie explicite
-            print("\\begin{tabular}{||c c c c c||} ")
-            print("\\hline")
-            print("& device & shared & host & accessors \\\\ [0.5ex]")
-            print("\\hline\\hline")
-            print("alloc & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 0))
-            print("\\hline")
-            print("copy & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 1))
-            print("\\hline")
-            print("ker\\textsubscript{1} & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 2))
-            print("\\hline")
-            print("ker\\textsubscript{2} & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 3))
-            print("\\hline")
-            print("free & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 4))
+            print(draw_tab_item("accessors", y_median_acc))
+    # else:
+    #     # Tableau vertical
+    #     if (acces_direct):
+    #         print("\\begin{tabular}{||c c c||} ")
+    #         print("\\hline")
+    #         print("& s. direct & s. copy \\\\ [0.5ex]")
+    #         print("\\hline\\hline")
+    #         print("alloc & " + draw_tab_item_vert2(y_median_shared_direct, y_median_shared_explicit, 0))
+    #         print("\\hline")
+    #         print("copy/write & " + draw_tab_item_vert2(y_median_shared_direct, y_median_shared_explicit, 1))
+    #         print("\\hline")
+    #         print("ker\\textsubscript{1} & " + draw_tab_item_vert2(y_median_shared_direct, y_median_shared_explicit, 2))
+    #         print("\\hline")
+    #         print("ker\\textsubscript{2} & " + draw_tab_item_vert2(y_median_shared_direct, y_median_shared_explicit, 3))
+    #         print("\\hline")
+    #         print("dealloc & " + draw_tab_item_vert2(y_median_shared_direct, y_median_shared_explicit, 4))
+    #         # print("\\hline")
+    #         # print("sum & " + draw_tab_sum_vert2(y_median_shared_direct, y_median_shared_explicit, 4))
+    #     else:
+    #         # Copie explicite
+    #         print("\\begin{tabular}{||c c c c c||} ")
+    #         print("\\hline")
+    #         print("& device & shared & host & accessors \\\\ [0.5ex]")
+    #         print("\\hline\\hline")
+    #         print("alloc & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 0))
+    #         print("\\hline")
+    #         print("copy & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 1))
+    #         print("\\hline")
+    #         print("ker\\textsubscript{1} & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 2))
+    #         print("\\hline")
+    #         print("ker\\textsubscript{2} & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 3))
+    #         print("\\hline")
+    #         print("dealloc & " + draw_tab_item_vert4(y_median_device, y_median_shared_explicit, y_median_host_explicit, y_median_acc, 4))
 
     print("\\hline")
     print("\\end{tabular}")
@@ -413,6 +461,7 @@ def draw_violin_plot(name, color, y_list, y_median, linestyle):
     for pc in bp_['bodies']:
         pc.set_facecolor(c)
         pc.set_edgecolor(c) # #D43F3A black
+        pc.set_linewidth(line_width)
         pc.set_alpha(1)
 
 def draw_boxplot(name, color, y_list, y_median, linestyle):
@@ -427,7 +476,7 @@ def draw_boxplot(name, color, y_list, y_median, linestyle):
 
 def draw_curve(name, color, y_list, y_median, linestyle):
     draw_violin_plot(name, color, y_list, y_median, linestyle)
-    plt.plot([1, 2, 3, 4, 5], y_median, color=color, label=name, linestyle=linestyle)
+    plt.plot([1, 2, 3, 4, 5], y_median, color=color, label=name, linestyle=linestyle, linewidth=line_width)
 
 
 # TODO : virer les valeurs trop aberrantes
@@ -436,12 +485,14 @@ def draw_curve(name, color, y_list, y_median, linestyle):
 plt.rcParams['grid.linestyle'] = "-"
 plt.rcParams['grid.alpha'] = 0.15
 plt.rcParams['grid.color'] = "black" ##cccccc
-plt.grid()
+plt.grid(linewidth=line_width/2)
 
 if acces_direct:
     draw_curve("USM shared copy", "blue", y_list_shared_explicit, y_median_shared_explicit, "dotted")
     draw_curve("USM shared direct", "maroon", y_list_shared_direct, y_median_shared_direct, "solid")
-    plt.ylabel('Elapsed time ms')
+    #draw_curve("USM host direct", "red", y_list_host_direct, y_median_host_direct, "dashed")
+    #draw_curve("USM host copy", "green", y_list_host_explicit, y_median_host_explicit, "dashdot")
+    plt.ylabel('Elapsed time (ms)')
     #plt.ylim([-5, 100])
     plt.legend()
     plt.xticks([1, 2, 3, 4, 5], x_list_device) # = x_list_shared et x_list_acc
@@ -452,7 +503,7 @@ else:
     draw_curve("USM host", "red", y_list_host_explicit, y_median_host_explicit, "dashed")
     draw_curve("accessors", "maroon", y_list_acc, y_median_acc, "dashdot")
 
-    plt.ylabel('Elapsed time ms')
+    plt.ylabel('Elapsed time (ms)')
     #plt.ylim([-5, 100])
     plt.legend()
     plt.xticks([1, 2, 3, 4, 5], x_list_device) # = x_list_shared et x_list_acc
@@ -460,13 +511,11 @@ else:
     #plt.title("SparseCCL - flat arrays")
 
 
-
-
-
 draw_tab()
 
+plt.savefig(output_image_name, format='png') #, dpi=my_dpi)
 
-plt.show()
+# plt.show()
 
 # print("y_median_device len = " + str(len(y_median_device)) + "  en x : " + str(len([1, 2, 3, 4, 5])))
 

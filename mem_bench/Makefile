@@ -1,4 +1,4 @@
-CXX = syclcc
+CXX = dpcpp
 #dpcpp
 CXXFLAGS = -O2 -std=c++17 -Wall # -O0 -g     -O2 -std=c++17
 

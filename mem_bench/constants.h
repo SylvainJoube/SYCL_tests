@@ -9,7 +9,7 @@
 #include <array>
 #include <sys/time.h>
 #include <stdlib.h>
-#include "intel_noinit_fix.h"
+// #include "intel_noinit_fix.h"
 
 const int ACAT_START_TEST_INDEX  = 1;
 const int ACAT_STOP_TEST_INDEX   = 2;

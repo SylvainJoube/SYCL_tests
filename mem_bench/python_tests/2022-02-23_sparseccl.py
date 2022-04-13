@@ -14,12 +14,47 @@ import statistics as stat
 FLAT_ONLY = True
 tableau_horizontal = True # vertical pas encore géré
 
+VERSION_ATTENDUE = 107
+
 # TODO affichage de la figure 4 et 3
 # Il faut charger deux fichiers, un flatten et l'autre graphPtr.
 # Tout charger dans une même liste (header_list) avec un flag pour indiquer
 # s'il s'agit d'un graphe de pointeur ou d'une structure aplatie.
 # flag IS_FLATTEN qui indique si c'est flatten ou graphe de ptr
 
+
+# ============= Gestion de la taille
+my_dpi = 96
+output_image_name = "le nom de ma belle image"
+output_image_name_ver = "5-4_brouillon" # 3_dl
+
+image_width = 1280
+image_height = 1
+image_scale_factor = image_width / 640
+line_width = image_scale_factor * 1.5
+
+if FLAT_ONLY:
+    image_height = (image_width / 640) * 160 #198
+    plt.figure(figsize=(image_width/my_dpi, image_height/my_dpi) , dpi=my_dpi)
+    output_image_name = "sparseccl_onlyFlat" + output_image_name_ver + ".png"
+else:
+    image_height = (image_width / 640) * 258 # 273
+    plt.figure(figsize=(image_width/my_dpi, image_height/my_dpi), dpi=my_dpi)
+    output_image_name = "sparseccl_ptrAndFlat" + output_image_name_ver + ".png"
+
+MY_SIZE = (10 * image_scale_factor)
+TITLE_SIZE = (12 * image_scale_factor)
+
+#plt.rc('font', size=MY_SIZE)          # controls default text sizes
+plt.rc('axes', titlesize=TITLE_SIZE)     # fontsize of the axes title
+plt.rc('axes', labelsize=MY_SIZE)     # fontsize of the x and y labels
+plt.rc('xtick', labelsize=MY_SIZE)    # fontsize of the tick labels
+plt.rc('ytick', labelsize=MY_SIZE)    # fontsize of the tick labels
+plt.rc('legend', fontsize=MY_SIZE)    # legend fontsize
+#plt.rc('figure', titlesize=MY_SIZE)   # fontsize of the figure title
+# plt.rcParams.update({'font.size': MY_SIZE})
+
+# fin gestion de la taille =============
 
 # Lecture du fichier d'entrée
 # filepath = 'acts06_generalFlatten_sandor_AT_ld100_RUN1.t'
@@ -39,10 +74,27 @@ def usm_code_to_str(usm_code):
 # Tous les headers : a chaque header est associé une série de paramètres
 header_list = []
 
-def load_file(filepath, isFlatten, multiplyFactor):
-    with open(filepath) as fp:
-        version = fp.readline() # version du fichier actuel (doit être 105)
+import sys
+
+global_kernel_count = 0
+
+global_kernel_retain = 2
+
+def load_file(filename, isFlatten, multiplyFactor):
+    global global_kernel_count
+    global global_kernel_retain
+    global VERSION_ATTENDUE
+
+    absolute_filepath = "/home/data_sync/academique/These/SYCL_tests/mem_bench/output_bench/" + filename
+
+    with open(absolute_filepath) as fp:
+        version = fp.readline() # version du fichier actuel (doit être 106 et non plus 105)
         print("Version du fichier : {}".format(version))
+
+        if (int(version) != VERSION_ATTENDUE):
+            #print("ERREUR, VERSION DU FICHIER NON COMPATIBLE : " + str(int(version)) + ".  VERSION ATTENDUE = 106")
+            sys.exit("ERREUR, VERSION DU FICHIER NON COMPATIBLE : " + str(int(version)) + ".  VERSION ATTENDUE = " + str(VERSION_ATTENDUE))
+
         print("isFlatten = " + str(isFlatten))
 
         header_line = fp.readline()
@@ -78,17 +130,38 @@ def load_file(filepath, isFlatten, multiplyFactor):
 
             #print(header)
 
+            # print(" _____ REPEAT_COUNT_REALLOC = " + header["REPEAT_COUNT_REALLOC"])
+
             for i in range(int(header["REPEAT_COUNT_REALLOC"])):
                 iter_line = fp.readline()
                 iter_list = iter_line.split(" ")
                 iter_list.remove("\n")
                 iteration = {}
-                iteration["t_alloc_only"]  = int(iter_list[0]) * multiplyFactor
-                iteration["t_fill_only"]   = int(iter_list[3]) * multiplyFactor
-                iteration["t_alloc_fill"]  = int(iter_list[8]) * multiplyFactor
-                iteration["t_copy_kernel"] = int(iter_list[9]) * multiplyFactor
-                iteration["t_read"]        = int(iter_list[10]) * multiplyFactor
-                iteration["t_free_mem"]    = int(iter_list[11]) * multiplyFactor
+                iteration["t_alloc_native"]  = int(iter_list[0]) * multiplyFactor
+                iteration["t_alloc_sycl"]  = int(iter_list[1]) * multiplyFactor
+                iteration["t_fill"]  = int(iter_list[2]) * multiplyFactor
+                iteration["t_copy"]  = int(iter_list[3]) * multiplyFactor
+                iteration["t_read"]  = int(iter_list[4]) * multiplyFactor
+                iteration["t_dealloc_sycl"]  = int(iter_list[5]) * multiplyFactor
+                iteration["t_dealloc_native"]  = int(iter_list[6]) * multiplyFactor
+                iteration["kernel_count"]  = int(iter_list[7])
+
+                
+                iteration["t_kernel"] = [] # liste de valeurs temps kernel
+                global_kernel_count = int(iteration["kernel_count"])
+                # print(" _____ kernel_count = " + iter_list[7])
+                # print(" _____ global_kernel_count = " + str(global_kernel_count))
+                for ik in range(global_kernel_retain):
+                    v = int(iter_list[8 + ik]) * multiplyFactor
+                    #if (ik <= 1):
+                    iteration["t_kernel"].append(v)
+
+                # iteration["t_alloc_only"]  = int(iter_list[0]) * multiplyFactor
+                # iteration["t_fill_only"]   = int(iter_list[3]) * multiplyFactor
+                # iteration["t_alloc_fill"]  = int(iter_list[8]) * multiplyFactor
+                # iteration["t_copy_kernel"] = int(iter_list[9]) * multiplyFactor
+                # iteration["t_read"]        = int(iter_list[10]) * multiplyFactor
+                # iteration["t_free_mem"]    = int(iter_list[11]) * multiplyFactor
                 #iteration["t_flatten_alloc"] = iter_list[12] osef, c'est la même chose que t_alloc_only
                 #iteration["t_flatten_fill"] = iter_list[13]
                 header["iterations"].append(iteration)
@@ -97,23 +170,32 @@ def load_file(filepath, isFlatten, multiplyFactor):
                 #print(iteration)
 
             header_list.append(header)
+            # print(" __ end header ___ global_kernel_count = " + str(global_kernel_count))
         
             # Lecture de la prochaine ligne
             header_line = fp.readline()
         # while line fermé
     # with file fermé
+    # print(" ________ FNALLY :  global_kernel_count = " + str(global_kernel_count))
 
 #print("header_list:")
 #print(header_list)
 
 # Chargement des résultats en flatten
 # load_file('acts06_generalFlatten_blopNvidia_AT_ld100_RUN1.t', True)
-load_file('acts06_generalFlatten_sandor_AT_ld100_RUN1.t', True, 1)
+#load_file('sandor_2022-02-09/acts06_generalFlatten_sandor_AT_ld100_RUN5_malloc_device_fix.t', True, 1)
+#load_file('sandor_2022-02-09/acts06_generalFlatten_sandor_AT_ld100_RUN2.t', True, 1)
+load_file('sccl107_generalFlatten_sandor_AT_ld100_RUN1.t', True, 1)
+load_file('sccl107_generalGraphPtr_uniqueModules_sandor_AT_ld10_RUN1.t', False, 1)
 #load_file('acts06_generalFlatten_sandor_AT_ld100_RUN1_2021-11-24.t', True, 1)
+
+print(" ________ AFTER LOAD :  global_kernel_count = " + str(global_kernel_count))
+
+global_drawn_x_variables_number = 6 + global_kernel_retain
 
 # Chargement des résultats en graphe de pointeurs
 # load_file('acts06_generalGraphPtr_uniqueModules_blopNvidia_AT_ld10_RUN1.t', False)
-load_file('acts06_generalGraphPtr_uniqueModules_sandor_AT_ld10_RUN1.t', False, 10)
+#   load_file('acts06_generalGraphPtr_uniqueModules_sandor_AT_ld100_RUN1.t', False, 1)
 
 
 ## ============ DESSIN ============
@@ -143,11 +225,24 @@ x_list_device = []
 y_list_device = []
 y_median_device = []
 
+x_list_glibc_flat = []
+y_list_glibc_flat = []
+y_median_glibc_flat = []
+
+x_list_glibc_ptr = []
+y_list_glibc_ptr = []
+y_median_glibc_ptr = []
+
 x_list_acc = []
 y_list_acc = []
 y_median_acc = []
 
 divide_by = 1000 # div par 100 seulement pour "simuler" + de données
+
+def nz(value):
+    # if (value < 0):
+    #     return 0
+    return value
 
 # 0 shared, 1 device, 2 host, 3 accessors, 20 glibc
 # Préparation des données : sélection du run 5 uniquement
@@ -184,6 +279,13 @@ for header in header_list:
             y_list = y_list_acc
             y_median = y_median_acc
             found = True
+
+        # glibc flatten
+        if header["sycl_mode"] == 20:
+            x_list = x_list_glibc_flat
+            y_list = y_list_glibc_flat
+            y_median = y_median_glibc_flat
+            found = True
         
         # osef glibc (20)
         
@@ -203,34 +305,69 @@ for header in header_list:
             y_median = y_median_host_ptr
             found = True
         
+        # glibc graph ptr
+        if header["sycl_mode"] == 20:
+            x_list = x_list_glibc_ptr
+            y_list = y_list_glibc_ptr
+            y_median = y_median_glibc_ptr
+            found = True
         # osef glibc (20)
         
     
     # N'est trouvé qu'une seule fois (un seul header correspond)
     if found:
-        x_list.append("SYCL alloc")
-        x_list.append("fill SYCL mem")
-        x_list.append("GPU kernel")
-        x_list.append("free SYCL mem")
 
-        y_list.append([]) # t_alloc_only
-        y_list.append([]) # t_fill_only
-        y_list.append([]) # t_copy_kernel
-        y_list.append([]) # t_free_mem
+        x_list.append("native-a")
+        x_list.append("sycl-a")
+        x_list.append("fill")
+        x_list.append("copy")
+        for ik in range(global_kernel_retain):
+            x_list.append("ker" + str(ik + 1))
+        x_list.append("sycl-d")
+        x_list.append("native-d")
+
+        for ips in range(len(x_list)):
+            y_list.append([])
         
+
         icount = 0
         for iteration in header["iterations"]:
-            y_list[0].append(iteration["t_alloc_only"]  / divide_by)
-            y_list[1].append(iteration["t_fill_only"]   / divide_by)
-            y_list[2].append(iteration["t_copy_kernel"] / divide_by)
-            y_list[3].append(iteration["t_free_mem"]    / divide_by)
+            
+            y_list[0].append(nz(iteration["t_alloc_native"])  / divide_by)
+            y_list[1].append(nz(iteration["t_alloc_sycl"])    / divide_by)
+            y_list[2].append(nz(iteration["t_fill"])          / divide_by)
+            y_list[3].append(nz(iteration["t_copy"])          / divide_by)
+            # read osef
+            # CONTINUER D'ICI
+
+            ker_list = iteration["t_kernel"]
+            
+            # normalement len(ker_list) == global_kernel_retain
+            if (len(ker_list) != global_kernel_retain):
+                sys.exit("--- ERREUR, len(ker_list)(" + str(len(ker_list)) + ") != global_kernel_retain(" + str(global_kernel_retain) + ")")
+
+            # Ajout des temps de kernel
+            for ik in range(global_kernel_retain):
+                y_list[4 + ik].append(nz(ker_list[ik]          / divide_by))
+                #y_list[4 + ik].append(nz(iteration["ker" + str(ik)]    / divide_by))
+
+            ik = 4 + global_kernel_retain
+            y_list[ik].append(nz(iteration["t_dealloc_sycl"])       / divide_by)
+            y_list[ik + 1].append(nz(iteration["t_dealloc_native"])     / divide_by)
+
+            # y_list[0].append(iteration["t_alloc_only"]  / divide_by)
+            # y_list[1].append(iteration["t_fill_only"]   / divide_by)
+            # y_list[2].append(iteration["t_copy_kernel"] / divide_by)
+            # y_list[3].append(iteration["t_free_mem"]    / divide_by)
             icount += 1
         
         # Calcul des médianes de chaque courbe
-        y_median.append(stat.median(y_list[0]))
-        y_median.append(stat.median(y_list[1]))
-        y_median.append(stat.median(y_list[2]))
-        y_median.append(stat.median(y_list[3]))
+        for ii in range(len(x_list)):
+            y_median.append(stat.median(y_list[ii]))
+
+        # y_median.append(stat.median(y_list[1]))
+        # y_median.append(stat.median(y_list[2]))
+        # y_median.append(stat.median(y_list[3]))
 
 
 def draw_violin_plot(name, color, y_list, y_median, linestyle):
@@ -253,12 +390,12 @@ def draw_boxplot(name, color, y_list, y_median, linestyle):
 
 def draw_curve(name, color, y_list, y_median, linestyle):
     draw_violin_plot(name, color, y_list, y_median, linestyle)
-    plt.plot([1, 2, 3, 4], y_median, color=color, label=name, linestyle=linestyle)
+    plt.plot(range(1, global_drawn_x_variables_number+1), y_median, color=color, label=name, linestyle=linestyle, linewidth=line_width)
 
 plt.rcParams['grid.linestyle'] = "-"
 plt.rcParams['grid.alpha'] = 0.15
 plt.rcParams['grid.color'] = "black" ##cccccc
-plt.grid()
+plt.grid(linewidth=line_width/2)
 
 
 if FLAT_ONLY:
@@ -271,6 +408,13 @@ else:
     plt.title("SparseCCL - pointer graph vs flat arrays")
     #draw_curve("USM device", "green", y_list_device, y_median_device, "solid")
     draw_curve("shared flat", "blue", y_list_shared_flat, y_median_shared_flat, "solid")
+    print("len y_list_shared_flat = " + str(len(y_list_shared_flat)))
+    print("len y_median_shared_flat = " + str(len(y_median_shared_flat)))
+    print("len y_list_shared_ptr = " + str(len(y_list_shared_ptr)))
+    print("len y_median_shared_ptr = " + str(len(y_median_shared_ptr)))
+
+    print("len y_list_host_ptr = " + str(len(y_list_host_ptr)))
+    print("len y_median_host_ptr = " + str(len(y_median_host_ptr)))
     draw_curve("shared ptr", "navy", y_list_shared_ptr, y_median_shared_ptr, "dashdot")
     #draw_curve("host flat", "red", y_list_host_flat, y_median_host_flat, "solid")
     draw_curve("host ptr", "maroon", y_list_host_ptr, y_median_host_ptr, "dashdot")
@@ -282,6 +426,8 @@ else:
 
 
 def array_value_to_str(val):
+    if (val < 0):
+        return "-"
     if (val < 0.01):
         return str(round(val * 1000)/1000)
     elif (val < 0.1):
@@ -291,14 +437,40 @@ def array_value_to_str(val):
     else:
         return str(round(val))
 
-def draw_tab_item(y_median_g):
-    st = ""
-    for im in range(4): # de 0 à 3 compris
+# Ancienne version
+# def draw_tab_item(y_median_g):
+#     st = ""
+#     su = 0
+#     for im in range(4): # de 0 à 3 compris
+#         st = st + array_value_to_str(y_median_g[im])
+#         su += round(y_median_g[im])
+#         if (im != 3):
+#             st = st + " & "
+#         else:
+#             st = st + " & " + array_value_to_str(su) + " \\\\"
+#     return st
+
+def draw_tab_item(cname, y_median_g):
+    st = cname + " & "
+    ssum = 0
+    # Les premiers champs + 2 kernels
+    for im in range(global_drawn_x_variables_number): # de 0 à 5 compris
+        ssum += round(y_median_g[im])
         st = st + array_value_to_str(y_median_g[im])
-        if (im != 3):
+        if (im != global_drawn_x_variables_number-1):
             st = st + " & "
-        else:
-            st = st + " \\\\"
+    # skip de 6 et 7, deux kernels
+    # dealloc sycl + dealloc host
+    # for im in range(8, 10): # de 8 à 9 compris
+    #     ssum += round(y_median_g[im])
+    #     st = st + array_value_to_str(y_median_g[im])
+    #     if (im != global_drawn_x_variables_number-1):
+    #         st = st + " & "
+
+        #else: # affichage du total et fin de ligne
+    
+    sum_str = array_value_to_str(ssum)
+    st = st + " & " + sum_str + " & " + cname + " \\\\"
     return st
 
 def draw_tab_item_vert(y_median_a, y_median_b, index):
@@ -319,25 +491,37 @@ def draw_tab_item_vert3(y_median_a, y_median_b, y_median_c, index):
 def draw_tab():
     print("\\begin{center}")
     if tableau_horizontal:
-        print("\\begin{tabular}{||c c c c c||} ")
+        print("\\begin{tabular}{||c c c c c c c c c c c||} ")
         print("\\hline")
         # tableau flat seulement
         if (FLAT_ONLY):
-            print("& alloc & fill & kernel & free \\\\ [0.5ex]")
+            print("& native-a & sycl-a & fill & copy & ker\\textsubscript{1} & ker\\textsubscript{2} & sycl-d & native-d & total & \\\\ [0.5ex]")
             print("\\hline\\hline")
-            print("device & " + draw_tab_item(y_median_device))
+            print(draw_tab_item("device", y_median_device))
             print("\\hline")
-            print("shared & " + draw_tab_item(y_median_shared_flat))
+            print(draw_tab_item("shared", y_median_shared_flat))
             # print("\\hline")
-            # print("host & " + draw_tab_item(y_median_host_flat))
+            # print(draw_tab_item("host", y_median_host_flat))
             print("\\hline")
-            print("accessors & " + draw_tab_item(y_median_acc))
+            print(draw_tab_item("accessors", y_median_acc))
         else: # tableau flat vs graphe ptr
-            print("& alloc & fill & kernel & free \\\\ [0.5ex]")
+            print("& alloc & fill & kernel & dealloc & total & \\\\ [0.5ex]")
             print("\\hline\\hline")
-            print("shared flat & " + draw_tab_item(y_median_shared_flat))
+            # Bien penser à vérifier que les valeurs sont les mêmes partout dans la publi
+            print(draw_tab_item("shared flat", y_median_shared_flat))
             print("\\hline")
-            print("shared ptr & " + draw_tab_item(y_median_shared_ptr))
+            print(draw_tab_item("shared ptr", y_median_shared_ptr))
+            print("\\hline")
+            print("TODO : mettre host flat ici")
+            print("\\hline")
+            # Host flat à remplacer par la valeur déjà dans le papier
+            #print(draw_tab_item("host flat", y_median_host_flat))
+            #print("\\hline")
+            print(draw_tab_item("host ptr", y_median_host_ptr))
+            print("\\hline")
+            print(draw_tab_item("cpu flat", y_median_glibc_flat))
+            print("\\hline")
+            print(draw_tab_item("cpu ptr", y_median_glibc_ptr))
 
             # nothing yet
     #else:
@@ -398,11 +582,19 @@ def draw_tab():
 # Faire l'affichage du tableau de valeurs (x100) et voir ce que ça donne
 # par rapport aux précédentes valeurs 
 
+# if FLAT_ONLY:
+#     plt.figure(figsize=(800/my_dpi, 800/my_dpi), dpi=my_dpi)
+# else:
+#     plt.figure(figsize=(800/my_dpi, 800/my_dpi), dpi=my_dpi)
+
 draw_tab()
 
-plt.ylabel('Elapsed time ms')
+plt.ylabel('Elapsed time (ms)')
 #plt.ylim([-5, 100])
 plt.legend()
-plt.xticks([1, 2, 3, 4], x_list_device) # = x_list_shared et x_list_acc
+plt.xticks(range(1, global_drawn_x_variables_number+1), x_list_device) # = x_list_shared et x_list_acc
+
+plt.savefig(output_image_name, format='png') #, dpi=my_dpi)
+
 plt.show()
 print ("Hello World!")
