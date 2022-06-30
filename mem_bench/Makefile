@@ -1,6 +1,6 @@
-CXX = syclcc
+CXX = dpcpp
 #dpcpp
-CXXFLAGS = -O2 -std=c++17 # -O0 -g     -O2 -std=c++17
+CXXFLAGS = -O2 -std=c++17 -Wall # -O0 -g     -O2 -std=c++17
 
 FILE_NAME = bench
 #memory_benchmark_file_output_cmp_all
@@ -30,19 +30,32 @@ traccc_sparse: build run_traccc_sparse
 #	$(CXX) $(CXXFLAGS) -o bin/memory_benchmark memory_benchmark.cpp
 
 mem: build run_mem
+mem2: build run_mem2
 
 traccc : build run_traccc
+
+traccc_acat : build run_traccc_acat
+
+# ACAT nouvelle version : make build && \
+# ./bin/bench traccc_acat start_test_index stop_test_index run_count ld_repeat
+# Example : ./bin/bench traccc_acat 2 2 1 1000
 
 helloworld: build run_helloworld
 
 run_mem:
 	./$(RUN_EXE_NAME) mem
+run_mem2:
+	./$(RUN_EXE_NAME) mem2
 
 run_helloworld:
 	./$(RUN_EXE_NAME) helloworld
 
 run_traccc:
 	./$(RUN_EXE_NAME) traccc
+
+run_traccc_acat:
+	./$(RUN_EXE_NAME) traccc_acat
+
 run_traccc_sparse:
 	./$(RUN_EXE_NAME) traccc sparse
 
@@ -51,6 +64,12 @@ run_profile_alloc:
 
 build:
 	$(CXX) $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
+
+syclcc:
+	syclcc $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
+
+dpcpp:
+	dpcpp $(CXXFLAGS) -o bin/$(FILE_NAME) $(FILE_NAME).cpp
 
 run: 
 	./$(RUN_EXE_NAME)

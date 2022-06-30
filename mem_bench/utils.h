@@ -81,6 +81,13 @@ public :
 
 };
 
+std::string padTo(std::string str, const size_t num, const char paddingChar = ' ') {
+    std::string res = str;
+    if(num > res.size())
+        res.insert(0, num - str.size(), paddingChar);
+    return res;
+}
+
 /*uint64_t get_ms() {
     auto tm = std::chrono::steady_clock::now();
     std::chrono::duration<double> s = tm - tm;
@@ -159,6 +166,43 @@ struct gpu_timer {
     uint64_t t_parallel_for = 0;
     uint64_t t_read_from_device = 0;
     uint64_t t_free_gpu = 0;
+};
+
+class timerv2 {
+private:
+    static const size_t max_steps_ = 10;
+public:
+    timerv2(std::string name) {
+        for (size_t i = 0; i < max_steps_; ++i) {
+            step_time[i] = 0;
+        }
+        this->name = name;
+    }
+    size_t step_time[max_steps_];
+    std::string name;
+
+    void print() {
+        logs(padTo(name, 12) + " : ");
+        for (size_t i = 1; i < 6; ++i) {
+            logs(padTo(std::to_string(step_time[i]), 12) + " | ");
+        }
+        log("");
+    }
+
+    // Etape 1 : allocation de la mémoire SYCL / stdlib.
+    // Etape 2 : copie (explicite) de la mémoire host vers la mémoire de l'étape 1.
+    // Etape 3 : sommes partielles device / CPU
+    // Etape 4 : copie (explicite) vers la mémoire stdlib host
+    // Etape 5 : libération de la mémoire de l'étape 1
+    void print_header() {
+        logs(padTo("noms", 12) + " : ");
+        logs(padTo("Allocation", 12) + " | ");
+        logs(padTo("Copie ->", 12) + " | ");
+        logs(padTo("Calcul", 12) + " | ");
+        logs(padTo("Copie <-", 12) + " | ");
+        logs(padTo("Free mem", 12) + " | ");
+        log("");
+    }
 };
 
 const bool SHOW_TIME_STATS = false;
@@ -284,7 +328,12 @@ void init_progress() {
 }
 
 void print_total_progress() {
-    const int total_iteration_count_per_seq = DATASET_NUMBER * (REPEAT_COUNT_REALLOC + REPEAT_COUNT_ONLY_PARALLEL);
+    const int total_iteration_count_per_seq = DATASET_NUMBER * (REPEAT_COUNT_REALLOC + REPEAT_COUNT_ONLY_PARALLEL
+    + ( (REPEAT_COUNT_ONLY_PARALLEL == 0) ? 0 : REPEAT_COUNT_ONLY_PARALLEL_WARMUP_COUNT) );
+
+    /*logs( "total_iteration_count_per_seq(" + std::to_string(total_iteration_count_per_seq) + ")"
+    + " " +  );*/
+    // dataset number * (number of iterations total, with warmup time if applicable)
     int total_iteration_count = total_iteration_count_per_seq * total_main_seq_runs;
     int progress = 100 * double(current_iteration_count) / double(total_iteration_count);
     logs( std::to_string(progress) + "% ");
@@ -533,3 +582,4 @@ inline bool file_exists_test0 (const std::string& name) {
     std::ifstream f(name.c_str());
     return f.good();
 }
+

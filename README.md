@@ -20,7 +20,7 @@ ssh 192.168.1.170
 syncthing
 ```
 
-Puis depuis un navigateur sur le réseau, 192.168.0.169:33112 compte sylbe pass coucou64.
+-> auth syncthing dans passwordz.md
 
 Définir les variables d'environnement nécessaires à la compilation via syclcc :
 ```

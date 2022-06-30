@@ -9,6 +9,12 @@
 #include <array>
 #include <sys/time.h>
 #include <stdlib.h>
+// #include "intel_noinit_fix.h"
+
+const int ACAT_START_TEST_INDEX  = 1;
+const int ACAT_STOP_TEST_INDEX   = 2;
+const int ACAT_RUN_COUNT         = 1;
+const int ACAT_REPEAT_LOAD_COUNT = 100;
 
 #define DATA_TYPE unsigned int // TODO : try with unsigned int
 using data_type = DATA_TYPE;
@@ -28,6 +34,22 @@ constexpr int USE_NAMED_KERNEL = 1; // Sandor does not support anonymous kernels
 constexpr bool KEEP_SAME_DATASETS = true; 
 int USE_HOST_SYCL_BUFFER_DMA = 0; 
 
+#define DATA_VERSION 7
+#define DATA_VERSION_TRACCC 108 // 105
+
+// number of diffrent datasets
+#define DATASET_NUMBER 1
+
+#define CHECK_SIMD_CPU false
+
+
+#define INPUT_DATA_LENGTH PARALLEL_FOR_SIZE * VECTOR_SIZE_PER_ITERATION
+#define OUTPUT_DATA_LENGTH PARALLEL_FOR_SIZE
+
+
+#define INPUT_DATA_SIZE INPUT_DATA_LENGTH * sizeof(DATA_TYPE)
+#define OUTPUT_DATA_SIZE OUTPUT_DATA_LENGTH * sizeof(DATA_TYPE)
+
 // faire un repeat sur les mêmes données pour essayer d'utiliser le cache
 // hypothèse : les données sont évincées du cache avant de pouvoir y avoir accès
 // observation : j'ai l'impression d'être un peu en train de me perdre dans les explorations,
@@ -43,9 +65,13 @@ int USE_HOST_SYCL_BUFFER_DMA = 0;
 // SEE main on bench.cpp
 
 
+
 // number of iterations - no realloc to make it go faster
 int REPEAT_COUNT_REALLOC;// défini dans le main (3)
 int REPEAT_COUNT_ONLY_PARALLEL; // défini dans le main (0)
+// Warmup count : nombre d'itérations non comptabilisées pour ne pas mesurer
+// les évènements réalisés en lazy.
+int REPEAT_COUNT_ONLY_PARALLEL_WARMUP_COUNT = 0; // 4 défini dans le main (0)
 
 bool FORCE_EXECUTION_ON_NAMED_DEVICE = true;
 std::string MUST_RUN_ON_DEVICE_NAME = "Intel(R) UHD Graphics 620 [0x5917]"; //std::string("s");
@@ -79,8 +105,8 @@ std::string DEVICE_NAME_ON_BLOP_INTEL  = "???";
 std::string DEVICE_NAME_ON_BLOP_NVIDIA = "NVIDIA GeForce GTX 780";
 
 //std::string BENCHMARK_VERSION = "v06D";
-std::string BENCHMARK_VERSION = "v08"; // Sandor compatible  v05
-std::string BENCHMARK_VERSION_TRACCC = "acts06";
+std::string BENCHMARK_VERSION = "ubench" + std::to_string(DATA_VERSION); // Sandor compatible  v05
+std::string BENCHMARK_VERSION_TRACCC = "sccl" + std::to_string(DATA_VERSION_TRACCC);
 std::string DISPLAY_VERSION = BENCHMARK_VERSION_TRACCC + " - TRACCC-015";
 
 // Not used anymore
@@ -90,11 +116,11 @@ std::string DISPLAY_VERSION = BENCHMARK_VERSION_TRACCC + " - TRACCC-015";
 unsigned int base_traccc_repeat_load_count = 1; // actualisé dans utils.h : selector_list_devices
 unsigned int traccc_repeat_load_count = 1;
 const unsigned int traccc_repeat_load_count_ON_MSI_INTEL = 1;
-const unsigned int traccc_repeat_load_count_ON_MSI_NVIDIA = 10;
-const unsigned int traccc_repeat_load_count_ON_SANDOR = 10;
+const unsigned int traccc_repeat_load_count_ON_MSI_NVIDIA = 100;
+const unsigned int traccc_repeat_load_count_ON_SANDOR = 100;
 const unsigned int traccc_repeat_load_count_ON_THINKPAD = 1;
 const unsigned int traccc_repeat_load_count_ON_BLOP_INTEL = 1;
-const unsigned int traccc_repeat_load_count_ON_BLOP_NVIDIA = 1;
+const unsigned int traccc_repeat_load_count_ON_BLOP_NVIDIA = 100;
 
 int traccc_SPARSITY_MIN = 0;
 int traccc_SPARSITY_MAX = 100000;
@@ -146,21 +172,7 @@ std::string ver_indicator = std::string("13d");
 std::string ver_prefix = OUTPUT_FILE_NAME + std::string(" - " + ver_indicator); // "X42"
 
 
-#define DATA_VERSION 7
-#define DATA_VERSION_TRACCC 105
 
-// number of diffrent datasets
-#define DATASET_NUMBER 1
-
-#define CHECK_SIMD_CPU false
-
-
-#define INPUT_DATA_LENGTH PARALLEL_FOR_SIZE * VECTOR_SIZE_PER_ITERATION
-#define OUTPUT_DATA_LENGTH PARALLEL_FOR_SIZE
-
-
-#define INPUT_DATA_SIZE INPUT_DATA_LENGTH * sizeof(DATA_TYPE)
-#define OUTPUT_DATA_SIZE OUTPUT_DATA_LENGTH * sizeof(DATA_TYPE)
 
 
 
@@ -217,7 +229,7 @@ void init_computers() {
     c->fullName   = "Sandor";
     c->toFileName = "sandor";
     c->deviceName = "Quadro RTX 5000";
-    c->repeat_load_count = 1;
+    c->repeat_load_count = 100; // TEMP ACAT
     c->total_elements = 1024L * 1024L * 256L * 6L; // 256 milions elements * 4 bytes => 1 GiB ; *6 => 6 GiB
     c->size_str = "6GiB";
     c->L = 128;
@@ -237,8 +249,8 @@ void init_computers() {
     c = &g_computers[ci++];
     c->fullName   = "Blop_Nvidia";
     c->toFileName = "blopNvidia";
-    c->deviceName = "NVIDIA GeForce GTX 780";
-    c->repeat_load_count = 1;
+    c->deviceName = "GeForce GTX 780";//"NVIDIA GeForce GTX 780";
+    c->repeat_load_count = 10; // benchs ACAT
     c->total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
     c->size_str = "512MiB";
     c->L = 128;

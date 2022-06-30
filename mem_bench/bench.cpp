@@ -17,7 +17,9 @@
 #include "utils.h"
 #include "constants.h"
 #include "traccc_fcts.h"
-#include "sycl_helloworld.h"
+//#include "sycl_helloworld.h"
+#include "bench_mems.hpp"
+#include "ubench_v2_fcts.h"
 
 
 
@@ -105,7 +107,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     //sycl_q.memcpy(dataset->data_output, ddata_output_verif, OUTPUT_DATA_SIZE);
     //sycl_q.wait_and_throw();
 
-    data_type sum_simd_check_cpu = 0;
+    //data_type sum_simd_check_cpu = 0;
 
     // Value verification
     data_type total_sum = 0;
@@ -270,8 +272,8 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     cl::sycl::buffer<data_type, 1> *buffer_output = dataset->buffer_output;
 
     //  data_type* ddata_input, data_type* ddata_output,
-    data_type* ddata_input = dataset->device_input;
-    data_type* ddata_output = dataset->device_output;
+    //data_type* ddata_input = dataset->device_input;
+    //data_type* ddata_output = dataset->device_output;
 
     //data_type* ddata_output_verif = static_cast<data_type *> (cl::sycl::malloc_device(OUTPUT_DATA_SIZE, sycl_q));
 
@@ -293,7 +295,7 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
             // Initialisation via le constructeur des accesseurs
             cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
-            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // noinit non supporté par hipsycl visiblement
+            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // no_init non supporté par hipsycl visiblement
             
             h.parallel_for<class MyKernel_aa>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) { //cl::sycl::id<1>
                 int cindex = chunk_index[0];
@@ -320,7 +322,7 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
             // Initialisation via le constructeur des accesseurs
             cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
-            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // noinit non supporté par hipsycl visiblement
+            cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // no_init non supporté par hipsycl visiblement
 
             // cl::sycl::id<1>
             h.parallel_for<class MyKernel_ab>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) {
@@ -347,7 +349,7 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
     (*buffer_output).get_access<cl::sycl::access::mode::read>();
 
-    data_type sum_simd_check_cpu = 0;
+    //data_type sum_simd_check_cpu = 0;
 
     // Value verification
     data_type total_sum = 0;
@@ -428,7 +430,7 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
     default : break; // TODO : add buffers/accessors
     }
 
-    uint64_t t_start, t_start2;
+    //uint64_t t_start, t_start2;
     gpu_timer gtimer;
 
     stime_utils chrono;
@@ -534,26 +536,34 @@ void main_sequence(std::ofstream& write_file, sycl_mode mode) {
             
             host_dataset* dataset = &hdata[ids];
             write_file << dataset->seed << "\n";
+            
+
 
             log("------- DATASET SEED " + std::to_string(dataset->seed) + " -------\n", 2);
             sycl_allocation(sycl_q, dataset, gtimer, mode);
 
-            // Allocation and free on device, for each iteration
-            for (int rpt = 0; rpt < REPEAT_COUNT_ONLY_PARALLEL; ++rpt) {
-                log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(REPEAT_COUNT_ONLY_PARALLEL), 2);
-                
-                sycl_compute(sycl_q, dataset, gtimer, mode);
-                
-                write_file << gtimer.t_parallel_for << " " 
-                            << gtimer.t_read_from_device << " "
-                            << "\n";
+            if (REPEAT_COUNT_ONLY_PARALLEL != 0) {
+                // Allocation and free on device, for each iteration
+                int total_iteration_count = REPEAT_COUNT_ONLY_PARALLEL + REPEAT_COUNT_ONLY_PARALLEL_WARMUP_COUNT;
+                for (int rpt = 0; rpt < total_iteration_count; ++rpt) {
+                    log("Iteration " + std::to_string(rpt+1) + " on " + std::to_string(total_iteration_count), 2);
+                    
+                    sycl_compute(sycl_q, dataset, gtimer, mode);
+                    
+                    // Only write result if not a warmup
+                    if ( rpt >= REPEAT_COUNT_ONLY_PARALLEL_WARMUP_COUNT ) {
+                        write_file << gtimer.t_parallel_for << " " 
+                                    << gtimer.t_read_from_device << " "
+                                    << "\n";
+                    }
 
-                // A new line for each repeat count :
-                // t_allocation t_copy_to_device t_parallel_for t_read_from_device t_free_gpu
-                print_timer_iter(gtimer);
+                    // A new line for each repeat count :
+                    // t_allocation t_copy_to_device t_parallel_for t_read_from_device t_free_gpu
+                    print_timer_iter(gtimer);
 
-                ++current_iteration_count;
-                print_total_progress();
+                    ++current_iteration_count;
+                    print_total_progress();
+                }
             }
             sycl_free(sycl_q, dataset, gtimer, mode);
 
@@ -599,7 +609,7 @@ void bench_smid_modes(std::ofstream& myfile) {
     VECTOR_SIZE_PER_ITERATION = BASE_VECTOR_SIZE_PER_ITERATION;
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
-    int imode;
+    //int imode;
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
@@ -637,9 +647,9 @@ void bench_mem_alloc_modes(std::ofstream& myfile) {
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION; // = 131072
 
     // how many times main_sequence will be run
-    total_main_seq_runs = 2 * 3;
+    total_main_seq_runs = 2 * 4 - 1;
 
-    int imode;
+    //int imode;
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
@@ -682,7 +692,7 @@ void bench_host_copy_buffer(std::ofstream& myfile) {
     // how many times main_sequence will be run
     total_main_seq_runs = 2 * 3;
 
-    int imode;
+    //int imode;
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
@@ -730,7 +740,7 @@ void bench_data_access_time_with_repeat(std::ofstream& myfile) {
     PARALLEL_FOR_SIZE = total_elements / VECTOR_SIZE_PER_ITERATION;
 
 
-    int imode;
+    //int imode;
     //MEMCOPY_IS_SYCL = 1;
     //SIMD_FOR_LOOP = 0;
     //USE_NAMED_KERNEL = 0;
@@ -881,196 +891,9 @@ void bench_choose_L_M(std::ofstream& myfile) {
 
 
 
-class bench_sycl_glibc_mem_speed_run {
-public :
-    uint64_t min_time, max_time;
-    uint64_t count; // number of runs
-    uint64_t total_time;
-    void init() {
-        min_time = 0;
-        max_time = 0;
-        count = 0;
-        total_time = 0;
-    }
-    void add(uint64_t time) {
-        if (count == 0) { // init
-            min_time = time;
-            max_time = time;
-        } else {
-            if (min_time > time) min_time = time;
-            if (max_time < time) max_time = time;
-        }
-        ++count;
-        total_time += time;
-    }
-    void print(std::string name) {
-        uint64_t moy = total_time / count;
-        uint64_t div = 1000;
-        uint64_t tolerate_fact = 140;
-        if (min_time * tolerate_fact / 100 >= max_time) {
-            log("   " + name + "   " + std::to_string(moy / div));
-        } else {
-            log("   " + name + "   " + std::to_string(min_time / div)
-            + " -> " + std::to_string(max_time / div)
-            + " : " + std::to_string(moy / div));
-        }
-    }
-
-};
-
-class bench_sycl_glibc_mem_speed_main {
-
-private :
-    const uint64_t ecount = 1024L * 1024L * 128L * 4L;
-    const std::string size_str = "512MiB";
-    uint run_count = 3;
-
-    const uint64_t size = ecount * sizeof(DATA_TYPE); // 128 milions elements * 4 bytes => 512 MiB
-    custom_device_selector d_selector;
-    uint mem_type_src, mem_type_dest;
-    bench_sycl_glibc_mem_speed_run t_alloc_src, t_alloc_dest, t_fill, t_copy, t_free_src, t_free_dest;
 
 
-public :
-    void init() {
-        
 
-    }
-
-    uint sum(DATA_TYPE* mem) {
-        DATA_TYPE s = 0;
-        for (uint i = 0; i < ecount; ++i) {
-            s += mem[i];
-        }
-        return s;
-    }
-
-    DATA_TYPE* alloc(uint mem_type, cl::sycl::queue sycl_q) {
-        switch (mem_type) {
-        case 1: return new DATA_TYPE[ecount]; // glibc
-        case 2: return static_cast<data_type *> (cl::sycl::malloc_host(INPUT_DATA_SIZE, sycl_q)); // sycl
-        default : return nullptr;
-        }
-    }
-
-    void fill(DATA_TYPE* mem) {
-        for (uint i = 0; i < ecount; ++i) {
-            mem[i] = i;
-        }
-    }
-
-    void freemem(uint mem_type, DATA_TYPE* mem, cl::sycl::queue sycl_q) {
-        switch (mem_type) {
-        case 1: delete[] mem; break; // glibc
-        case 2: cl::sycl::free(mem, sycl_q); break; // sycl
-        default : break;
-        }
-    }
-
-    void init_timers() {
-        t_alloc_src.init();
-        t_fill.init();
-        t_alloc_dest.init();
-        t_copy.init();
-        t_free_src.init();
-        t_free_dest.init();
-    }
-
-    void run(uint mem_type_src, uint mem_type_dest, uint cpy_type, cl::sycl::queue sycl_q) {
-
-        /*log("run src" + std::to_string(mem_type_src) + " - dest" + std::to_string(mem_type_src)
-            + " - ecount" + std::to_string(ecount)
-            + " - size" + std::to_string(size)
-            );*/
-
-        stime_utils chrono;
-        chrono.reset(); //t_start = get_ms();
-
-        DATA_TYPE* mem_src = alloc(mem_type_src, sycl_q);
-        t_alloc_src.add(chrono.reset());
-
-        fill(mem_src);
-        t_fill.add(chrono.reset());
-
-        DATA_TYPE* mem_dest = alloc(mem_type_dest, sycl_q);
-        t_alloc_dest.add(chrono.reset());
-
-        // On a vu que temps de copie SYCL = temps de copie glibc pour host
-        
-        if (cpy_type == 1) memcpy(mem_dest, mem_src, size);
-        if (cpy_type == 2) sycl_q.memcpy(mem_dest, mem_src, size);
-        t_copy.add(chrono.reset());
-
-        logs("    s" + std::to_string(sum(mem_dest)));
-
-        freemem(mem_type_src, mem_src, sycl_q);
-        t_free_src.add(chrono.reset());
-
-        freemem(mem_type_dest, mem_dest, sycl_q);
-        t_free_dest.add(chrono.reset());
-
-
-    }
-
-    void multiple_runs(uint mem_type_src, uint mem_type_dest, uint cpy_type, cl::sycl::queue sycl_q) {
-
-        init_timers();
-
-        for (uint ir = 0; ir < run_count; ++ir) {
-                run(1, 1, 1, sycl_q);
-            }
-            // print result timer(min, max, moy)
-            t_alloc_src .print(" alloc src");
-            t_fill      .print("      fill");
-            t_alloc_dest.print("alloc dest");
-            t_copy      .print("      copy");
-            t_free_src  .print("  free src");
-            t_free_dest .print(" free dest");
-            log("\n");
-    }
-
-    void main() {
-        // 1) Allocation de la mémoire (src) sycl / glibc
-        // 2) Remplissage de la mémoire avec des nombres aléatoires (ou toujours le même nombre)
-        // 3) Allocation de la mémoire (dest) sycl/glibc
-        // 4) Copie de src vers dest
-        // 5) Libération de la mémoire src
-        // 6) Libération de la mémoire dest
-
-        
-        try {
-            
-            cl::sycl::queue sycl_q(d_selector, exception_handler);
-            sycl_q.wait_and_throw();
-
-            logs("glibc -> glibc (copie glibc)");
-            multiple_runs(1, 1, 1, sycl_q);
-
-            logs("sycl -> sycl : (copie glibc)");
-            multiple_runs(2, 2, 1, sycl_q);
-
-            logs("sycl -> sycl : (copie sycl)");
-            multiple_runs(2, 2, 2, sycl_q);
-
-            logs("glibc -> sycl : (copie glibc)");
-            multiple_runs(1, 2, 1, sycl_q);
-
-            logs("glibc -> sycl : (copie sycl)");
-            multiple_runs(1, 2, 2, sycl_q);
-
-            logs("sycl -> glibc : (copie glibc)");
-            multiple_runs(2, 1, 1, sycl_q);
-
-            logs("sycl -> glibc : (copie sycl)");
-            multiple_runs(2, 1, 2, sycl_q);
-
-        } catch (cl::sycl::exception const &e) {
-            std::cout << "An exception has been caught while processing SyCL code.\n";
-            std::terminate();
-        }
-    }
-
-};
 
 
 
@@ -1495,7 +1318,7 @@ int main(int argc, char *argv[])
     //REPEAT_COUNT_REALLOC = 12;
     REPEAT_COUNT_REALLOC = 12;
 
-    REPEAT_COUNT_ONLY_PARALLEL = 0;
+    REPEAT_COUNT_ONLY_PARALLEL = 0;//12;
 
     //total_elements = 1024L * 1024L * 256L;   // 256 milions elements * 4 bytes => 1 GiB
     //std::string size_str = "1GiB";
@@ -1514,6 +1337,35 @@ int main(int argc, char *argv[])
             return 0;
         }
 
+        if (arg.compare("mem2") == 0) {
+            bench_mem_alloc_free b;
+            b.make_default_values();
+            b.main_sequence();
+            return 0;
+        }
+
+        if (arg.compare("mem_test_18GB") == 0) {
+            bench_mem_alloc_free b;
+            b.make_default_values();
+
+            b.INPUT_INT_COUNT = 1024L * 1024L * 1024L * 18L / 4L; // 18 GiB (4L pour la taille d'un uint)
+            b.INPUT_OUTPUT_FACTOR = 1024L;
+            b.refresh_deduced_values();
+            b.main_sequence();
+            return 0;
+        }
+
+        if (arg.compare("mem_test_6GB") == 0) {
+            bench_mem_alloc_free b;
+            b.make_default_values();
+
+            b.INPUT_INT_COUNT = 1024L * 1024L * 1024L * 4L / 4L; // 18 GiB
+            b.INPUT_OUTPUT_FACTOR = 1024L;
+            b.refresh_deduced_values();
+            b.main_sequence();
+            return 0;
+        }
+
         if (arg.compare("helloworld") == 0) {
             sycl_hello_main();
             return 0;
@@ -1529,6 +1381,20 @@ int main(int argc, char *argv[])
             //unsigned int microseconds = 10000000;
             //usleep(microseconds);
             traccc::run_all_traccc_benchs(computerName + "_AT", std::stoi(runCount));
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
+            return 0;
+        }
+
+
+        if (arg.compare("traccc_acat") == 0) {
+            std::string runCount = "1";
+            log("=> Run all -ACAT- TRACCC  tests at once, runCount(" + runCount + ") <=");
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //log("Will now sleep.");
+            //unsigned int microseconds = 10000000;
+            //usleep(microseconds);
+            traccc::run_all_traccc_acat_benchs(computerName + "_AT", std::stoi(runCount));
             //traccc::traccc_bench(sycl_mode::glibc);
             //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
             return 0;
@@ -1576,10 +1442,49 @@ int main(int argc, char *argv[])
     // Run one single test
     if (argc == 3) {
 
+        std::string arg1 = argv[1];
+        std::string arg2 = argv[2]; // en GiB
+
+        if (arg1.compare("mem_test_XGB") == 0) {
+            bench_mem_alloc_free b;
+            b.make_default_values();
+
+            unsigned long long sz = stoll(arg2) * 1024L * 1024L * 1024L / sizeof(int); // car sizeof(int) = 4
+
+            b.INPUT_INT_COUNT = sz; //1024L * 1024L * 1024L * 18L / 4L; // 18 GiB (4L pour la taille d'un uint)
+            b.INPUT_OUTPUT_FACTOR = 1024L;
+            b.refresh_deduced_values();
+            b.main_sequence();
+            return 0;
+        }
+
+        if (arg1.compare("ubench2") == 0) {
+            log("sizeof(unsigned long) = " + std::to_string(sizeof(unsigned long)));
+
+            if ( ! is_number(arg2) ) { log("ERROR, arg2(" + arg2 + ") as argv[2] is not a number."); return 3; }
+            ubench_v2::run_ubench2_tests(computerName, stoi(arg2));
+
+            return 0;
+        }
+
         if (std::string(argv[1]).compare("profile_alloc") == 0) {
             profiling_run_test(g_size_str, computerName + "_AT", std::stoi(argv[2]), 1);
             return 0;
         }
+
+        // TEMP à suppr (acat, 2022-02-09 22h00)
+        // if (std::string(argv[1]).compare("acat_ubench") == 0) {
+
+        //     std::string start_run_count_id = argv[2]; // id de départ
+        //     std::string run_count          = argv[3]; // nombre de runs
+        //     std::string run_count        = argv[4];
+        //     std::string ld_repeat        = argv[5];
+        //     if ( ! is_number(start_test_index) ) { log("ERROR, start_test_index(" + start_test_index + ") as argv[2] is not a number."); return 3; }
+        //     run_single_test_generic(g_size_str, computerName + "_ST", std::stoi(testID), std::stoi(runCount));
+
+        //     profiling_run_test(g_size_str, computerName + "_AT", std::stoi(argv[2]), 1);
+        //     return 0;
+        // }
 
         if (std::string(argv[1]).compare("traccc") == 0) {
             if (std::string(argv[2]).compare("sparse") == 0) {
@@ -1635,11 +1540,77 @@ int main(int argc, char *argv[])
 
         traccc::run_single_test_generic_traccc(computerName + "_AT", std::stoi(testID), std::stoi(runCount));
     }
+
+    if (argc == 7) {
+         if (std::string(argv[1]).compare("traccc_acat") == 0) {
+
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
+            log("Vension bench finale - 2022-02-09 @ 22h35 ------");
+
+            std::string start_test_index  = argv[2];
+            std::string stop_test_index   = argv[3];
+            std::string run_count         = argv[4];
+            std::string ld_repeat         = argv[5];
+            std::string ubench_run_count  = argv[6];
+            if ( ! is_number(start_test_index) ) { log("ERROR, start_test_index(" + start_test_index + ") as argv[2] is not a number."); return 3; }
+            if ( ! is_number(stop_test_index) )  { log("ERROR, stop_test_index(" + stop_test_index + ") as argv[3] is not a number."); return 3; }
+            if ( ! is_number(run_count) )        { log("ERROR, run_count(" + run_count + ") as argv[4] is not a number."); return 3; }
+            if ( ! is_number(ld_repeat) )        { log("ERROR, ld_repeat(" + ld_repeat + ") as argv[5] is not a number."); return 3; }
+            if ( ! is_number(ubench_run_count) ) { log("ERROR, ubench_run_count(" + ubench_run_count + ") as argv[6] is not a number."); return 3; }
+            
+            log("=> Run all -ACAT- TRACCC  tests at once <=");
+            log("start_test_index = " + start_test_index);
+            log("stop_test_index = " + stop_test_index);
+            log("run_count = " + run_count);
+            log("ld_repeat = " + ld_repeat);
+            log("ubench_run_count = " + ubench_run_count);
+
+
+            // uint previous_ld = g_computers[3].repeat_load_count;
+            // s_computer* c = &g_computers[3];
+            for (s_computer & c : g_computers) {
+                uint previous_ld = c.repeat_load_count;
+                c.repeat_load_count = std::stoi(ld_repeat);
+                log("Setting " + c.fullName + " repeat_load_count to " + std::to_string(c.repeat_load_count) + ". Previous value = " + std::to_string(previous_ld));
+            }
+
+            base_traccc_repeat_load_count = std::stoi(ld_repeat);
+            
+            log("=====================================");
+
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //log("Will now sleep.");
+            //unsigned int microseconds = 10000000;
+            //usleep(microseconds);
+            traccc::run_all_traccc_acat_benchs(computerName + "_AT",
+                                               std::stoi(start_test_index),
+                                               std::stoi(stop_test_index),
+                                               std::stoi(run_count));
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
+
+            // Ce n'est plus nécessaire désormais (23 février)
+            int a_runs_count = stoi(ubench_run_count);
+            log("RUN UBENCH tests, run_count = " + std::to_string(a_runs_count));
+
+            for (uint irun = 1; irun <= a_runs_count; ++irun) {
+                run_single_test_generic(g_size_str, computerName + "_ST", 4, irun);
+            }
+            
+
+            return 0;
+        }
+    }
     
     //run_all_test_on_msiNvidia();
     return 0;
 }
 
+// traccc testID runCount 
+// traccc 2 1
 
 // 
 

@@ -20,3 +20,7 @@ mem_bench/output_bench/*
 montrer-05-08-2021/
 
 ancien_travail/
+
+tests_david/oneAPI_example
+
+mem_bench/bench_without_traccc.cpp

@@ -18,7 +18,7 @@ var echelle_log = false;
 /*if (echelle_log) g_graph_title += "(échelle log2)";
 else             g_graph_title += "(échelle linéaire)";*/
 
-var gp;
+var gp, gp_par;
 var graph_list = ds_list_create();
 var colors = ds_list_create();
 
@@ -41,7 +41,7 @@ var merge_cfactor_videoproj = 0;
 ds_list_add(colors, merge_colour(c_green, c_black, 0));  // device copie sycl
 ds_list_add(colors, merge_colour(c_blue, c_black, 0));   // shared  copie sycl
 ds_list_add(colors, merge_colour(c_red, c_black, 0));    // host    copie sycl
-ds_list_add(colors, merge_colour(c_maroon, c_black, 0)); // accessors (copie sycl)
+ds_list_add(colors, merge_colour(c_maroon, c_black, 0.5)); // accessors (copie sycl)
 
 ds_list_add(colors, merge_colour(c_red, c_black, merge_cfactor)); // host (no device)
 ds_list_add(colors, merge_colour(c_blue, c_black, merge_cfactor)); // shared
@@ -131,8 +131,10 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
             }
             
             var gpshort_name = mem_location_to_str_prefix(j.MEMORY_LOCATION) + "" + memcopy_short_name;
+            var gpshort_name_par = "[" + gpshort_name + "]";
             
             var gpname = "" + mem_location_to_str(j.MEMORY_LOCATION) + memcopy_name + " (" + gpshort_name + ")";
+            var gpname_par = "par " + mem_location_to_str(j.MEMORY_LOCATION) + memcopy_name + " (" + gpshort_name_par + ")";
             
             
             // MEMCOPY_IS_SYCL
@@ -142,10 +144,20 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 ++current_color_index;
             }
             
+            gp_par = find_or_create_graph_points_ext(graph_list, gpname_par, gpshort_name_par);
+            if (gp_par.newly_created) {
+                gp_par.color = gp.color;
+                gp_par.hide_label = true;
+            }
+            
             if ( ! must_be_ignored )
             for (var i_iteration = 0; i_iteration < lsize; ++i_iteration) {
                 //if (i_iteration <= 1) continue;
                 var iter = ds_list_find_value(used_iteration_list, i_iteration);
+                var iter_par = -1;
+                if (ds_list_size(ds.iterations_only_parallel) > i_iteration) {
+                    iter_par = ds_list_find_value(ds.iterations_only_parallel, i_iteration);
+                }
                 
                 var gxoffset = 0;
                 //gxoffset = j.MEMORY_LOCATION * 2 + j.MEMCOPY_IS_SYCL * 0.5;
@@ -157,67 +169,75 @@ for (var ij = 0; ij < ds_list_size(ctrl.jobs_fixed_list); ++ij) {
                 }*/
                 
                 
-                //var as_x = j.VECTOR_SIZE_PER_ITERATION;
-                // allocation
-                var as_x = 0 + gxoffset;
-                var as_y = iter.t_allocation;
-                if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
-                var pt = instance_create(0, 0, graph_single_point);
-                pt.xx = as_x;
-                pt.yy = as_y;
-                pt.xlabel = "SYCL alloc"; //split_thousands(j.PARALLEL_FOR_SIZE);
-                pt.ylabel = split_thousands_time(as_y);
-                pt.color = gp.color; // <- debug only
-                ds_list_add(gp.points, pt);
-                
-                // t_copy_to_device
-                var as_x = 10 + gxoffset;
-                var as_y = iter.t_copy_to_device;
-                if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
-                var pt = instance_create(0, 0, graph_single_point);
-                pt.xx = as_x;
-                pt.yy = as_y;
-                pt.xlabel = "copy/access to SYCL";
-                pt.ylabel = split_thousands_time(as_y);
-                pt.color = gp.color; // <- debug only
-                ds_list_add(gp.points, pt);
-                
-                // t_parallel_for
-                var as_x = 20 + gxoffset;
-                var as_y = iter.t_parallel_for;
-                if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
-                var pt = instance_create(0, 0, graph_single_point);
-                pt.xx = as_x;
-                pt.yy = as_y;
-                pt.xlabel = "GPU kernel";
-                pt.ylabel = split_thousands_time(as_y);
-                pt.color = gp.color; // <- debug only
-                ds_list_add(gp.points, pt);
-                
-                // t_read_from_device
-                var as_x = 30 + gxoffset;
-                var as_y = iter.t_read_from_device;
-                if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
-                var pt = instance_create(0, 0, graph_single_point);
-                pt.xx = as_x;
-                pt.yy = as_y;
-                pt.xlabel = "read from SYCL";
-                pt.ylabel = split_thousands_time(as_y);
-                pt.color = gp.color; // <- debug only
-                ds_list_add(gp.points, pt);
-                
-                // t_free_gpu
-                var as_x = 40 + gxoffset;
-                var as_y = iter.t_free_gpu; //t_free_gpu
-                if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
-                var pt = instance_create(0, 0, graph_single_point);
-                pt.xx = as_x;
-                pt.yy = as_y;
-                pt.xlabel = "free SYCL";
-                pt.ylabel = split_thousands_time(as_y);
-                pt.color = gp.color; // <- debug only
-                ds_list_add(gp.points, pt);
-                
+                for (var iter_type = 0; iter_type <= 1; ++iter_type) {
+                    var uiter, ugp;
+                    if (iter_type == 0) { uiter = iter; ugp = gp; }
+                    if (iter_type == 1) { uiter = iter_par; ugp = gp_par; }
+                    
+                    if ( iter_type == 0 ) {
+                        // allocation
+                        var as_x = 0 + gxoffset;
+                        var as_y = uiter.t_allocation;
+                        if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
+                        var pt = instance_create(0, 0, graph_single_point);
+                        pt.xx = as_x;
+                        pt.yy = as_y;
+                        pt.xlabel = "SYCL alloc"; //split_thousands(j.PARALLEL_FOR_SIZE);
+                        pt.ylabel = split_thousands_time(as_y);
+                        pt.color = ugp.color; // <- debug only
+                        ds_list_add(ugp.points, pt);
+                        
+                        // t_copy_to_device
+                        var as_x = 10 + gxoffset;
+                        var as_y = uiter.t_copy_to_device;
+                        if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
+                        var pt = instance_create(0, 0, graph_single_point);
+                        pt.xx = as_x;
+                        pt.yy = as_y;
+                        pt.xlabel = "copy/access to SYCL";
+                        pt.ylabel = split_thousands_time(as_y);
+                        pt.color = ugp.color; // <- debug only
+                        ds_list_add(ugp.points, pt);
+                    }
+                    
+                    // t_parallel_for
+                    var as_x = 20 + gxoffset;
+                    var as_y = uiter.t_parallel_for;
+                    if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
+                    var pt = instance_create(0, 0, graph_single_point);
+                    pt.xx = as_x;
+                    pt.yy = as_y;
+                    pt.xlabel = "GPU kernel";
+                    pt.ylabel = split_thousands_time(as_y);
+                    pt.color = ugp.color; // <- debug only
+                    ds_list_add(ugp.points, pt);
+                    
+                    // t_read_from_device
+                    var as_x = 30 + gxoffset;
+                    var as_y = uiter.t_read_from_device;
+                    if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
+                    var pt = instance_create(0, 0, graph_single_point);
+                    pt.xx = as_x;
+                    pt.yy = as_y;
+                    pt.xlabel = "read from SYCL";
+                    pt.ylabel = split_thousands_time(as_y);
+                    pt.color = ugp.color; // <- debug only
+                    ds_list_add(ugp.points, pt);
+                    
+                    if ( iter_type == 0 ) {
+                        // t_free_gpu
+                        var as_x = 40 + gxoffset;
+                        var as_y = uiter.t_free_gpu; //t_free_gpu
+                        if (g_split_thousands_USE_MS) as_y = round(as_y / 1000) + 1;
+                        var pt = instance_create(0, 0, graph_single_point);
+                        pt.xx = as_x;
+                        pt.yy = as_y;
+                        pt.xlabel = "free SYCL";
+                        pt.ylabel = split_thousands_time(as_y);
+                        pt.color = ugp.color; // <- debug only
+                        ds_list_add(ugp.points, pt);
+                    }
+                }
                 
                 
                 //show_message("ij index = " + string(ij) + " ds index = " + string(ids) + "  pt index = " + string(i_iteration) + "  pt size = " + string(ds_list_size(gp.points)));
