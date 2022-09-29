@@ -1438,7 +1438,6 @@ namespace traccc {
             // Exécution du kernel
             if ( b.mode == sycl_mode::glibc ) {
                 // ==== parallel for ====
-                class MyKernel_a;
 
                 const unsigned int total_module_count_const = total_module_count;
                 const unsigned int max_cell_count_per_module = 1000;
