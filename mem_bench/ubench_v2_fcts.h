@@ -270,7 +270,7 @@ namespace ubench_v2 {
             data_type * s_input = b.sycl_input;;
             data_type * s_output = b.sycl_output;
         
-            auto e = b.sycl_q.parallel_for<class MyKernel_b>(cl::sycl::range<1>(pfsize), [=](cl::sycl::id<1> chunk_index) {
+            auto e = b.sycl_q.parallel_for<class MyKernel_bx>(cl::sycl::range<1>(pfsize), [=](cl::sycl::id<1> chunk_index) {
                 int cindex = chunk_index[0];
                 data_type sum = 0;
 
@@ -309,7 +309,7 @@ namespace ubench_v2 {
                 cl::sycl::accessor a_input (*b_input,  h, cl::sycl::read_only);
                 cl::sycl::accessor a_output(*b_output, h, cl::sycl::write_only, cl::sycl::no_init);
 
-                h.parallel_for<class MyKernel_b>(cl::sycl::range<1>(pfsize), [=](cl::sycl::id<1> chunk_index) {
+                h.parallel_for<class MyKernel_bz>(cl::sycl::range<1>(pfsize), [=](cl::sycl::id<1> chunk_index) {
                     int cindex = chunk_index[0];
                     data_type sum = 0;
 
