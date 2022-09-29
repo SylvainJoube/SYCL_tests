@@ -44,13 +44,13 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
 
     // Sandor does not support anonymous kernels.
 
-    class MyKernel_a;
-    class MyKernel_b;
+    // class MyKernel_ak;
+    // class MyKernel_bk;
 
     if (SIMD_FOR_LOOP == 0) {
         //logs(" -NOT simd- ");
         // Starts a kernel - traditional for loop
-        auto e = sycl_q.parallel_for<MyKernel_a>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
+        auto e = sycl_q.parallel_for<class MyKernel_ak>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
             int cindex = chunk_index[0];
             int start_index = cindex * local_VECTOR_SIZE_PER_ITERATION;
             int stop_index = start_index + local_VECTOR_SIZE_PER_ITERATION;
@@ -75,7 +75,7 @@ void generic_USM_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
     } else {
         //logs(" -IS simd- ");
         // Starts a kernel - SIMD optimized for loop
-        auto e = sycl_q.parallel_for<MyKernel_b>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
+        auto e = sycl_q.parallel_for<class MyKernel_bk>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](cl::sycl::id<1> chunk_index) {
             int cindex = chunk_index[0];
             data_type sum = 0;
 
