@@ -61,7 +61,7 @@ void sycl_hello_main() {
         // Kernel : vectors sum
         class SyclHelloworldKernel;
         
-        sycl_q.parallel_for<SyclHelloworldKernel>(cl::sycl::range<1>(vector_size), [=](cl::sycl::id<1> cell_index) {
+        sycl_q.parallel_for(cl::sycl::range<1>(vector_size), [=](cl::sycl::id<1> cell_index) {
             auto i = cell_index.get(0);
             output_sycl[i] = input_a_sycl[i] + input_b_sycl[i];
         });

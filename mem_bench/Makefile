@@ -1,4 +1,4 @@
-CXX = dpcpp
+CXX = /home/${USER}/sycl_workspace/llvm/build/bin/clang++ -fsycl -fsycl-targets=nvptx64-nvidia-cuda --cuda-path=/usr/local/cuda
 #dpcpp
 CXXFLAGS = -O2 -std=c++17 -Wall # -O0 -g     -O2 -std=c++17
 
@@ -55,6 +55,9 @@ run_traccc:
 
 run_traccc_acat:
 	./$(RUN_EXE_NAME) traccc_acat
+
+run_traccc_acat_flat_ld100:
+	./$(RUN_EXE_NAME) traccc_acat_flat_ld100
 
 run_traccc_sparse:
 	./$(RUN_EXE_NAME) traccc sparse
