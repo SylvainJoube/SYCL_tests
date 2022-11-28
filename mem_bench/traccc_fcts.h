@@ -1030,7 +1030,7 @@ namespace traccc {
                     for (uint ik = 0; ik < b.chres.kernel_count; ++ik) {
 
                         //uint rep = module_count;
-                        b.sycl_q.parallel_for<MyKernel_ab>(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
+                        b.sycl_q.parallel_for(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
 
                             uint module_index = module_indexx[0] % total_module_count_const;
                             // ---- SparseCCL part ----
@@ -1108,7 +1108,7 @@ namespace traccc {
 
                     for (uint ik = 0; ik < b.chres.kernel_count; ++ik) {
                         //uint rep = module_count;
-                        b.sycl_q.parallel_for<MyKernel_aa>(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
+                        b.sycl_q.parallel_for(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
 
                             uint module_index = module_indexx[0] % total_module_count_const;
                             // ---- SparseCCL part ----
@@ -1356,7 +1356,7 @@ namespace traccc {
                 for (uint ik = 0; ik < b.chres.kernel_count; ++ik) {
 
                     //uint rep = module_count;
-                    b.sycl_q.parallel_for<MyKernel_flat>(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
+                    b.sycl_q.parallel_for(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
 
                         uint module_index = module_indexx[0] % total_module_count_const;
                         // ---- SparseCCL part ----
@@ -1580,7 +1580,7 @@ namespace traccc {
                         cl::sycl::accessor a_output_cells(*buffer_output_cells, h, cl::sycl::write_only, cl::sycl::no_init); // noinit non supporté par hipsycl visiblement
                         cl::sycl::accessor a_output_modules(*buffer_output_modules, h, cl::sycl::write_only, cl::sycl::no_init);
 
-                        h.parallel_for<MyKernel_flat_acc>(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
+                        h.parallel_for(cl::sycl::range<1>(total_module_count_const), [=](cl::sycl::id<1> module_indexx) {
                             uint module_index = module_indexx[0] % total_module_count_const;
                             // ---- SparseCCL part ----
 
@@ -2307,7 +2307,7 @@ namespace traccc {
 
     void run_all_traccc_acat_benchs(std::string computer_name, int runs_count = 4) {
 
-        s_computer* c = &g_computers[3];
+        s_computer* c = &g_computers[6]; // CASSIDI (3 = Sandor)
         uint previous_ld = c->repeat_load_count;
         c->repeat_load_count = ACAT_REPEAT_LOAD_COUNT;
         base_traccc_repeat_load_count = c->repeat_load_count;

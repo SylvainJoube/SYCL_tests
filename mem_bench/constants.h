@@ -14,7 +14,7 @@
 const int ACAT_START_TEST_INDEX  = 1;
 const int ACAT_STOP_TEST_INDEX   = 2;
 const int ACAT_RUN_COUNT         = 1;
-const int ACAT_REPEAT_LOAD_COUNT = 100;
+/*const COMM TEMP ACAT*/ int ACAT_REPEAT_LOAD_COUNT = 10; // TODO : remettre 10, 100 c'est trop loong ! (1 pour test, 2022-09-30)
 
 #define DATA_TYPE unsigned int // TODO : try with unsigned int
 using data_type = DATA_TYPE;
@@ -185,7 +185,7 @@ struct s_computer {
 };
 
 
-const uint g_computer_count = 6;
+const uint g_computer_count = 7;
 s_computer g_computers[g_computer_count];
 
 void init_computers() {
@@ -254,6 +254,17 @@ void init_computers() {
     c->total_elements = 1024L * 1024L * 128L; // 128 milions elements * 4 bytes => 512 MiB
     c->size_str = "512MiB";
     c->L = 128;
+
+    // 7
+    c = &g_computers[ci++];
+    c->fullName   = "ls-cassidi";
+    c->toFileName = "cassidi";
+    c->deviceName = "NVIDIA RTX A6000";
+    c->repeat_load_count = 10; // benchs ACAT
+    c->total_elements = 1024L * 1024L * 256L * 6L; // 256 milions elements * 4 bytes => 1 GiB ; *6 => 6 GiB
+    c->size_str = "6GiB";
+    c->L = 128;
+
 
 }
 

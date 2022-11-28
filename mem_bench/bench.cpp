@@ -261,6 +261,7 @@ void generic_accessors_allocation(cl::sycl::queue &sycl_q, host_dataset *dataset
     timer.t_copy_to_device = chrono.reset();
 }
 
+// class MyKernel_ab;
 
 
 void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
@@ -323,9 +324,11 @@ void generic_accessors_compute(cl::sycl::queue &sycl_q, host_dataset* dataset,
             // Initialisation via le constructeur des accesseurs
             cl::sycl::accessor a_input(*buffer_input, h, cl::sycl::read_only);
             cl::sycl::accessor a_output(*buffer_output, h, cl::sycl::write_only, cl::sycl::no_init); // no_init non supporté par hipsycl visiblement
+            
+            
 
             // cl::sycl::id<1>
-            h.parallel_for<class MyKernel_ab>(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) {
+            h.parallel_for(cl::sycl::range<1>(PARALLEL_FOR_SIZE), [=](auto chunk_index) {
 
                 int cindex = chunk_index[0];
                 data_type sum = 0;
@@ -1394,6 +1397,20 @@ int main(int argc, char *argv[])
             //log("Will now sleep.");
             //unsigned int microseconds = 10000000;
             //usleep(microseconds);
+            traccc::run_all_traccc_acat_benchs(computerName + "_AT", std::stoi(runCount));
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
+            return 0;
+        }
+
+        if (arg.compare("traccc_acat_flat_ld100") == 0) {
+            std::string runCount = "1";
+            log("=> Run all -ACAT- TRACCC  tests at once, runCount(" + runCount + ") <=");
+            //traccc::traccc_bench(sycl_mode::glibc);
+            //log("Will now sleep.");
+            //unsigned int microseconds = 10000000;
+            //usleep(microseconds);
+            ACAT_REPEAT_LOAD_COUNT = 100;
             traccc::run_all_traccc_acat_benchs(computerName + "_AT", std::stoi(runCount));
             //traccc::traccc_bench(sycl_mode::glibc);
             //traccc::traccc_bench(sycl_mode::host_USM, traccc::mem_strategy::flatten);
